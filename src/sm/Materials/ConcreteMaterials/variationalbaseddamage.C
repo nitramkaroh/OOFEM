@@ -143,10 +143,7 @@ VarBasedDamageMaterial :: giveGradientDamageStiffnessMatrix_du(FloatMatrix &answ
 
     answer = stress;
     answer.times(-2.*(1-damage));
-    //@todo: experimental staff
-    answer.times(0.);
 
- 
 }
 
 void
@@ -160,8 +157,6 @@ VarBasedDamageMaterial :: giveGradientDamageStiffnessMatrix_ud(FloatMatrix &answ
 
     answer = stress;
     answer.times(-2.*(1-damage));
-    //@todo: experimental staff
-    answer.times(0.);
 
   /*
   FloatArray s, os, r;
@@ -243,7 +238,7 @@ VarBasedDamageMaterial :: givePlaneStressStiffMtrx(FloatMatrix &answer, MatRespo
 
     this->giveLinearElasticMaterial()->giveStiffnessMatrix(answer, mode, gp, tStep);
     answer.times(1.0 - tempDamage);
-    //@todo change this
+    //@todo phase field, should be generalized 
     answer.times(1.0 - tempDamage);
 }
 
@@ -265,7 +260,7 @@ VarBasedDamageMaterial :: givePlaneStrainStiffMtrx(FloatMatrix &answer, MatRespo
 
     this->giveLinearElasticMaterial()->giveStiffnessMatrix(answer, mode, gp, tStep);
     answer.times(1.0 - tempDamage);
-    //@todo change this
+    //@todo phase field, should be generalized 
     answer.times(1.0 - tempDamage);
 }
 
@@ -340,8 +335,6 @@ VarBasedDamageMaterial :: computeDamage(double &answer, double damageDrivingVari
     damage = status->giveDamage();
   }
 
-  if(damage != damage)
-    int ahoj = 1;
   */
 }
 
@@ -381,12 +374,8 @@ VarBasedDamageMaterial :: giveRealStressVectorGradientDamage(FloatArray &stress,
     if(initialDamage != 0)
       int ahoj = 0;
     stress.times(1-damage);
-    // @todo: remove this
+    //@todo phase field, should be generalized 
     stress.times(1-damage);
-    if(stress.at(1) != stress.at(1))
-      int ahoj = 1;
-
-
     // update gp
     status->letTempStressVectorBe(stress);
     status->setNonlocalDamageDrivingVariable(nonlocalDamageDrivingVariable);
