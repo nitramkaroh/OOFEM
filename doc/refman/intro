@@ -1,0 +1,37 @@
+/**
+\page page1 Additional information
+\section Introduction Introduction
+The idea of OOFEM is to provide a highly modular, easily extensible, high level, and robust environment for anyone wishing to write new FE code.
+OOFEM has a core library which currently 3 modules that extend the implementations (structural, fluid and heat/mass transfer problems).
+
+Here is a list of OOFEMlib highlights:
+ - object oriented architecture
+ - modular and extensible FEM kernel
+ - fully extensible - The kernel is extensible in any "direction". The possibility of
+   adding new element type, new material model with any type and number of internal
+   history parameters, new boundary condition, new numerical algorithm or new
+   analysis module is matter of course.
+ - threaded assembly
+ - PETSc bindings for parallel solvers
+ - support for exotic elements, boundary conditions, etc.
+ - independent problem formulation, numerical solution and data storage  -
+   The kernel provides the independent abstractions for analysis, general numerical
+   method and data storage (sparse matrices). The component mapping concept
+   allows to formulate problem and numerical method independently and allows to use
+   any suitable numerical method for problem solution without changes. This concept is
+   further enhanced by abstract sparse matrix interface, allowing to formulate
+   numerical method independently on sparse matrix implementation.
+ - full restart support - The kernel supports full restart from any previously saved state.
+ - export functions (VTK format and more)
+ - support for parallel processing (message passing) - General classes for
+   efficient inter domain communication are provided  built over the abstract general
+   layer for message passing libraries, which is available on many parallel platforms
+   (massively parallel computers, shared memory systems and workstation clusters).
+ - adaptive analysis support - multiple domain concept, fast spatial localization algorithms 
+   based on tree techniques are available.
+ - includes enhanced support for structural analysis, flow problems and heat/mass transfer.
+
+\section Distribution Distribution 
+The OOFEM www-page (<A HREF="http://www.oofem.org"> http://oofem.org </A>) is the source of up-to-date information and documentation.
+*/
+

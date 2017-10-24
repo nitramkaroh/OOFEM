@@ -1,0 +1,63 @@
+############################################################## www.oofem.org ###
+       ####    ####   ######  ######  #    #
+     #    #  #    #  #       #       ##  ##
+    #    #  #    #  #####   #####   # ## #
+   #    #  #    #  #       #       #    #
+  #    #  #    #  #       #       #    #   OOFEM ver. 2.4
+  ####    ####   #       ######  #    #    Copyright (C) 1994-2014 Borek Patzak
+################################################################################
+
+
+Starting analysis on: Mon Feb 27 14:51:44 2017
+
+Patch test of linear triangle elements, steady-state solution, prescribed constant edge flux, no heat source
+Domain type: heattransfer, default ndofs per node is 1
+
+
+
+==============================================================
+Output for time 1.00000000e+00 
+==============================================================
+Output for domain   1
+
+
+DofManager output:
+------------------
+Node           1 (       1):
+  dof 10   d  1.00000000e+01
+Node           2 (       2):
+  dof 10   d  1.60000000e+01
+Node           3 (       3):
+  dof 10   d  2.50000000e+01
+Node           4 (       4):
+  dof 10   d  1.00000000e+01
+Node           5 (       5):
+  dof 10   d  1.60000000e+01
+Node           6 (       6):
+  dof 10   d  2.50000000e+01
+
+
+
+
+Element output:
+---------------
+element 1 (       1) :
+  GP  1.1  :  state 1.2000e+01   flow -1.5000e+01 -0.0000e+00
+element 2 (       2) :
+  GP  1.1  :  state 1.4000e+01   flow -1.5000e+01 -5.3291e-15
+element 3 (       3) :
+  GP  1.1  :  state 1.9000e+01   flow -1.5000e+01 -5.3291e-15
+element 4 (       4) :
+  GP  1.1  :  state 2.2000e+01   flow -1.5000e+01 -0.0000e+00
+
+
+
+User time consumed by solution step 1: 0.002 [s]
+
+
+Finishing analysis on: Mon Feb 27 14:51:45 2017
+
+Real time consumed: 000h:00m:00s
+User time consumed: 000h:00m:00s
+
+

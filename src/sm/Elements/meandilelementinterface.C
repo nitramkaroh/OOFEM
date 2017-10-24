@@ -1,0 +1,290 @@
+/*
+ *
+ *                 #####    #####   ######  ######  ###   ###
+ *               ##   ##  ##   ##  ##      ##      ## ### ##
+ *              ##   ##  ##   ##  ####    ####    ##  #  ##
+ *             ##   ##  ##   ##  ##      ##      ##     ##
+ *            ##   ##  ##   ##  ##      ##      ##     ##
+ *            #####    #####   ##      ######  ##     ##
+ *
+ *
+ *             OOFEM : Object Oriented Finite Element Code
+ *
+ *               Copyright (C) 1993 - 2013   Borek Patzak
+ *
+ *
+ *
+ *       Czech Technical University, Faculty of Civil Engineering,
+ *   Department of Structural Mechanics, 166 29 Prague, Czech Republic
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
+
+#include "meandilelementinterface.h"
+#include "domain.h"
+#include "engngm.h"
+#include "../sm/CrossSections/structuralcrosssection.h"
+#include "../sm/Materials/incompressiblematerialextensioninterface.h"
+ 
+
+
+namespace oofem {
+
+
+// constructor
+MeanDilatationalMethodElementExtensionInterface :: MeanDilatationalMethodElementExtensionInterface(Domain *d)  : Interface()
+{
+  meanDilFlag = 0;
+  initialVolume = 0;
+}
+
+
+IRResultType
+MeanDilatationalMethodElementExtensionInterface :: initializeFrom(InputRecord *ir)
+{  
+  IRResultType result;              // Required by IR_GIVE_FIELD macro
+  // read the characteristic length
+  IR_GIVE_OPTIONAL_FIELD(ir, meanDilFlag, _IFT_MeanDilatationalMethodElementExtensionInterface_meandilflag);
+  return IRRT_OK;
+
+}
+
+
+void 
+MeanDilatationalMethodElementExtensionInterface :: computeInitialVolume(NLStructuralElement *elem)
+{
+
+  double V = 0;
+  for ( auto &gp : *elem->giveDefaultIntegrationRulePtr() ) {
+    double dV = elem->computeVolumeAround(gp);	  
+    V += dV;
+  }
+  this->initialVolume = V;
+}
+
+
+double 
+MeanDilatationalMethodElementExtensionInterface :: computeMeanDilatationalBmatrixAt(FloatMatrix &answer, TimeStep *tStep, NLStructuralElement *elem)
+{
+
+  answer.resize(0,0);
+  double v = 0;
+  for ( auto &gp : *elem->giveDefaultIntegrationRulePtr() ) {
+    FloatMatrix B;
+    elem->computeBmatrixAt(gp, B, tStep,1);
+    int nRows = B.giveNumberOfRows();
+    int nCol = B.giveNumberOfColumns();
+    if(answer.giveNumberOfRows() == 0) {
+      answer.resize(nRows,nCol);
+    }
+    double dV = elem->computeVolumeAround(gp);	  
+    v += dV;
+    B.times(dV);
+    answer.add(B);    
+  }
+
+  answer.times(1./v);
+  
+
+
+  return v/this->initialVolume;
+
+}
+
+
+void
+MeanDilatationalMethodElementExtensionInterface :: giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, NLStructuralElement *elem)
+{
+
+    StructuralCrossSection *cs = elem->giveStructuralCrossSection();
+
+    FloatMatrix B;
+    FloatArray vStress, vStrain, u;
+
+    FloatMatrix meanB;
+    double Jbar = this->computeMeanDilatationalBmatrixAt(meanB, tStep, elem); 	  
+	
+    // zero answer will resize accordingly when adding first contribution
+    answer.clear();
+
+    for ( auto &gp: *elem->giveDefaultIntegrationRulePtr() ) {
+      // Engineering (small strain) stress
+      if ( elem->nlGeometry == 0 ) {
+	OOFEM_ERROR("Only large strain formulations are currently supported");
+      } else if ( elem->nlGeometry == 1 ) {
+	FloatArray vStress, vF;
+	if ( elem->domain->giveEngngModel()->giveFormulation() == AL ) { // Cauchy stress
+	elem->computeDeformationGradientVector(vF, gp, tStep, VM_Incremental);
+	IncompressibleMaterialExtensionInterface *imat = dynamic_cast< IncompressibleMaterialExtensionInterface* >(cs->giveMaterialInterface(IncompressibleMaterialExtensionInterfaceType, gp) );
+	  FloatArray p;
+	  imat -> giveDeviatoricCauchyStressVector_3d(vStress, gp, vF, tStep);
+	  imat -> giveVolumetricCauchyStressVector_3d(p, gp, Jbar);  
+	  vStress.add(p);
+	  elem->computeBmatrixAt(gp, B, tStep);
+	} else { // First Piola-Kirchhoff stress
+	  OOFEM_ERROR("Only actualized lagrangian formulation is currently supported");
+	}
+
+        if ( vStress.giveSize() == 0 ) { /// @todo is this check really necessary?
+	  break;
+        }
+
+        // Compute nodal internal forces at nodes as f = B^T*Stress dV
+        double dV  = elem->computeVolumeAround(gp);
+
+	if ( vStress.giveSize() == 6 ) {
+	  // It may happen that e.g. plane strain is computed
+	  // using the default 3D implementation. If so,
+	  // the stress needs to be reduced.
+	  // (Note that no reduction will take place if
+	  //  the simulation is actually 3D.)
+	  FloatArray stressTemp;
+	  StructuralMaterial :: giveReducedSymVectorForm( stressTemp, vStress, gp->giveMaterialMode() );
+	  answer.plusProduct(B, stressTemp, dV);
+	} else   {
+	  answer.plusProduct(B, vStress, dV);
+	}
+	
+      }
+    }
+    // If inactive: update fields but do not give any contribution to the internal forces
+    if ( !elem->isActivated(tStep) ) {
+        answer.zero();
+        return;
+    }
+}
+
+
+
+
+
+
+
+
+
+void
+MeanDilatationalMethodElementExtensionInterface :: computeStiffnessMatrix(FloatMatrix &answer,
+                                              MatResponseMode rMode, TimeStep *tStep, NLStructuralElement *elem)
+{
+    StructuralCrossSection *cs = elem->giveStructuralCrossSection();
+    bool matStiffSymmFlag = cs->isCharacteristicMtrxSymmetric(rMode);
+    FloatMatrix test;
+    test.clear();
+    answer.clear();
+
+    if ( !elem->isActivated(tStep) ) {
+        return;
+    }
+
+    // add mean dilatational method contribution
+   
+    // Compute matrix from material stiffness (total stiffness for small def.) - B^T * dS/dE * B
+    if ( elem->giveNumberOfIntegrationRules() == 1 ) {
+      // first, compute mean Bmatrix and mean J
+      double V, Jbar;
+      FloatMatrix meanB;
+      Jbar = this->computeMeanDilatationalBmatrixAt(meanB, tStep, elem);                     
+
+      
+        for ( auto &gp : *elem->giveDefaultIntegrationRulePtr() ) {
+	  FloatMatrix B, D, Dp, Dvol, DB;
+          if ( elem->nlGeometry == 1 ) {
+	    if ( elem->giveDomain()->giveEngngModel()->giveFormulation() == AL ) { // Material stiffness dC/de
+	      elem->computeBmatrixAt(gp, B, tStep);
+	      IncompressibleMaterialExtensionInterface *imat = dynamic_cast< IncompressibleMaterialExtensionInterface* >(cs->giveMaterialInterface(IncompressibleMaterialExtensionInterfaceType, gp) );
+
+	      imat -> giveDeviatoric3dMaterialStiffnessMatrix_dCde(D, rMode, gp, tStep);
+	      imat -> givePressure3dMaterialStiffnessMatrix_dCde(Dp, Jbar);
+	      imat -> giveVolumetric3dMaterialStiffnessMatrix_dCde(Dvol, Jbar);  
+	      if(gp->giveMaterialMode() == _PlaneStrain) {
+		D.at(1, 4) = D.at(1, 6);
+		D.at(2, 4) = D.at(2, 6);
+		D.at(3, 4) = D.at(3, 6);
+		D.at(4, 1) = D.at(6, 1);
+		D.at(4, 2) = D.at(6, 2);
+		D.at(4, 4) = D.at(6, 6);
+		D.resizeWithData(4,4);
+
+		Dp.at(1, 4) = Dp.at(1, 6);
+		Dp.at(2, 4) = Dp.at(2, 6);
+		Dp.at(3, 4) = Dp.at(3, 6);
+		Dp.at(4, 1) = Dp.at(6, 1);
+		Dp.at(4, 2) = Dp.at(6, 2);
+		Dp.at(4, 4) = Dp.at(6, 6);
+		Dp.resizeWithData(4,4);
+
+		Dvol.at(1, 4) = Dvol.at(1, 6);
+		Dvol.at(2, 4) = Dvol.at(2, 6);
+		Dvol.at(3, 4) = Dvol.at(3, 6);
+		Dvol.at(4, 1) = Dvol.at(6, 1);
+		Dvol.at(4, 2) = Dvol.at(6, 2);
+		Dvol.at(4, 4) = Dvol.at(6, 6);
+		Dvol.resizeWithData(4,4);
+
+	      }
+	
+	      D.add(Dp);
+	    } else { // Material stiffness dP/dF
+	      OOFEM_ERROR("Only actualized lagrangian formulation is currently supported.")
+	    }
+	  } else { // small strains
+	    OOFEM_ERROR("Only large strain formulation is currently supported.")
+	  }
+  	  
+	  double dV = elem->computeVolumeAround(gp);	  
+	  V += dV;
+	  // add initial stress stiffness 
+	  FloatMatrix Bh, sI_Bh, sI, Dvol_meanB;
+	  cs->giveInitialStiffnessMatrix_Cauchy(sI, rMode, gp, tStep);
+	  elem->computeBHmatrixAt(gp, Bh,tStep,1);
+	  sI_Bh.beProductOf(sI, Bh);
+	  Dvol_meanB.beProductOf(Dvol, meanB);
+	  if ( matStiffSymmFlag ) {
+	    answer.plusProductSymmUpper(Bh, sI_Bh, dV);
+	    answer.plusProductSymmUpper(meanB, Dvol, dV);
+	  } else {
+	    answer.plusProductUnsym(Bh, sI_Bh, dV);
+	    answer.plusProductUnsym(meanB, Dvol_meanB, dV);
+	  }
+	  
+	  DB.beProductOf(D, B);
+	  if ( matStiffSymmFlag ) {
+	    answer.plusProductSymmUpper(B, DB, dV);
+	  } else {
+	    answer.plusProductUnsym(B, DB, dV);
+	  }
+        }
+
+    
+        
+
+    } else {
+      OOFEM_ERROR("More than one integration rule is not currently supported.")
+    }
+
+    if ( matStiffSymmFlag ) {
+        answer.symmetrized();
+    }
+}
+
+
+void 
+MeanDilatationalMethodElementExtensionInterface :: postInitialize(NLStructuralElement *elem)
+{
+  this->computeInitialVolume(elem);
+}
+
+} // end namespace oofem

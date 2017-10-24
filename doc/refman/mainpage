@@ -1,0 +1,22 @@
+/** 
+ * \mainpage OOFEM Reference Documentation
+ *
+ * <CENTER><H2>Welcome to the world of OOFEM </H2></CENTER>
+ *
+ * OOFEM is a general purpose object oriented FEM code, written in C++. 
+ * This code provides the functionality of general FEM kernel though the core library, with several modules that implements many types of elements, material models, and analysis types.
+ * This manual contains the API documentation for all components.
+ *
+ * For an introduction to the philosophy of OOFEM go on reading the \ref Introduction.
+ * This reference manual will provide you with a complete documentation of the
+ * features provided by OOFEM.
+ * OOFEM allows user to directly focus on his/her problem, at a high abstraction layer, by writing some derived classes.
+ * If you think OOFEM can help you with your projects and you want to get your copy of OOFEM go on reading section \ref Distribution.
+ *
+ * See (<A HREF="http://oofem.org"> http://oofem.org </A>) for more information about OOFEM.
+ *
+ * <CENTER><H2>Enjoy!</H2></CENTER>
+ *
+ * @author <A HREF="http://mech.fsv.cvut.cz/~bp/bp.html">Borek Patzak</A>
+ */
+

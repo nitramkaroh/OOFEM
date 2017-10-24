@@ -1,0 +1,94 @@
+/*
+ *
+ *                 #####    #####   ######  ######  ###   ###
+ *               ##   ##  ##   ##  ##      ##      ## ### ##
+ *              ##   ##  ##   ##  ####    ####    ##  #  ##
+ *             ##   ##  ##   ##  ##      ##      ##     ##
+ *            ##   ##  ##   ##  ##      ##      ##     ##
+ *            #####    #####   ##      ######  ##     ##
+ *
+ *
+ *             OOFEM : Object Oriented Finite Element Code
+ *
+ *               Copyright (C) 1993 - 2013   Borek Patzak
+ *
+ *
+ *
+ *       Czech Technical University, Faculty of Civil Engineering,
+ *   Department of Structural Mechanics, 166 29 Prague, Czech Republic
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
+#ifndef meandilementinterface_h
+#define meandilelementinterface_h
+
+#include "interface.h"
+#include "floatarray.h"
+#include "floatmatrix.h"
+#include "matresponsemode.h"
+#include "nlstructuralelement.h"
+
+
+
+///@name meandilatationalmethod
+//@{
+#define _IFT_MeanDilatationalMethodElementExtensionInterface_meandilflag "meandilflag"
+//@}
+
+namespace oofem {
+
+class GaussPoint;
+class TimeStep;
+
+/**
+ * Mean dilatational method lement extension interface
+ * @author: Martin Horak, nitramkaroh@seznam.cz
+ * @reference: J. Bonet, D. Wood :Nonlinear Continuum Mechanics for Finite Element Analysis, 2nd Edition
+ */
+
+class MeanDilatationalMethodElementExtensionInterface : public Interface
+{
+
+
+
+protected:
+  int meanDilFlag;
+  
+public:
+    /**
+     * Constructor. Creates element interface belonging to given domain.
+     * @param d Domain to which new material will belong.
+     */
+    MeanDilatationalMethodElementExtensionInterface(Domain *d);
+    /// Destructor.
+    virtual ~MeanDilatationalMethodElementExtensionInterface() { }
+
+
+    void computeMeanDilatationalMethodStiffnessContribution(FloatMatrix &answer, TimeStep *tStep, StructuralElement* elem);
+
+    void computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode rMode, TimeStep *tStep, NLStructuralElement *elem);
+    void giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, NLStructuralElement *elem);
+
+
+    IRResultType initializeFrom(InputRecord *ir);
+        
+ protected:   
+    double computeMeanDilatationalBmatrixAt(FloatMatrix &answer, TimeStep *tStep, NLStructuralElement *elem);
+  
+};
+
+}
+#endif
