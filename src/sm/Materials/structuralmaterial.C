@@ -396,19 +396,17 @@ StructuralMaterial :: giveFirstPKStressVector_PlaneStress(FloatArray &answer, Ga
 
 
 void
-StructuralMaterial :: giveFirstPKStressVector_1d(FloatArray &answer, GaussPoint *gp, const FloatArray &reducedvF, TimeStep *tStep)
+StructuralMaterial :: giveFirstPKStressVector_1d(FloatArray &answer, GaussPoint *gp, const FloatArray &vF, TimeStep *tStep)
 {
   StructuralMaterialStatus *status = static_cast< StructuralMaterialStatus * >( this->giveStatus(gp) );
 
     FloatArray vE(1), vS(1);
-    vE.at(1) = (reducedvF.at(1)*reducedvF.at(1)*-1.)/2.;
+    vE.at(1) = (vF.at(1)*vF.at(1)*-1.)/2.;
     ///@todo Have this function:
     this->giveRealStressVector_1d(vS, gp, vE, tStep);
-    StructuralMaterialStatus *status = static_cast< StructuralMaterialStatus * >( this->giveStatus(gp) );
-
     // Compute first PK stress from second PK stress
     answer.resize(1);
-    answer.at(1,1) = vF.at(1,1)*vS.at(1);
+    answer.at(1) = vF.at(1)*vS.at(1);
 
     status->letTempPVectorBe(answer);
     status->letTempFVectorBe(vF);
