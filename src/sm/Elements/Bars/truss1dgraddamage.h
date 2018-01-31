@@ -32,36 +32,38 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef qtruss1dgraddamage_h
-#define qtruss1dgraddamage_h
+#ifndef truss1dgraddamage_h
+#define truss1dgraddamage_h
 
-#include "../sm/Elements/Bars/qtruss1d.h"
+
+#include "../sm/Elements/Bars/truss1d.h"
 #include "../sm/Elements/graddamageelement.h"
 
-#define _IFT_QTruss1dGradDamage_Name "qtruss1dgraddamage"
+#define _IFT_Truss1dGradDamage_Name "truss1dgraddamage"
 
 namespace oofem {
 class FEI1dLin;
 
 /**
- * This class implements a three-node gradient truss bar element for one-dimensional
+ * This class implements a two-node truss bar element for one-dimensional
  * analysis.
  */
-class QTruss1dGradDamage : public QTruss1d, public GradientDamageElement
+ class Truss1dGradDamage : public Truss1d, public GradientDamageElement 
 {
 protected:
-    static FEI1dLin interpolation_lin;
-
+  static IntArray locationArray_u;
+  static IntArray locationArray_d;
 public:
-    QTruss1dGradDamage(int n, Domain * d);
-    virtual ~QTruss1dGradDamage() { }
+    Truss1dGradDamage(int n, Domain * d);
+    virtual ~Truss1dGradDamage() {;}
 
-    virtual const char *giveInputRecordName() const { return _IFT_QTruss1dGradDamage_Name; }
-    virtual const char *giveClassName() const { return "QTruss1dGradDamage"; }
+
+    virtual const char *giveInputRecordName() const { return _IFT_Truss1dGradDamage_Name; }
+    virtual const char *giveClassName() const { return "Truss1dGradDamage"; }
 
     virtual MaterialMode giveMaterialMode() { return _1dMat; }
     virtual IRResultType initializeFrom(InputRecord *ir);
-    virtual int computeNumberOfDofs() { return 5; }
+    virtual int computeNumberOfDofs() { return 4; }
 
 protected:
     virtual void computeBdMatrixAt(GaussPoint *gp, FloatMatrix &answer);
@@ -69,15 +71,17 @@ protected:
     virtual void computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode rMode, TimeStep *tStep);
     virtual void computeField(ValueModeType mode, TimeStep *tStep, const FloatArray &lcoords, FloatArray &answer);
     virtual void giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord = 0);
-    virtual void computeGaussPoints();
     virtual void giveDofManDofIDMask(int inode, IntArray &answer) const;
     void giveDofManDofIDMask_u(IntArray &answer) const;
     void giveDofManDofIDMask_d(IntArray &answer) const;
     
     virtual StructuralElement *giveStructuralElement() { return this; }
     virtual NLStructuralElement *giveNLStructuralElement() { return this; }
-    virtual void giveLocationArray_u(IntArray &answer){;}
-    virtual void giveLocationArray_d(IntArray &answer){;}
+    virtual void giveLocationArray_u(IntArray &answer);
+    virtual void giveLocationArray_d(IntArray &answer);
+    void postInitialize();
+
+
 };
 } // end namespace oofem
-#endif // truss1d_h
+#endif // truss1dgraddamage_h

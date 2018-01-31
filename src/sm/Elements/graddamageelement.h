@@ -39,6 +39,9 @@
 #include "../sm/Elements/structuralelement.h"
 #include "../sm/Elements/nlstructuralelement.h"
 
+#define _IFT_GradientDamageElement_penalty "penalty"
+
+
 namespace oofem {
 /**
  * Abstract class for gradient damage models
@@ -57,7 +60,9 @@ protected:
     int totalSize, nlSize, locSize;
     IntArray locationArray_u;
     IntArray locationArray_d;
-
+    double penalty;
+    
+    
 
 
 public:
@@ -87,7 +92,7 @@ protected:
     void computeStrainVector(FloatArray &answer, GaussPoint *gp, TimeStep *tStep);
     void computeDeformationGradientVector(FloatArray &answer, GaussPoint *gp, TimeStep *tStep);
 
-    void computeNonlocalDegreesOfFreedom(FloatArray &answer, TimeStep *tStep);
+    void computeNonlocalDegreesOfFreedom(FloatArray &answer, TimeStep *tStep, ValueModeType vmt = VM_Total);
     void computeNonlocalDamageDrivingVariable(double &answer, GaussPoint *gp, TimeStep *tStep);
     void computeNonlocalDamageDrivingVariableGradient(FloatArray &answer, GaussPoint *gp, TimeStep *tStep);
 	
@@ -108,6 +113,8 @@ protected:
     virtual void giveLocationArray_d(IntArray &answer) = 0;
     
 
+    virtual const char *giveClassName() const { return "GradientDamageElement"; }
+    
     virtual void postInitialize();
 
     

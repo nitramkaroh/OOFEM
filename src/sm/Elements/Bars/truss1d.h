@@ -35,7 +35,7 @@
 #ifndef truss1d_h
 #define truss1d_h
 
-#include "../sm/Elements/structuralelement.h"
+#include "../sm/Elements/nlstructuralelement.h"
 #include "../sm/ErrorEstimators/directerrorindicatorrc.h"
 #include "../sm/ErrorEstimators/zzerrorestimator.h"
 #include "../sm/ErrorEstimators/huertaerrorestimator.h"
@@ -53,7 +53,7 @@ class FEI1dLin;
  * This class implements a two-node truss bar element for one-dimensional
  * analysis.
  */
-class Truss1d : public StructuralElement,
+class Truss1d : public NLStructuralElement,
 public ZZNodalRecoveryModelInterface, public NodalAveragingRecoveryModelInterface, public SpatialLocalizerInterface,
 public ZZErrorEstimatorInterface,
 public HuertaErrorEstimatorInterface

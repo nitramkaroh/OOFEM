@@ -48,7 +48,6 @@ GradientDamageMaterialExtensionInterface :: GradientDamageMaterialExtensionInter
 {
     dom = d;
     internalLength = 0.;
-    penalty = 0;
     
 }
 
@@ -61,7 +60,6 @@ GradientDamageMaterialExtensionInterface :: initializeFrom(InputRecord *ir)
 
     // read the characteristic length
     IR_GIVE_FIELD(ir, internalLength, _IFT_GradientDamageMaterialExtensionInterface_l);
-    IR_GIVE_OPTIONAL_FIELD(ir, penalty, _IFT_GradientDamageMaterialExtensionInterface_penalty);
 
 
     return IRRT_OK;
@@ -71,6 +69,8 @@ GradientDamageMaterialExtensionInterface :: initializeFrom(InputRecord *ir)
   {
     localDamageDrivingVariable = 0.;
     nonlocalDamageDrivingVariable = 0.;
+    tempLocalDamageDrivingVariable = 0.;
+    tempNonlocalDamageDrivingVariable = 0.;
   }
 
   
@@ -78,6 +78,8 @@ void
 GradientDamageMaterialStatusExtensionInterface :: initTempStatus()
 {
     tempLocalDamageDrivingVariable = localDamageDrivingVariable;
+    tempNonlocalDamageDrivingVariable = nonlocalDamageDrivingVariable;
+
 }
 
 
@@ -85,6 +87,7 @@ void
 GradientDamageMaterialStatusExtensionInterface :: updateYourself(TimeStep *tStep)
 {
   localDamageDrivingVariable = tempLocalDamageDrivingVariable;
+  nonlocalDamageDrivingVariable = tempNonlocalDamageDrivingVariable;
 }
 
   

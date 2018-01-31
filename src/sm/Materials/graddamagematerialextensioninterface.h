@@ -41,8 +41,6 @@
 ///@name graddpdmaterialextensioninterface
 //@{
 #define _IFT_GradientDamageMaterialExtensionInterface_l "l"
-#define _IFT_GradientDamageMaterialExtensionInterface_penalty "penalty"
-
 //@}
 
 namespace oofem {
@@ -67,9 +65,6 @@ protected:
      * nonlocal variation is applied
      */
     double internalLength;
-
-    /// penalty term
-    double penalty;
     
 
 
@@ -102,8 +97,8 @@ public:
 
 
     virtual void computeLocalDamageDrivingVariable(double &answer, GaussPoint *gp, TimeStep *tStep) = 0 ;
-    virtual void giveNonlocalInternalForces_N_factor(double &answer,GaussPoint *gp, TimeStep *tStep) = 0;
-    virtual void giveNonlocalInternalForces_B_factor(double &answer,GaussPoint *gp, TimeStep *tStep) = 0;
+    virtual void giveNonlocalInternalForces_N_factor(double &answer, double nlddv, GaussPoint *gp, TimeStep *tStep) = 0;
+    virtual void giveNonlocalInternalForces_B_factor(FloatArray &answer, const FloatArray &nlddv, GaussPoint *gp, TimeStep *tStep) = 0;
 
     
 

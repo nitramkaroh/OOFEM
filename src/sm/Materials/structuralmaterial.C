@@ -400,52 +400,36 @@ StructuralMaterial :: giveFirstPKStressVector_1d(FloatArray &answer, GaussPoint 
 {
   StructuralMaterialStatus *status = static_cast< StructuralMaterialStatus * >( this->giveStatus(gp) );
 
-    FloatArray vE(1), vS(1);
-    vE.at(1) = (reducedvF.at(1)*reducedvF.at(1)*-1.)/2.;
-    ///@todo Have this function:
-    this->giveRealStressVector_1d(vS, gp, vE, tStep);
-    StructuralMaterialStatus *status = static_cast< StructuralMaterialStatus * >( this->giveStatus(gp) );
+   IntArray P_control; // Determines which components are controlled by P resp.
+   FloatArray vF, increment_vF, vP, vP_control;
+   FloatMatrix tangent, tangent_Pcontrol;
+   // Compute the negated the array of control since we need P_control as well;
+   P_control.resize(8);
+   for ( int i = 1; i <= 8; i++ ) {
+       P_control.at(i) = i + 1;
+   }
 
-    // Compute first PK stress from second PK stress
-    answer.resize(1);
-    answer.at(1,1) = vF.at(1,1)*vS.at(1);
+   // Initial guess;
+   vF = status->giveFVector();
+   vF.at(1) = reducedvF.at(1);
+   // Iterate to find full vF.
+   for ( int k = 0; k < 100; k++ ) { // Allow for a generous 100 iterations.
+       this->giveFirstPKStressVector_3d(vP, gp, vF, tStep);
+       vP_control.beSubArrayOf(vP, P_control);
+       if ( vP_control.computeNorm() < 1e-6 ) { ///@todo We need a tolerance here!
+           StructuralMaterial :: giveReducedVectorForm(answer, vP, _1dMat);
+           return;
+       }
 
-    status->letTempPVectorBe(answer);
-    status->letTempFVectorBe(vF);
-
-  
-    /*
-
-    IntArray P_control; // Determines which components are controlled by P resp.
-    FloatArray vF, increment_vF, vP, vP_control;
-    FloatMatrix tangent, tangent_Pcontrol;
-    // Compute the negated the array of control since we need P_control as well;
-    P_control.resize(8);
-    for ( int i = 1; i <= 8; i++ ) {
-        P_control.at(i) = i + 1;
-    }
-
-    // Initial guess;
-    vF = status->giveFVector();
-    vF.at(1) = reducedvF.at(1);
-    // Iterate to find full vF.
-    for ( int k = 0; k < 100; k++ ) { // Allow for a generous 100 iterations.
-        this->giveFirstPKStressVector_3d(vP, gp, vF, tStep);
-        vP_control.beSubArrayOf(vP, P_control);
-        if ( vP_control.computeNorm() < 1e-6 ) { ///@todo We need a tolerance here!
-            StructuralMaterial :: giveReducedVectorForm(answer, vP, _1dMat);
-            return;
-        }
-
-        this->give3dMaterialStiffnessMatrix_dPdF(tangent, TangentStiffness, gp, tStep);
-        tangent_Pcontrol.beSubMatrixOf(tangent, P_control, P_control);
-        tangent_Pcontrol.solveForRhs(vP_control, increment_vF);
-        vF.assemble(increment_vF, P_control);
-    }
+       this->give3dMaterialStiffnessMatrix_dPdF(tangent, TangentStiffness, gp, tStep);
+       tangent_Pcontrol.beSubMatrixOf(tangent, P_control, P_control);
+       tangent_Pcontrol.solveForRhs(vP_control, increment_vF);
+       vF.assemble(increment_vF, P_control);
+   }
 
     OOFEM_WARNING("Iteration did not converge");
     answer.clear();
-    */
+   
 }
 
 

@@ -380,16 +380,20 @@ IDGMaterial :: giveInternalLengthDerivative(FloatMatrix &answer, MatResponseMode
 
 
 void
-IDGMaterial :: giveNonlocalInternalForces_N_factor(double &answer,GaussPoint *gp, TimeStep *tStep)
+IDGMaterial :: giveNonlocalInternalForces_N_factor(double &answer, double nlDamageDrivingVariable, GaussPoint *gp, TimeStep *tStep)
 {
- answer = 1.;
+ answer = nlDamageDrivingVariable;
 }
 
   void
-IDGMaterial :: giveNonlocalInternalForces_B_factor(double &answer,GaussPoint *gp, TimeStep *tStep)
+IDGMaterial :: giveNonlocalInternalForces_B_factor(FloatArray &answer,const FloatArray &nlDamageDrivingVariable_grad, GaussPoint *gp, TimeStep *tStep)
 {
-  answer = internalLength * internalLength;
+  answer = nlDamageDrivingVariable_grad;
+  answer.times(internalLength * internalLength);
 }
+  
+
+
 
   
 void

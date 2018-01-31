@@ -55,8 +55,6 @@ VarBasedDamageMaterial :: VarBasedDamageMaterial(int n, Domain *d) : IsotropicDa
     // constructor
     //
 {
-    internalLength = 0;
-    initialDamage = 0;
 }
 
 
@@ -83,7 +81,41 @@ VarBasedDamageMaterial :: initializeFrom(InputRecord *ir)
     }
 
     IR_GIVE_FIELD(ir, gf, _IFT_IsotropicDamageMaterial1_gf);
-    IR_GIVE_OPTIONAL_FIELD(ir, initialDamage, _IFT_VarBasedDamageMaterial_initDamage);
+    beta = 1.0;      
+    IR_GIVE_OPTIONAL_FIELD(ir, beta, _IFT_VarBasedDamageMaterial_beta);
+    p = 0.5;
+    IR_GIVE_OPTIONAL_FIELD(ir, p, _IFT_VarBasedDamageMaterial_p);
+    pf = 0;
+    //non zero value corresponds to the Miehe phase-field model, p and beta are ignored
+    IR_GIVE_OPTIONAL_FIELD(ir, pf, _IFT_VarBasedDamageMaterial_pf);
+
+
+    int equivStrainTypeRecord = 0; // default
+    IR_GIVE_OPTIONAL_FIELD(ir, equivStrainTypeRecord, _IFT_VarBasedDamageMaterial_equivstraintype);
+    if ( equivStrainTypeRecord == 0 ) {
+        this->equivStrainType = EST_Mazars;
+    } else if ( equivStrainTypeRecord == 1 ) {
+        this->equivStrainType = EST_Rankine_Smooth;
+    } else if ( equivStrainTypeRecord == 2 ) {
+        this->equivStrainType = EST_ElasticEnergy;
+    } else if ( equivStrainTypeRecord == 3 ) {
+        this->equivStrainType = EST_Mises;
+        IR_GIVE_FIELD(ir, k, _IFT_IsotropicDamageMaterial1_k);
+    } else if ( equivStrainTypeRecord == 4 ) {
+        this->equivStrainType = EST_Rankine_Standard;
+    } else if ( equivStrainTypeRecord == 5 ) {
+        this->equivStrainType = EST_ElasticEnergyPositiveStress;
+    } else if ( equivStrainTypeRecord == 6 ) {
+        this->equivStrainType = EST_ElasticEnergyPositiveStrain;
+    } else if ( equivStrainTypeRecord == 7 ) {
+        this->equivStrainType = EST_Griffith;
+        IR_GIVE_OPTIONAL_FIELD(ir, griff_n, _IFT_IsotropicDamageMaterial1_n);
+    } else {
+        OOFEM_WARNING("Unknown equivStrainType %d", equivStrainType);
+        return IRRT_BAD_FORMAT;
+    }
+
+
 
 
     
@@ -114,20 +146,20 @@ VarBasedDamageMaterial :: giveStiffnessMatrix(FloatMatrix &answer,
 void
 VarBasedDamageMaterial :: giveGradientDamageStiffnessMatrix_uu(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
 {
-    MaterialMode mMode = gp->giveMaterialMode();
-    switch ( mMode ) {
-    case _1dMat:
-        give1dStressStiffMtrx(answer, mode, gp, tStep);
-        break;
-    case _PlaneStress:
-        givePlaneStressStiffMtrx(answer, mode, gp, tStep);
-        break;
-    case _PlaneStrain:
-        givePlaneStrainStiffMtrx(answer, mode, gp, tStep);
-        break;
-    default:
-        OOFEM_ERROR("mMode = %d not supported\n", mMode);
+  VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
+  double tempDamage;
+  if ( mode == ElasticStiffness ) {
+    tempDamage = 0.0;
+  } else {
+    tempDamage = status->giveTempDamage();
+    if ( tempDamage > 0.0 ) {
+      tempDamage = min(tempDamage, maxOmega);
     }
+  }
+  
+  this->giveLinearElasticMaterial()->giveStiffnessMatrix(answer, mode, gp, tStep);
+  answer.times(1.0 - tempDamage);  
+
 }
 
   
@@ -137,209 +169,211 @@ VarBasedDamageMaterial :: giveGradientDamageStiffnessMatrix_du(FloatMatrix &answ
 {
   VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
 
+  double dDamage, damageDrivingVariable;
   FloatArray stress = status->giveTempEffectiveStressVector();
-  double damage = status->giveTempDamage();
-  double dDamage = damage - status->giveDamage();
+  damageDrivingVariable = status->giveTempNonlocalDamageDrivingVariable();
+  this->computeDamagePrime(dDamage, damageDrivingVariable, gp);
+  answer = stress;
 
-    answer = stress;
-    answer.times(-2.*(1-damage));
-
+  double deltaDamage = status->giveTempDamage() - status->giveDamage();
+  if(deltaDamage <= 0) {
+    answer.times(0);
+  } else {
+    answer.times(-dDamage);
+  }
+  /// zero block for now
+  answer.times(0);
+  
 }
 
+
+  // this function is not necessary for variational, i.e., a symmetric formulation
+  // it is implemented anyway for possibility of further extensions
 void
 VarBasedDamageMaterial :: giveGradientDamageStiffnessMatrix_ud(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
 {
   VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
 
   FloatArray stress = status->giveTempEffectiveStressVector();
-  double damage = status->giveTempDamage();
-  double dDamage = damage - status->giveDamage();
+  double dDamage, damageDrivingVariable;
+  damageDrivingVariable = status->giveTempNonlocalDamageDrivingVariable();
+  this->computeDamagePrime(dDamage, damageDrivingVariable, gp);
+  answer = stress;
 
-    answer = stress;
-    answer.times(-2.*(1-damage));
+  double deltaDamage = status->giveTempDamage() - status->giveDamage();
+  if(deltaDamage <= 0) {
+    answer.times(0);
+  } else {
+    answer.times(-dDamage);
+  }
+  /// zero block for now
+  answer.times(0);
 
-  /*
-  FloatArray s, os, r;
-  double eps = 1.e-8;
-  double ld;
-  FloatArray totalStrain = status->giveTempStrainVector();
-  os = status->giveTempStressVector();
-  double nonlocalDamageDrivingVariable = status->giveNonlocalDamageDrivingVariable();
-  double dnddv = nonlocalDamageDrivingVariable + eps;  
-  this->giveRealStressVectorGradientDamage(s, ld, gp, totalStrain, dnddv, tStep);
-  r = s;
-  r.subtract(os);
-  r.times(1./eps);
-
-  this->giveRealStressVectorGradientDamage(s, ld, gp, totalStrain, nonlocalDamageDrivingVariable, tStep);
-
-  */
-
-
-
-  
 }
 
 void
 VarBasedDamageMaterial :: giveGradientDamageStiffnessMatrix_dd(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
 {  
-  double localDamageDrivingVariable;
+  double localDamageDrivingVariable, damageDrivingVariable, dDamage,ddDamage, dDiss, ddDiss;
+
+    VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
+  damageDrivingVariable = status->giveTempNonlocalDamageDrivingVariable();
+
+
+  // stored elastic energy
   this-> computeLocalDamageDrivingVariable(localDamageDrivingVariable, gp, tStep);
   
+  this->computeDamagePrime(dDamage, damageDrivingVariable, gp);
+  this->computeDamagePrime2(ddDamage, damageDrivingVariable, gp);
+  this->computeDissipationFunctionPrime(dDiss, damageDrivingVariable, gp);
+  this->computeDissipationFunctionPrime2(ddDiss, damageDrivingVariable, gp);
+
   answer.resize(1,1);
-  double factor = gf/internalLength + localDamageDrivingVariable;
-  // regularization
-  double reg;
-  this->computeStiffnessRegularizationTerm(reg,gp,tStep);
-  factor +=  reg;  
-  answer.at(1,1) = (factor);  
+  answer.at(1,1) = (ddDiss*dDamage*dDamage) + (dDiss-localDamageDrivingVariable)*ddDamage;
+
+
 }
 
 void
 VarBasedDamageMaterial :: giveGradientDamageStiffnessMatrix_dd_l(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
 {
-  //answer = {{1, 0, 0,0 },{0, 1,0, 0},{0, 0, 1,0}, {0, 0, 0,1}};
-  answer = {{1, 0},{0, 1}};
-  answer.times(gf*internalLength);
-  
+
+  MaterialMode matMode = gp->giveMaterialMode();
+  if(matMode == _1dMat) {
+    answer = {{1}};
+  } else if(matMode == _PlaneStress || matMode == _PlaneStrain) {
+    answer = {{1, 0},{0, 1}};
+  } else if(matMode == _3dMat) {
+    answer = {{1, 0, 0},{0, 1, 0}, {0, 0, 1}};
+  }
+  answer.times(gf*internalLength*internalLength);  
 }
 
   
 
-void
-VarBasedDamageMaterial :: give1dStressStiffMtrx(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp,  TimeStep *tStep)
-{
-    IsotropicDamageMaterialStatus *status = static_cast< IsotropicDamageMaterialStatus * >( this->giveStatus(gp) );
-    LinearElasticMaterial *lmat = this->giveLinearElasticMaterial();
-    double om;
-    om = status->giveTempDamage();
-    om = min(om, maxOmega);
-    answer.resize(1, 1);
-    answer.at(1, 1) = lmat->give('E', gp);
-    answer.times(1.0 - om);
-}
-
-
 
 
 void
-VarBasedDamageMaterial :: givePlaneStressStiffMtrx(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
+VarBasedDamageMaterial :: giveNonlocalInternalForces_N_factor(double &answer, double nonlocalDamageDrivingVariable, GaussPoint *gp, TimeStep *tStep)
 {
-    VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
-    double tempDamage;
-    if ( mode == ElasticStiffness ) {
-        tempDamage = 0.0;
-    } else {
-        tempDamage = status->giveTempDamage();
-        if ( tempDamage > 0.0 ) {
-            tempDamage = min(tempDamage, maxOmega);
-        }
-    }
-
-    this->giveLinearElasticMaterial()->giveStiffnessMatrix(answer, mode, gp, tStep);
-    answer.times(1.0 - tempDamage);
-    //@todo phase field, should be generalized 
-    answer.times(1.0 - tempDamage);
-}
-
-
-
-void
-VarBasedDamageMaterial :: givePlaneStrainStiffMtrx(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
-{
-    VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
-    double tempDamage;
-    if ( mode == ElasticStiffness ) {
-        tempDamage = 0.0;
-    } else {
-        tempDamage = status->giveTempDamage();
-        if ( tempDamage > 0.0 ) {
-            tempDamage = min(tempDamage, maxOmega);
-        }
-    }
-
-    this->giveLinearElasticMaterial()->giveStiffnessMatrix(answer, mode, gp, tStep);
-    answer.times(1.0 - tempDamage);
-    //@todo phase field, should be generalized 
-    answer.times(1.0 - tempDamage);
-}
-
-
-void
-VarBasedDamageMaterial :: giveNonlocalInternalForces_N_factor(double &answer,GaussPoint *gp, TimeStep *tStep)
-{
-  
-   double localDamageDrivingVariable;
-   this-> computeLocalDamageDrivingVariable(localDamageDrivingVariable, gp, tStep);
-   answer = gf/internalLength + localDamageDrivingVariable;
+  double localDamageDrivingVariable, dDamage, dDiss;    
+  this-> computeLocalDamageDrivingVariable(localDamageDrivingVariable, gp, tStep);
+  this->computeDamagePrime(dDamage, nonlocalDamageDrivingVariable, gp);
+  this->computeDissipationFunctionPrime(dDiss, nonlocalDamageDrivingVariable, gp);  
+  answer = ( dDiss - localDamageDrivingVariable ) * dDamage;
  
 }
 
-  void
-VarBasedDamageMaterial :: giveNonlocalInternalForces_B_factor(double &answer,GaussPoint *gp, TimeStep *tStep)
+void
+VarBasedDamageMaterial :: giveNonlocalInternalForces_B_factor(FloatArray &answer, const FloatArray &nonlocalDamageDrivingVariableGrad, GaussPoint *gp, TimeStep *tStep)
 {
-  answer = gf * internalLength;
+  answer = nonlocalDamageDrivingVariableGrad;
+  answer.times(gf * internalLength * internalLength);
 }
 
-void  
-VarBasedDamageMaterial :: computeInternalForcesRegularizationTerm(double &answer,GaussPoint *gp, TimeStep *tStep)
-{
-
-    VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
-    double dTime = tStep->giveTimeIncrement();
-    double damage = status->giveDamage();
-    answer = status->giveTempDamage() - damage;
-    if(answer < 0) {
-      answer *= answer;
-      answer *= -penalty/dTime/2;
-    } else {
-      answer = 0;
-    }   
-}
-
-  void  
-VarBasedDamageMaterial :: computeStiffnessRegularizationTerm(double &answer,GaussPoint *gp, TimeStep *tStep)
-{
-
-    VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
-    double dTime = tStep->giveTimeIncrement();
-    double damage = status->giveDamage();
-    answer = status->giveTempDamage() - damage;
-    if(answer < 0) {
-      answer *= -penalty/dTime;
-    } else {
-      answer = 0;
-    }   
-}
-  
+ 
 
 void
 VarBasedDamageMaterial :: computeDamage(double &answer, double damageDrivingVariable, GaussPoint *gp)
 {
-
-  double damage;
-  damage = damageDrivingVariable;
-  if(damage > maxOmega) {
-    damage = maxOmega;
-  } else if(damage < 0) {
-    damage = 0;
-    /*    VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
-	  damage = status->giveDamage();*/
-  } else {
-    answer = damage;
-  }
-  /*
-  VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
-  if(damage < status->giveDamage()) {
-
-    damage = status->giveDamage();
+  /// for now, class of models using linear softening with exponent p is used
+  if(p == 1) {
+    answer = 1-exp( -damageDrivingVariable );
+  } else {   
+    answer = 1. - pow( ( 1. + ( p - 1. ) * damageDrivingVariable ), 1. / ( 1. - p ) );
   }
 
-  */
+  
+  if(pf!=0) {
+    //corresponds to the Miehe phase-field model
+    answer = 2*damageDrivingVariable-damageDrivingVariable*damageDrivingVariable;
+  }
+
+  
+  if(answer > 1.) {
+    answer = 1.;
+  }
+
+  if(answer < 0.) {
+    answer = 0.;
+  }
+
+		   
+    
+  
+
 }
 
 
+void
+VarBasedDamageMaterial :: computeDamagePrime(double &answer, double damageDrivingVariable, GaussPoint *gp)
+{
+  /// for now, only class of models using exponent p is used
+  if(p == 1) {
+    answer = exp( -damageDrivingVariable );
+  } else {   
+    answer = pow( ( 1. + ( p - 1. ) * damageDrivingVariable ), p / ( 1. - p ) );
+  }
+
+  if(pf!=0) {
+    //corresponds to the Miehe phase-field model
+    answer = 2*(1-damageDrivingVariable);
+  }
+
+
   
+}
+void
+VarBasedDamageMaterial :: computeDamagePrime2(double &answer, double damageDrivingVariable, GaussPoint *gp)
+{
+  /// for now, only class of models using exponent p is used
+  if(p == 1) {
+    answer = -exp( -damageDrivingVariable );
+  } else {   
+    answer = -p*pow( ( 1. + ( p - 1. ) * damageDrivingVariable ), (2.* p - 1) / ( 1. - p ) );
+  }
+
+  if(pf!=0) {
+    //corresponds to the Miehe phase-field model
+    answer = -2;
+  }
+
+  
+}
+
+  
+void
+VarBasedDamageMaterial :: computeDissipationFunctionPrime(double &answer, double damageDrivingVariable, GaussPoint *gp)
+{
+  /// how to define type of softening?
+  // for now using linear
+  VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
+  double damage = status->giveTempDamage();
+  answer = gf/(1. + ( beta - 1. )*damage )/(1. + ( beta - 1. )*damage );
+
+  if(pf!=0) {
+    //corresponds to the Miehe phase-field model
+    answer = gf/2. * (1./sqrt(1-damage) - 1.);
+  }
+
+}
+
+void
+VarBasedDamageMaterial :: computeDissipationFunctionPrime2(double &answer, double damageDrivingVariable, GaussPoint *gp)
+{
+  /// how to define type of softening?
+  // for now using linear
+  VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
+  double damage = status->giveTempDamage();
+  answer = 2. * (1. - beta) * gf/(pow( 1. + ( beta - 1. ) * damage, 3. ));
+
+  if(pf!=0) {
+    //corresponds to the Miehe phase-field model
+    answer = gf/4. * 1./pow( 1- damage, 3./2. );
+  }
+
+  
+}
 
 void
 VarBasedDamageMaterial :: giveRealStressVectorGradientDamage(FloatArray &stress, double &localDamageDrivingVariable, GaussPoint *gp, const FloatArray &totalStrain, double nonlocalDamageDrivingVariable, TimeStep *tStep)
@@ -371,30 +405,30 @@ VarBasedDamageMaterial :: giveRealStressVectorGradientDamage(FloatArray &stress,
     this->computeLocalDamageDrivingVariable(localDamageDrivingVariable, gp, tStep);
     // compute damage from the nonlocal field
     this->computeDamage(damage, nonlocalDamageDrivingVariable, gp);
-    if(initialDamage != 0)
-      int ahoj = 0;
-    stress.times(1-damage);
-    //@todo phase field, should be generalized 
     stress.times(1-damage);
     // update gp
     status->letTempStressVectorBe(stress);
-    status->setNonlocalDamageDrivingVariable(nonlocalDamageDrivingVariable);
+    status->setTempNonlocalDamageDrivingVariable(nonlocalDamageDrivingVariable);
     status->setTempLocalDamageDrivingVariable(localDamageDrivingVariable);
     status->setTempDamage(damage);
 }
 void
 VarBasedDamageMaterial :: computeLocalDamageDrivingVariable(double &answer, GaussPoint *gp, TimeStep *tStep)
 {
+
   VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus* >( gp->giveMaterialStatus() );
-    FloatArray strain, stress;
+  FloatArray strain = status->giveTempStrainVector();
+  //  answer = stress.dotProduct( strain );
+  /*FloatArray strain, stress;
     stress = status->giveTempEffectiveStressVector();
-    strain = status->giveTempStrainVector();
+
     answer = stress.dotProduct( strain );
-    double strainEnergy = status->giveStrainEnergy();
-    if(answer < strainEnergy) {
-      answer = strainEnergy;
-    }
+    answer = answer/2.;
     status->setTempStrainEnergy(answer);
+  */
+    this->computeEquivalentStrain(answer, strain, gp, tStep);
+
+    
 }
 
 
@@ -434,8 +468,7 @@ VarBasedDamageMaterialStatus :: initTempStatus()
     GradientDamageMaterialStatusExtensionInterface :: initTempStatus();
     tempEffectiveStressVector = effectiveStressVector;
     tempStrainEnergy = strainEnergy;
-      
-
+    this->tempDamage = this->damage;
 }
 
 

@@ -68,6 +68,7 @@ public:
     /// Destructor.
     virtual ~SlaveDof(void) { }
 
+    
     virtual dofType giveDofType() { return DT_slave; }
 
     void initialize(const IntArray &masterNodes, const IntArray &mstrDofID, const FloatArray &mstrContribution);

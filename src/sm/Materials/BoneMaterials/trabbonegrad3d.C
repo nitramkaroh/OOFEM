@@ -128,15 +128,16 @@ TrabBoneGrad3D :: giveGradientDamageStiffnessMatrix_dd_l(FloatMatrix &answer, Ma
 }
 
 void
-TrabBoneGrad3D :: giveNonlocalInternalForces_N_factor(double &answer,GaussPoint *gp, TimeStep *tStep)
+TrabBoneGrad3D :: giveNonlocalInternalForces_N_factor(double &answer, double nlDamageDrivingVariable, GaussPoint *gp, TimeStep *tStep)
 {
- answer = 1.;
+ answer = nlDamageDrivingVariable;
 }
 
   void
-TrabBoneGrad3D :: giveNonlocalInternalForces_B_factor(double &answer,GaussPoint *gp, TimeStep *tStep)
+  TrabBoneGrad3D :: giveNonlocalInternalForces_B_factor(FloatArray &answer,const FloatArray &nlDamageDrivingVariable_grad, GaussPoint *gp, TimeStep *tStep)
 {
-  answer = internalLength * internalLength;
+  answer = nlDamageDrivingVariable_grad;
+  answer.times(internalLength * internalLength);
 }
 
   

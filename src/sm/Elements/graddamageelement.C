@@ -128,9 +128,10 @@ GradientDamageElement :: computeDisplacementDegreesOfFreedom(FloatArray &answer,
     this->giveStructuralElement()->computeVectorOf({D_u, D_v, D_w}, VM_Total, tStep, answer);
 }
 
-void GradientDamageElement :: computeNonlocalDegreesOfFreedom(FloatArray &answer, TimeStep *tStep)
+void
+GradientDamageElement :: computeNonlocalDegreesOfFreedom(FloatArray &answer, TimeStep *tStep,  ValueModeType mode)
 {
-    this->giveStructuralElement()->computeVectorOf({G_0}, VM_Total, tStep, answer);
+    this->giveStructuralElement()->computeVectorOf({G_0}, mode, tStep, answer);
 }
 
 void
@@ -242,8 +243,8 @@ GradientDamageElement :: giveInternalForcesVector_d(FloatArray &answer, TimeStep
 
     NLStructuralElement *elem = this->giveNLStructuralElement();
 
-    double localDamageDrivingVariable = 0., f_dN = 0., damage;
-    FloatArray Nd, stress, d_d, damage_grad, f_dB;
+    double localDamageDrivingVariable = 0., f_dN = 0., 	nonlocalDamageDrivingVariable;
+    FloatArray Nd, stress, d_d, nonlocalDamageDrivingVariable_grad, f_dB;
     FloatMatrix Bd;
   
     StructuralCrossSection *cs = elem->giveStructuralCrossSection();
@@ -267,11 +268,11 @@ GradientDamageElement :: giveInternalForcesVector_d(FloatArray &answer, TimeStep
         double dV = elem->computeVolumeAround(gp);
 	this->computeNonlocalDegreesOfFreedom(d_d, tStep );
 
-	damage = Nd.dotProduct(d_d);
-        damage_grad.beProductOf(Bd, d_d);
+	nonlocalDamageDrivingVariable = Nd.dotProduct(d_d);
+	nonlocalDamageDrivingVariable_grad.beProductOf(Bd, d_d);
 	
-	this->computeInternalForces_dN(f_dN, localDamageDrivingVariable, damage, gp, tStep);
-	this->computeInternalForces_dB(f_dB, localDamageDrivingVariable, damage_grad, gp, tStep);
+	this->computeInternalForces_dN(f_dN, localDamageDrivingVariable, nonlocalDamageDrivingVariable, gp, tStep);
+	this->computeInternalForces_dB(f_dB, localDamageDrivingVariable, nonlocalDamageDrivingVariable_grad, gp, tStep);
 
 	
 	GradientDamageMaterialExtensionInterface *gdmat = static_cast< GradientDamageMaterialExtensionInterface * >( cs->giveMaterialInterface(GradientDamageMaterialExtensionInterfaceType, gp) );
@@ -279,24 +280,32 @@ GradientDamageElement :: giveInternalForcesVector_d(FloatArray &answer, TimeStep
 	  OOFEM_ERROR("Material doesn't implement the required Gradient damage interface!");
 	}
 	
-	double regularizationFactor;
-	gdmat->computeInternalForcesRegularizationTerm(regularizationFactor, gp, tStep);
-	FloatArray N_f, B_f, N_rhs;
+	FloatArray N_f, B_f;
 	N_f = Nd;
 	N_f.times(f_dN);
 	B_f.beTProductOf(Bd, f_dB);
-	N_rhs = Nd;
-	N_rhs.times(regularizationFactor - localDamageDrivingVariable);
 	answer.add(dV, N_f);
 	answer.add(dV, B_f);
-        answer.add(dV, N_rhs);
-	
     }
+
+
+    // add penalty stiffness
+    if(penalty > 0.) {
+      FloatArray d;
+      this->computeNonlocalDegreesOfFreedom(d, tStep, VM_Incremental);  
+      for(int i = 1; i <= d.giveSize(); i++) {
+	if(d.at(i) <= 0.) {
+	  answer.at(i) += penalty*d.at(i);
+	}
+      }
+    }
+
+    
 
 }
 
 void
-GradientDamageElement :: computeInternalForces_dN(double &answer, double localDamageDrivingVariable, double damage, GaussPoint *gp, TimeStep *tStep)
+GradientDamageElement :: computeInternalForces_dN(double &answer, double localDamageDrivingVariable, double nonlocalDamageDrivingVariable, GaussPoint *gp, TimeStep *tStep)
 {
   NLStructuralElement *elem = this->giveNLStructuralElement();
   StructuralCrossSection *cs = elem->giveStructuralCrossSection();
@@ -307,16 +316,13 @@ GradientDamageElement :: computeInternalForces_dN(double &answer, double localDa
         OOFEM_ERROR("Material doesn't implement the required Gradient damage interface!");
     }
 
-    double factor;
-    gdmat->giveNonlocalInternalForces_N_factor(factor,gp, tStep);
-    
-    answer = factor*damage;
+    gdmat->giveNonlocalInternalForces_N_factor(answer, nonlocalDamageDrivingVariable, gp, tStep);
 	
 }
 
 
 void
-GradientDamageElement :: computeInternalForces_dB(FloatArray &answer, double localDamageDrivingVariable, FloatArray damage_grad, GaussPoint *gp, TimeStep *tStep)
+GradientDamageElement :: computeInternalForces_dB(FloatArray &answer, double localDamageDrivingVariable, const FloatArray nonlocalDamageDrivingVariable_grad, GaussPoint *gp, TimeStep *tStep)
 {
 
   NLStructuralElement *elem = this->giveNLStructuralElement();
@@ -328,11 +334,7 @@ GradientDamageElement :: computeInternalForces_dB(FloatArray &answer, double loc
     OOFEM_ERROR("Material doesn't implement the required Gradient damage interface!");
   }
  
-  double factor;
-  gdmat->giveNonlocalInternalForces_B_factor(factor,gp, tStep);
-
-  answer = damage_grad;
-  answer.times(factor);
+  gdmat->giveNonlocalInternalForces_B_factor(answer,nonlocalDamageDrivingVariable_grad, gp, tStep);
 
 }
   
@@ -411,8 +413,6 @@ GradientDamageElement :: computeStiffnessMatrix(FloatMatrix &answer, MatResponse
     answer.resize(totalSize, totalSize);
     answer.zero();
 
-
-
     FloatMatrix answer1, answer2, answer3, answer4;
     this->computeStiffnessMatrix_uu(answer1, rMode, tStep);
     this->computeStiffnessMatrix_ud(answer2, rMode, tStep);
@@ -422,8 +422,6 @@ GradientDamageElement :: computeStiffnessMatrix(FloatMatrix &answer, MatResponse
     answer.assemble(answer2, locationArray_u, locationArray_d);
     answer.assemble(answer3, locationArray_d, locationArray_u);
     answer.assemble(answer4, locationArray_d);
-
-
 
 }
 
@@ -546,8 +544,6 @@ GradientDamageElement :: computeStiffnessMatrix_dd(FloatMatrix &answer, MatRespo
         gdmat->giveGradientDamageStiffnessMatrix_dd(Ddd, rMode, gp, tStep);
 	gdmat->giveGradientDamageStiffnessMatrix_dd_l(Ddd_l, rMode, gp, tStep);
 
-
-	
 	
 
 	if(Ddd.giveNumberOfRows() > 0) {
@@ -562,6 +558,17 @@ GradientDamageElement :: computeStiffnessMatrix_dd(FloatMatrix &answer, MatRespo
 	answer.plusProductUnsym(Bd, Ddd_l_B, dV);
 
 	
+    }
+
+    // add penalty stiffness
+    if(penalty > 0.) {
+      FloatArray d;
+      this->computeNonlocalDegreesOfFreedom(d, tStep, VM_Incremental);  
+      for(int i = 1; i <= d.giveSize(); i++) {
+	if(d.at(i) <= 0.) {
+	  answer.at(i,i) += penalty;
+	}
+      }
     }
 }
 
@@ -607,9 +614,12 @@ GradientDamageElement :: computeStiffnessMatrix_ud(FloatMatrix &answer, MatRespo
 IRResultType
 GradientDamageElement :: initializeFrom(InputRecord *ir)
 {
-    //IRResultType result;                // Required by IR_GIVE_FIELD macro
+    IRResultType result;                // Required by IR_GIVE_FIELD macro
     //nlGeo = 0;
-    return IRRT_OK;
+    penalty = 0.;
+    IR_GIVE_OPTIONAL_FIELD(ir, penalty, _IFT_GradientDamageElement_penalty);
+
+    return result;
 }
 
 void

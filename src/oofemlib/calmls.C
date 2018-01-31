@@ -48,12 +48,13 @@
 #include "exportmodulemanager.h"
 #include "parallelcontext.h"
 #include "unknownnumberingscheme.h"
+#include "doftype.h"
 
 namespace oofem {
 #define CALM_RESET_STEP_REDUCE 0.25
 #define CALM_TANGENT_STIFF_TRESHOLD 0.1
 #define CALM_DEFAULT_NRM_TICKS 2
-#define CALM_MAX_REL_ERROR_BOUND 1.e10
+#define CALM_MAX_REL_ERROR_BOUND 1.e20
 
 REGISTER_SparseNonLinearSystemNM(CylindricalALM)
 
@@ -299,6 +300,7 @@ restart:
 
         rhs.subtract(F);
         deltaX_.resize(neq);
+	engngModel->updateComponent(tStep, NonLinearLhs, domain);
         linSolver->solve(k, rhs, deltaX_);
         eta = 1.0;
         //
@@ -373,6 +375,8 @@ restart:
 
             tStep->incrementStateCounter();     // update solution state counter
             engngModel->updateComponent(tStep, InternalRhs, domain);
+	   
+
         }
 
         //
@@ -402,7 +406,9 @@ restart:
                 dX.zero();
                 // restore initial stiffness
                 engngModel->updateComponent(tStep, NonLinearLhs, domain);
-
+		// init engng for the new step
+		// added by nitramkaroh
+		engngModel->initStepIncrements();
                 OOFEM_LOG_INFO("CALMLS:       Iteration Reset ...\n");
 
                 calm_NR_OldMode  = calm_NR_Mode;
@@ -523,7 +529,11 @@ CylindricalALM :: checkConvergence(const FloatArray &R, const FloatArray *R0, co
                 for ( int _dg = 1; _dg <= _ng; _dg++ ) {
                     // test if dof ID is in active set
                     if ( ccDofGroups.at(_dg - 1).find( _idofptr->giveDofID() ) != ccDofGroups.at(_dg - 1).end() ) {
-                        int _eq = _idofptr->giveEquationNumber(dn);
+		        dofType dt = _idofptr->giveDofType();
+			int _eq = 0;
+			if(dt == DT_master) {
+			    _eq = _idofptr->giveEquationNumber(dn);
+			}
 
                         if ( _eq ) {
                             continue;
@@ -607,7 +617,7 @@ CylindricalALM :: checkConvergence(const FloatArray &R, const FloatArray *R0, co
             }
 
             if ( ( fabs( dg_forceErr.at(_dg) ) > rtolf.at(_dg) * CALM_MAX_REL_ERROR_BOUND ) ||
-                ( fabs( dg_dispErr.at(_dg) )  > rtold.at(_dg) * CALM_MAX_REL_ERROR_BOUND ) ) {
+		 ( fabs( dg_dispErr.at(_dg) )  > rtold.at(_dg) * CALM_MAX_REL_ERROR_BOUND ) || dg_forceErr.at(_dg) != dg_forceErr.at(_dg)|| dg_dispErr.at(_dg) != dg_dispErr.at(_dg)  ) {
                 errorOutOfRange = true;
             }
 
@@ -654,8 +664,9 @@ CylindricalALM :: checkConvergence(const FloatArray &R, const FloatArray *R0, co
             dispErr = sqrt(dispErr);
         }
 
-        if ( ( fabs(forceErr) > rtolf.at(1) * CALM_MAX_REL_ERROR_BOUND ) ||
-            ( fabs(dispErr)  > rtold.at(1) * CALM_MAX_REL_ERROR_BOUND ) ) {
+        if ( ( fabs(forceErr) > rtolf.at(1) * CALM_MAX_REL_ERROR_BOUND ) || 
+             ( fabs(dispErr)  > rtold.at(1) * CALM_MAX_REL_ERROR_BOUND ) ||
+	     forceErr != forceErr || dispErr != dispErr) {
             errorOutOfRange = true;
         }
 

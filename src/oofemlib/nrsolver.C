@@ -195,6 +195,7 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
 //
 {
     // residual, iteration increment of solution, total external force
+    int nReductions = 0;
     FloatArray rhs, ddX, RT;
     double RRT;
     int neq = X.giveSize();
@@ -239,7 +240,7 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
     //store the initial X and dX in case restart of the analysis is needed
     FloatArray X0(X), dX0(dX);
     // compute initial guess if needed
-    engngModel->updateComponent(tStep, InitialGuess, domain);
+    //    engngModel->updateComponent(tStep, InitialGuess, domain);
     // compute stiffness matrix
     engngModel->updateComponent(tStep, NonLinearLhs, domain);
     if ( this->prescribedDofsFlag ) {
@@ -259,7 +260,7 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
 
         // convergence check
         converged = this->checkConvergence(RT, F, rhs, ddX, X, RRT, internalForcesEBENorm, nite, errorOutOfRangeFlag);
-	if ( converged) {
+	if ( converged == true && errorOutOfRangeFlag == false) {
 	  break;
 	}
 	//	converged = true;
@@ -308,6 +309,10 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
 	
 	
 	if((engngModel->isAnalysisCrashed()) || (converged == false && nite == nsmax ) || errorOutOfRangeFlag ) {
+	  if(nReductions > 10) {
+	    OOFEM_ERROR("Too many time step reductions");
+	  }
+	  nReductions++;
 	  X = X0;
 	  dX = dX0;
 	  ddX.zero();

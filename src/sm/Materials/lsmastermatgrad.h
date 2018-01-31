@@ -82,8 +82,8 @@ public:
         virtual void giveGradientDamageStiffnessMatrix_dd_l(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep);
 
 	virtual void computeLocalDamageDrivingVariable(double &answer, GaussPoint *gp, TimeStep *tStep);
-	virtual void giveNonlocalInternalForces_N_factor(double &answer,GaussPoint *gp, TimeStep *tStep);
-	virtual void giveNonlocalInternalForces_B_factor(double &answer,GaussPoint *gp, TimeStep *tStep);
+	virtual void giveNonlocalInternalForces_N_factor(double &answer, double nlddv, GaussPoint *gp, TimeStep *tStep);
+	virtual void giveNonlocalInternalForces_B_factor(FloatArray &answer, const FloatArray &nlddv, GaussPoint *gp, TimeStep *tStep);
 	
 
     void give3dKappaMatrix(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep);

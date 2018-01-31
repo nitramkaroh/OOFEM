@@ -40,16 +40,26 @@
 
 #define _IFT_VarBasedDamageMaterial_Name "varbaseddamagematerial"
 #define _IFT_VarBasedDamageMaterial_initDamage "initdamage"
+#define _IFT_VarBasedDamageMaterial_beta "beta"
+#define _IFT_VarBasedDamageMaterial_p "p"
+#define _IFT_VarBasedDamageMaterial_pf "pf"
+
+#define _IFT_VarBasedDamageMaterial_equivstraintype "equivstraintype"
 
 
 namespace oofem {
 /**
- * Gradient-enhanced Isotropic Damage model for concrete in tension,
+ * Variatinally-based Gradient Isotropic Damage models,
+ * Should it be inherited form IDM1?
  */
 class VarBasedDamageMaterial : public IsotropicDamageMaterial1, GradientDamageMaterialExtensionInterface
 {
 protected:
   double initialDamage;
+  double beta;
+  double p;
+  double penalty;
+  int pf;
 
 public:
     /// Constructor
@@ -81,21 +91,28 @@ public:
 
     void giveStiffnessMatrix(FloatMatrix &answer,  MatResponseMode rMode, GaussPoint *gp, TimeStep *tStep);
     
-    virtual void give1dStressStiffMtrx(FloatMatrix &answer, MatResponseMode, GaussPoint *gp,  TimeStep *tStep);
-    void givePlaneStressStiffMtrx(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep);
-    void givePlaneStrainStiffMtrx(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep);
     virtual void computeLocalDamageDrivingVariable(double &answer, GaussPoint *gp, TimeStep *tStep);
 
-    virtual void giveNonlocalInternalForces_N_factor(double &answer,GaussPoint *gp, TimeStep *tStep);
-    virtual void giveNonlocalInternalForces_B_factor(double &answer,GaussPoint *gp, TimeStep *tStep);
-    virtual void computeInternalForcesRegularizationTerm(double &answer,GaussPoint *gp, TimeStep *tStep);
-    virtual void computeStiffnessRegularizationTerm(double &answer,GaussPoint *gp, TimeStep *tStep);
+    virtual void giveNonlocalInternalForces_N_factor(double &answer, double nlddv, GaussPoint *gp, TimeStep *tStep);
+    virtual void giveNonlocalInternalForces_B_factor(FloatArray &answer, const FloatArray &nlddv, GaussPoint *gp, TimeStep *tStep);
+    
+    
     virtual void computeDamage(double &answer, double damageDrivingVariable, GaussPoint *gp);
+    virtual void computeDamagePrime(double &answer, double damageDrivingVariable, GaussPoint *gp);
+    virtual void computeDamagePrime2(double &answer, double damageDrivingVariable, GaussPoint *gp);
+    virtual void computeDissipationFunctionPrime(double &answer, double damageDrivingVariable, GaussPoint *gp);
+    virtual void computeDissipationFunctionPrime2(double &answer, double damageDrivingVariable, GaussPoint *gp);
+													   
+    
+    
+
+
+    
 };
 
 
 /**
- * Material status for gradient-enhanced isotropic damage model for concrete in tension.
+ *  * Variatinally-based Gradient Isotropic Damage models,
  */
 class VarBasedDamageMaterialStatus : public IsotropicDamageMaterial1Status, public GradientDamageMaterialStatusExtensionInterface
 {

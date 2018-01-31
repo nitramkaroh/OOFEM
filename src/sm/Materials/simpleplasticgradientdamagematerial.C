@@ -115,7 +115,7 @@ SimplePlasticGradientDamageMaterial ::  compute_dDamage_dKappa(GaussPoint *gp, c
 {
 
 
-    double kappa, damage;
+    double kappa;
     SimplePlasticGradientDamageMaterialStatus *status = static_cast<     SimplePlasticGradientDamageMaterialStatus * >( this->giveStatus(gp) );
 
     //    status->giveStrainSpaceHardeningVars()
@@ -263,17 +263,20 @@ SimplePlasticGradientDamageMaterial :: giveInterface(InterfaceType t)
     }
 }
 
-    void
-SimplePlasticGradientDamageMaterial :: giveNonlocalInternalForces_N_factor(double &answer,GaussPoint *gp, TimeStep *tStep)
+
+void
+SimplePlasticGradientDamageMaterial :: giveNonlocalInternalForces_N_factor(double &answer, double nlDamageDrivingVariable, GaussPoint *gp, TimeStep *tStep)
 {
- answer = 1.;
+ answer = nlDamageDrivingVariable;
 }
 
-  void
-SimplePlasticGradientDamageMaterial :: giveNonlocalInternalForces_B_factor(double &answer,GaussPoint *gp, TimeStep *tStep)
+void
+SimplePlasticGradientDamageMaterial :: giveNonlocalInternalForces_B_factor(FloatArray &answer,const FloatArray &nlDamageDrivingVariable_grad, GaussPoint *gp, TimeStep *tStep)
 {
-  answer = internalLength * internalLength;
-}
+  answer = nlDamageDrivingVariable_grad;
+  answer.times(internalLength * internalLength);
+}  
+
 
   
 void

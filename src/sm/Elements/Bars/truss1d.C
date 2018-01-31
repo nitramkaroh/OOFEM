@@ -56,7 +56,7 @@ FEI1dLin Truss1d :: interp(1); // Initiates the static interpolator
 
 
 Truss1d :: Truss1d(int n, Domain *aDomain) :
-    StructuralElement(n, aDomain),
+    NLStructuralElement(n, aDomain),
     ZZNodalRecoveryModelInterface(this), NodalAveragingRecoveryModelInterface(),
     SpatialLocalizerInterface(this),
     ZZErrorEstimatorInterface(this),

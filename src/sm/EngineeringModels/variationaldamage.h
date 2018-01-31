@@ -32,75 +32,58 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef staggeredsolver_h
-#define staggeredsolver_h
+#ifndef variationaldamage_h
+#define variationaldamage_h
 
-#include "sparselinsystemnm.h"
+#include "../sm/EngineeringModels/nlinearstatic.h"
 #include "sparsenonlinsystemnm.h"
-#include "sparsemtrx.h"
-#include "floatarray.h"
-#include "linesearch.h"
-#include "nrsolver.h"
 #include "unknownnumberingscheme.h"
+#include "sparsemtrx.h"
 
-#include <set>
-#include <vector>
-
-
-///@name Input fields for StaggeredSolver
+///@name Input fields for NonLinearStatic
 //@{
-#define _IFT_StaggeredSolver_Name "staggeredsolver"
-#define _IFT_StaggeredSolver_DofIdList "dofidlist"
-#define _IFT_StaggeredSolver_DofIdListPositions "idpos"
+#define _IFT_VariationalDamage_Name "variationaldamage"
+#define _IFT_VariationalDamage_DofIdList "dofidlist"
+#define _IFT_VariationalDamage_DofIdListPositions "idpos"
+#define _IFT_VariationalDamage_MaxActivatedNodes "maxactivatednodes"
 //@}
 
 namespace oofem {
-class Domain;
-class EngngModel;
-
 
 /**
- * The staggered solver will perform Newton iterations on subsets of DofIDs, in a staggered manner.
- * @author Jim Brouzoulis
- */
-class OOFEM_EXPORT StaggeredSolver : public NRSolver
+ * This class implements nonlinear static engineering problem.
+ **/
+class VariationalDamage : public NonLinearStatic
 {
-private:
+ private:
     IntArray totalIdList;
     IntArray idPos;
-  
+    IntArray damageIndicatorArray;
     // Lists for each dof group
     std :: vector< CustomEquationNumbering > UnknownNumberingSchemeList;
     std :: vector< std :: unique_ptr< SparseMtrx > > stiffnessMatrixList;
-    std :: vector< FloatArray > fIntList;
-    std :: vector< FloatArray > fExtList;
-    
     std :: vector< IntArray > locArrayList;
-    std :: vector< FloatArray > ddX;
-    std :: vector< FloatArray > dX;
-    std :: vector< FloatArray > X;
-    
-
     void giveTotalLocationArray(IntArray &locationArray, const UnknownNumberingScheme &s, Domain *d);
-    bool checkConvergenceDofIdArray(FloatArray &RT, FloatArray &F, FloatArray &rhs, FloatArray &ddX, FloatArray &X,
-                          double RRT, const FloatArray &internalForcesEBENorm, int nite, bool &errorOutOfRange, TimeStep *tStep, IntArray &dofIdArray);
+    int maxActivNodes;
 
-    void instanciateYourself();
+protected:
 
 public:
-    StaggeredSolver(Domain * d, EngngModel * m);
-    virtual ~StaggeredSolver() {}
-
-    // Overloaded methods:
-    virtual NM_Status solve(SparseMtrx &k, FloatArray &R, FloatArray *R0, FloatArray *iR,
-                            FloatArray &X, FloatArray &dX, FloatArray &F,
-                            const FloatArray &internalForcesEBENorm, double &l, referenceLoadInputModeType rlm,
-                            int &nite, TimeStep *);
-
-    virtual IRResultType initializeFrom(InputRecord *ir);
-    
+    VariationalDamage(int i, EngngModel * _master = NULL);
+    virtual ~VariationalDamage();
+    IRResultType initializeFrom(InputRecord *ir);
+    void initializeYourself(TimeStep *tStep);
+    //7jyu    NumericalMethod* giveNumericalMethod(MetaStep *mStep);
+    void updateYourself(TimeStep *tStep);
+    void updateComponent(TimeStep *tStep, NumericalCmpn cmpn, Domain *d);
     virtual const char *giveClassName() const { return "StaggeredSolver"; }
-    virtual const char *giveInputRecordName() const { return _IFT_StaggeredSolver_Name; }
+    virtual const char *giveInputRecordName() const { return _IFT_VariationalDamage_Name; }
+    void giveInternalForces(FloatArray &answer, bool normFlag, int di, TimeStep *tStep);
+    
+protected:
+    void assemble(SparseMtrx &answer, TimeStep *tStep, const MatrixAssembler &ma,
+		  const UnknownNumberingScheme &s, Domain *domain);
+
 };
 } // end namespace oofem
-#endif // staggeredsolver_h
+#endif // variationaldamage_h

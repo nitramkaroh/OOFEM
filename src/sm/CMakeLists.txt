@@ -22,7 +22,8 @@ set (sm_element
     Elements/Bars/truss1d.C 
     Elements/Bars/truss2d.C 
     Elements/Bars/truss3d.C
-    Elements/Bars/qtruss1d.C 
+    Elements/Bars/qtruss1d.C
+    Elements/Bars/truss1dgraddamage.C
     Elements/Bars/qtruss1dgraddamage.C
     Elements/Beams/libeam2d.C 
     Elements/Beams/libeam2dnl.C
@@ -71,6 +72,7 @@ set (sm_element
     Elements/PlaneStress/qtrplanstrssxfem.C
     Elements/PlaneStress/qtrplstrgraddamage.C
     Elements/PlaneStress/trplanrot3d.C
+    Elements/PlaneStress/planestressgraddamage.C
     Elements/PlaneStress/qplanestressgraddamage.C
     Elements/PlaneStress/trplanestressrotallman.C
     Elements/PlaneStress/basicelement.C
@@ -139,6 +141,7 @@ set (sm_emodel
     EngineeringModels/incrementallinearstatic.C
     EngineeringModels/freewarping.C 
     EngineeringModels/structuralmaterialevaluator.C
+    EngineeringModels/variationaldamage.C
     )
 
 set (sm_loads
