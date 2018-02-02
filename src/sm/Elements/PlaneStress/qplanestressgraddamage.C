@@ -46,7 +46,11 @@ namespace oofem {
 REGISTER_Element(QPlaneStressGradDamage);
 
 FEI2dQuadLin QPlaneStressGradDamage :: interpolation_lin(1, 2);
+IntArray QPlaneStressGradDamage :: locationArray_u = {1,2, 4,5, 7,8, 10,11, 13,14,15,16,17,18,19,20};
+IntArray QPlaneStressGradDamage :: locationArray_d = {3,6,9,12};
 
+
+  
 QPlaneStressGradDamage :: QPlaneStressGradDamage(int n, Domain *aDomain) : QPlaneStress2d(n, aDomain), GradientDamageElement()
     // Constructor.
 {
@@ -125,4 +129,27 @@ QPlaneStressGradDamage :: computeBdMatrixAt(GaussPoint *gp, FloatMatrix &answer)
     this->interpolation_lin.evaldNdx( dnx, gp->giveNaturalCoordinates(), FEIElementGeometryWrapper(this) );
     answer.beTranspositionOf(dnx);
 }
+
+void
+QPlaneStressGradDamage :: giveLocationArray_u(IntArray &answer)
+{
+  answer = locationArray_u;
+}
+
+  
+void
+QPlaneStressGradDamage :: giveLocationArray_d(IntArray &answer)
+{
+  answer = locationArray_d;
+}
+
+
+void
+QPlaneStressGradDamage :: postInitialize()
+{
+  GradientDamageElement:: postInitialize();
+  QPlaneStress2d :: postInitialize();
+}
+
+  
 }

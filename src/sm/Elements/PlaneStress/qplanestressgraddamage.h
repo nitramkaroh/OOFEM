@@ -46,7 +46,9 @@ class FEI2dQuadLin;
 class QPlaneStressGradDamage : public QPlaneStress2d, public GradientDamageElement
 {
 protected:
-    static FEI2dQuadLin interpolation_lin;
+      static IntArray locationArray_u;
+      static IntArray locationArray_d;
+      static FEI2dQuadLin interpolation_lin;
 
 public:
     QPlaneStressGradDamage(int n, Domain * d);
@@ -73,8 +75,10 @@ protected:
     
     virtual StructuralElement *giveStructuralElement() { return this; }
     virtual NLStructuralElement *giveNLStructuralElement() { return this; }
-    virtual void giveLocationArray_u(IntArray &answer){;}
-    virtual void giveLocationArray_d(IntArray &answer){;}
+    virtual void giveLocationArray_u(IntArray &answer);
+    virtual void giveLocationArray_d(IntArray &answer);
+    void postInitialize();
+
 };
 } // end namespace oofem
 #endif // qplanestressgrad_h
