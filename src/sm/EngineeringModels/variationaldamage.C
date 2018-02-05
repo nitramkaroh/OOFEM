@@ -34,6 +34,7 @@
 
 #include "../sm/EngineeringModels/variationaldamage.h"
 #include "../sm/Elements/structuralelement.h"
+#include "../sm/Elements/graddamageelement.h"
 #include "nummet.h"
 #include "timestep.h"
 #include "metastep.h"
@@ -85,8 +86,6 @@ VariationalDamage :: initializeFrom(InputRecord *ir)
     if ( result != IRRT_OK ) {
         return result;
     }
-    IR_GIVE_FIELD(ir, this->totalIdList, _IFT_VariationalDamage_DofIdList);
-    IR_GIVE_FIELD(ir, this->idPos, _IFT_VariationalDamage_DofIdListPositions);
     this->maxActivNodes = 0;
     IR_GIVE_OPTIONAL_FIELD(ir, this->maxActivNodes, _IFT_VariationalDamage_MaxActivatedNodes);
 
@@ -156,26 +155,21 @@ void
 VariationalDamage :: initializeYourself(TimeStep *tStep)
 {
     NonLinearStatic :: initializeYourself(tStep);
-    int numDofIdGroups = idPos.giveSize()/2;
-    this->UnknownNumberingSchemeList.resize(numDofIdGroups);
-    IntArray idList; 
-    for ( int i = 0; i < numDofIdGroups; i++ ) {
-        int sz = idPos.at(i*2 + 2) - idPos.at(i*2 + 1) + 1;
-        idList.resize(sz);
-        for ( int j = 1; j <= sz; j++) {
-            int pos = idPos.at(i*2 + 1) + j - 1;
-            idList.at(j) = totalIdList.at(pos);
-        }
-        this->UnknownNumberingSchemeList[i].setDofIdArray(idList);
-        this->UnknownNumberingSchemeList[i].setNumber(i+1);
+
+    this->UnknownNumberingSchemeList.resize(2);
+    IntArray displ_idList = {1,2,3};
+    IntArray damage_idList = {12};
+    this->UnknownNumberingSchemeList[0].setDofIdArray(displ_idList);
+    this->UnknownNumberingSchemeList[0].setNumber(1);
   
-    }    
-
-
-    this->locArrayList.resize(numDofIdGroups);            
+    this->UnknownNumberingSchemeList[1].setDofIdArray(damage_idList);
+    this->UnknownNumberingSchemeList[1].setNumber(2);
     
-    for ( int dG = 0; dG < numDofIdGroups; dG++ ) {
-      this->giveTotalLocationArray(this->locArrayList[dG], UnknownNumberingSchemeList[dG], this->giveDomain(1));      }
+    
+
+    this->locArrayList.resize(2);             
+    this->giveTotalLocationArray(this->locArrayList[0], UnknownNumberingSchemeList[0], this->giveDomain(1));
+    this->giveTotalLocationArray(this->locArrayList[1], UnknownNumberingSchemeList[1], this->giveDomain(1));      
 }
 
 

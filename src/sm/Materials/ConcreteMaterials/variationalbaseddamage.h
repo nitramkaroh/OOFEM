@@ -102,9 +102,9 @@ public:
     virtual void computeDamagePrime2(double &answer, double damageDrivingVariable, GaussPoint *gp);
     virtual void computeDissipationFunctionPrime(double &answer, double damageDrivingVariable, GaussPoint *gp);
     virtual void computeDissipationFunctionPrime2(double &answer, double damageDrivingVariable, GaussPoint *gp);
-													   
-    
-    
+    virtual void computeRegulirizingWork(GaussPoint *gp,const FloatArray &nonlocalDamageDrivingVariableGrad);
+
+    int giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType type, TimeStep *tStep);
 
 
     
@@ -120,6 +120,7 @@ class VarBasedDamageMaterialStatus : public IsotropicDamageMaterial1Status, publ
     FloatArray effectiveStressVector;
     FloatArray tempEffectiveStressVector;
     double strainEnergy, tempStrainEnergy;
+    double tempRegularizingEnergy, regularizingEnergy;
 
  public:
     VarBasedDamageMaterialStatus(int n, Domain * d, GaussPoint * g, double initialDamage);
@@ -138,7 +139,8 @@ class VarBasedDamageMaterialStatus : public IsotropicDamageMaterial1Status, publ
 	
     double giveStrainEnergy(){return strainEnergy;}
     void setTempStrainEnergy(double sE){strainEnergy = sE;}
-
+    void setTempRegularizingEnergy(double tempReg){tempRegularizingEnergy = tempReg;}
+    double giveRegularizingEnergy(){return regularizingEnergy;}
 };
 } // end namespace oofem
 #endif // variationalbaseddamage_h

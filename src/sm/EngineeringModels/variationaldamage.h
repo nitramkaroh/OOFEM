@@ -43,8 +43,6 @@
 ///@name Input fields for NonLinearStatic
 //@{
 #define _IFT_VariationalDamage_Name "variationaldamage"
-#define _IFT_VariationalDamage_DofIdList "dofidlist"
-#define _IFT_VariationalDamage_DofIdListPositions "idpos"
 #define _IFT_VariationalDamage_MaxActivatedNodes "maxactivatednodes"
 //@}
 
@@ -56,8 +54,7 @@ namespace oofem {
 class VariationalDamage : public NonLinearStatic
 {
  private:
-    IntArray totalIdList;
-    IntArray idPos;
+
     IntArray damageIndicatorArray;
     // Lists for each dof group
     std :: vector< CustomEquationNumbering > UnknownNumberingSchemeList;

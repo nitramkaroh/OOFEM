@@ -269,6 +269,7 @@ VarBasedDamageMaterial :: giveNonlocalInternalForces_B_factor(FloatArray &answer
 {
   answer = nonlocalDamageDrivingVariableGrad;
   answer.times(gf * internalLength * internalLength);
+  this->computeRegulirizingWork(gp, nonlocalDamageDrivingVariableGrad);
 }
 
  
@@ -411,24 +412,28 @@ VarBasedDamageMaterial :: giveRealStressVectorGradientDamage(FloatArray &stress,
     status->setTempNonlocalDamageDrivingVariable(nonlocalDamageDrivingVariable);
     status->setTempLocalDamageDrivingVariable(localDamageDrivingVariable);
     status->setTempDamage(damage);
+
+#ifdef keep_track_of_dissipated_energy
+    status->computeWork(gp);
+#endif
+
+    
 }
+
+
+
+
+  
 void
 VarBasedDamageMaterial :: computeLocalDamageDrivingVariable(double &answer, GaussPoint *gp, TimeStep *tStep)
 {
 
   VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus* >( gp->giveMaterialStatus() );
   FloatArray strain = status->giveTempStrainVector();
-  //  answer = stress.dotProduct( strain );
-  /*FloatArray strain, stress;
-    stress = status->giveTempEffectiveStressVector();
-
-    answer = stress.dotProduct( strain );
-    answer = answer/2.;
-    status->setTempStrainEnergy(answer);
-  */
-    this->computeEquivalentStrain(answer, strain, gp, tStep);
-
-    
+  double eps, E;
+  E = linearElasticMaterial->give('E', gp);
+  this->computeEquivalentStrain(eps, strain, gp, tStep);
+  answer = 0.5*E*eps*eps;    
 }
 
 
@@ -439,6 +444,35 @@ VarBasedDamageMaterial :: CreateStatus(GaussPoint *gp) const
 }
 
 
+
+
+#ifdef keep_track_of_dissipated_energy
+void
+VarBasedDamageMaterial :: computeRegulirizingWork(GaussPoint *gp, const FloatArray &nonlocalDamageDrivingVariableGrad)
+{
+    double tempReg = 0.5*gf*internalLength*internalLength*nonlocalDamageDrivingVariableGrad.computeNorm();
+      VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus* >( gp->giveMaterialStatus() );
+    status->setTempRegularizingEnergy(tempReg);
+}
+#endif
+
+int
+VarBasedDamageMaterial :: giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType type, TimeStep *tStep)
+{
+
+  
+    VarBasedDamageMaterialStatus* status = static_cast< VarBasedDamageMaterialStatus* >( this->giveStatus(gp) );
+    if ( type == IST_RegularizingEnergy ) {
+        answer.resize(1);
+        answer.at(1) = status->giveRegularizingEnergy();
+    }  else {
+        return IsotropicDamageMaterial1 :: giveIPValue(answer, gp, type, tStep);
+    }
+
+    return 1; // to make the compiler happy
+}
+
+  
   VarBasedDamageMaterialStatus :: VarBasedDamageMaterialStatus(int n, Domain *d, GaussPoint *g, double initialDamage) : IsotropicDamageMaterial1Status(n, d, g), GradientDamageMaterialStatusExtensionInterface()
 {
   damage = initialDamage;
@@ -446,6 +480,7 @@ VarBasedDamageMaterial :: CreateStatus(GaussPoint *gp) const
   effectiveStressVector.resize(rsize);
   tempEffectiveStressVector.resize(rsize);
   strainEnergy = 0;
+  tempRegularizingEnergy = regularizingEnergy = 0;
 }
 
 
@@ -453,7 +488,6 @@ VarBasedDamageMaterialStatus :: ~VarBasedDamageMaterialStatus()
 {
 
 }
-
 
 
 
@@ -469,9 +503,14 @@ VarBasedDamageMaterialStatus :: initTempStatus()
     tempEffectiveStressVector = effectiveStressVector;
     tempStrainEnergy = strainEnergy;
     this->tempDamage = this->damage;
+    tempRegularizingEnergy = regularizingEnergy;
 }
 
 
+
+
+
+  
 
 void
 VarBasedDamageMaterialStatus :: updateYourself(TimeStep *tStep)
@@ -485,6 +524,7 @@ VarBasedDamageMaterialStatus :: updateYourself(TimeStep *tStep)
     GradientDamageMaterialStatusExtensionInterface :: updateYourself(tStep);
     effectiveStressVector = tempEffectiveStressVector;
     strainEnergy =  tempStrainEnergy;
+    regularizingEnergy = tempRegularizingEnergy;
       
 }
 
