@@ -569,8 +569,7 @@ NonLinearStatic :: updateComponent(TimeStep *tStep, NumericalCmpn cmpn, Domain *
         // update internalForces and internalForcesEBENorm concurrently
         this->giveInternalForces(internalForces, true, d->giveNumber(), tStep);
         break;
-    case InitialGuess:
-      
+    case InitialGuess:      
       this-> giveInitialGuess(d->giveNumber(), tStep);
       break;
     default:
@@ -607,7 +606,8 @@ NonLinearStatic :: giveInitialGuess(int di, TimeStep *tStep)
     } else if ( this->initialGuessType != IG_None ) {
         OOFEM_ERROR("Initial guess type: %d not supported", initialGuessType);
     } else {
-        incrementOfDisplacement.zero();
+        this->updateComponent( tStep->givePreviousStep(), NonLinearLhs, this->giveDomain(di) );
+	incrementOfDisplacement.zero();
     }
     tStep->incrementSubStepNumber();
     currentIterations++;

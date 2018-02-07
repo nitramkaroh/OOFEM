@@ -240,9 +240,9 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
     //store the initial X and dX in case restart of the analysis is needed
     FloatArray X0(X), dX0(dX);
     // compute initial guess if needed
-    //    engngModel->updateComponent(tStep, InitialGuess, domain);
+    engngModel->updateComponent(tStep, InitialGuess, domain);
     // compute stiffness matrix
-    engngModel->updateComponent(tStep, NonLinearLhs, domain);
+    //engngModel->updateComponent(tStep, NonLinearLhs, domain);
     if ( this->prescribedDofsFlag ) {
         if ( !prescribedEqsInitFlag ) {
             this->initPrescribedEqs();

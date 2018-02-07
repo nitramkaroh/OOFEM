@@ -81,14 +81,12 @@ VarBasedDamageMaterial :: initializeFrom(InputRecord *ir)
     }
 
     IR_GIVE_FIELD(ir, gf, _IFT_IsotropicDamageMaterial1_gf);
-    beta = 1.0;      
-    IR_GIVE_OPTIONAL_FIELD(ir, beta, _IFT_VarBasedDamageMaterial_beta);
     p = 0.5;
     IR_GIVE_OPTIONAL_FIELD(ir, p, _IFT_VarBasedDamageMaterial_p);
     pf = 0;
     //non zero value corresponds to the Miehe phase-field model, p and beta are ignored
     IR_GIVE_OPTIONAL_FIELD(ir, pf, _IFT_VarBasedDamageMaterial_pf);
-
+    IR_GIVE_FIELD(ir, beta, _IFT_VarBasedDamageMaterial_beta);
 
     int equivStrainTypeRecord = 0; // default
     IR_GIVE_OPTIONAL_FIELD(ir, equivStrainTypeRecord, _IFT_VarBasedDamageMaterial_equivstraintype);
@@ -114,9 +112,23 @@ VarBasedDamageMaterial :: initializeFrom(InputRecord *ir)
         OOFEM_WARNING("Unknown equivStrainType %d", equivStrainType);
         return IRRT_BAD_FORMAT;
     }
+    /*
 
+    this->damageLaw = 0;
+    IR_GIVE_OPTIONAL_FIELD(ir, this->damageLaw, _IFT_VarBasedDamageMaterial_damageLaw);
+    switch ( damageLaw ) {
+    case 0:
+        // Linear softening - default
+        // read ratio of eps_0/eps_f
+        IR_GIVE_FIELD(ir, beta, _IFT_VarBasedDamageMaterial_beta);
+	break;
+    case 1:
+        // Exponential softening
+        IR_GIVE_FIELD(ir, beta, _IFT_VarBasedDamageMaterial_beta);
+        break;
+    case 2:
 
-
+    */
 
     
     return this->mapper.initializeFrom(ir);
@@ -350,6 +362,7 @@ VarBasedDamageMaterial :: computeDissipationFunctionPrime(double &answer, double
   // for now using linear
   VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
   double damage = status->giveTempDamage();
+
   answer = gf/(1. + ( beta - 1. )*damage )/(1. + ( beta - 1. )*damage );
 
   if(pf!=0) {
@@ -367,7 +380,6 @@ VarBasedDamageMaterial :: computeDissipationFunctionPrime2(double &answer, doubl
   VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
   double damage = status->giveTempDamage();
   answer = 2. * (1. - beta) * gf/(pow( 1. + ( beta - 1. ) * damage, 3. ));
-
   if(pf!=0) {
     //corresponds to the Miehe phase-field model
     answer = gf/4. * 1./pow( 1- damage, 3./2. );
