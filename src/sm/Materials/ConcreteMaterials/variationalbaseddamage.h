@@ -45,11 +45,11 @@
 #define _IFT_VarBasedDamageMaterial_pf "pf"
 
 #define _IFT_VarBasedDamageMaterial_equivstraintype "equivstraintype"
-
+#define _IFT_VarBasedDamageMaterial_damageLaw "damlaw"
 
 namespace oofem {
 /**
- * Variatinally-based Gradient Isotropic Damage models,
+ * Variationally-based Gradient Isotropic Damage models,
  * Should it be inherited form IDM1?
  */
 class VarBasedDamageMaterial : public IsotropicDamageMaterial1, GradientDamageMaterialExtensionInterface
@@ -100,6 +100,7 @@ public:
     virtual void computeDamage(double &answer, double damageDrivingVariable, GaussPoint *gp);
     virtual void computeDamagePrime(double &answer, double damageDrivingVariable, GaussPoint *gp);
     virtual void computeDamagePrime2(double &answer, double damageDrivingVariable, GaussPoint *gp);
+    double solveExpLaw(double dam, double c);
     virtual void computeDissipationFunctionPrime(double &answer, double damageDrivingVariable, GaussPoint *gp);
     virtual void computeDissipationFunctionPrime2(double &answer, double damageDrivingVariable, GaussPoint *gp);
     virtual void computeRegulirizingWork(GaussPoint *gp,const FloatArray &nonlocalDamageDrivingVariableGrad);

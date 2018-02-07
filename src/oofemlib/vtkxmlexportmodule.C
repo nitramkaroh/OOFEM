@@ -926,7 +926,7 @@ VTKXMLExportModule :: giveDataHeaders(std :: string &pointHeader, std :: string 
         if ( type == DisplacementVector || type == EigenVector || type == VelocityVector || type == DirectorField ) {
             vectors += __UnknownTypeToString(type);
             vectors.append(" ");
-        } else if ( type == FluxVector || type == PressureVector || type == Temperature || type == Humidity || type == DeplanationFunction ) {
+        } else if ( type == FluxVector || type == PressureVector || type == Temperature || type == Humidity || type == DeplanationFunction || type == GradientDamageUnknown) {
             scalars += __UnknownTypeToString(type);
             scalars.append(" ");
         } else {
@@ -1522,6 +1522,10 @@ VTKXMLExportModule :: getNodalVariableFromPrimaryField(FloatArray &answer, DofMa
     } else if ( type == Temperature ) {
         dofIDMask.followedBy(T_f);
         iState = IST_Temperature;
+        answer.resize(1);
+    } else if ( type == GradientDamageUnknown) {
+        dofIDMask.followedBy(G_0);
+        iState = IST_DamageScalar;
         answer.resize(1);
     } else if ( type == PressureVector ) {
         dofIDMask.followedBy(P_f);

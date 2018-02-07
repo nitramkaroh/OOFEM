@@ -57,7 +57,6 @@ VarBasedDamageMaterial :: VarBasedDamageMaterial(int n, Domain *d) : IsotropicDa
 {
 }
 
-
 VarBasedDamageMaterial :: ~VarBasedDamageMaterial()
 //
 // destructor
@@ -73,20 +72,25 @@ VarBasedDamageMaterial :: initializeFrom(InputRecord *ir)
     if ( result != IRRT_OK ) {
         return result;
     }
-
-    
     result = GradientDamageMaterialExtensionInterface :: initializeFrom(ir);
     if ( result != IRRT_OK ) {
         return result;
     }
 
     IR_GIVE_FIELD(ir, gf, _IFT_IsotropicDamageMaterial1_gf);
-    p = 0.5;
-    IR_GIVE_OPTIONAL_FIELD(ir, p, _IFT_VarBasedDamageMaterial_p);
     pf = 0;
-    //non zero value corresponds to the Miehe phase-field model, p and beta are ignored
+    //non zero value corresponds to the Miehe phase-field model, p and beta are then not needed
     IR_GIVE_OPTIONAL_FIELD(ir, pf, _IFT_VarBasedDamageMaterial_pf);
-    IR_GIVE_FIELD(ir, beta, _IFT_VarBasedDamageMaterial_beta);
+    if (pf == 0){
+      p = 0.5;
+      IR_GIVE_OPTIONAL_FIELD(ir, p, _IFT_VarBasedDamageMaterial_p);
+      this->damageLaw = 0; // linear softening - default
+      IR_GIVE_OPTIONAL_FIELD(ir, this->damageLaw, _IFT_VarBasedDamageMaterial_damageLaw);
+       beta = 1.; // elastic-brittle model - default
+      IR_GIVE_OPTIONAL_FIELD(ir, beta, _IFT_VarBasedDamageMaterial_beta);
+    } else {
+      this->damageLaw = 1; // damage law used by Miehe 
+    }
 
     int equivStrainTypeRecord = 0; // default
     IR_GIVE_OPTIONAL_FIELD(ir, equivStrainTypeRecord, _IFT_VarBasedDamageMaterial_equivstraintype);
@@ -112,25 +116,7 @@ VarBasedDamageMaterial :: initializeFrom(InputRecord *ir)
         OOFEM_WARNING("Unknown equivStrainType %d", equivStrainType);
         return IRRT_BAD_FORMAT;
     }
-    /*
 
-    this->damageLaw = 0;
-    IR_GIVE_OPTIONAL_FIELD(ir, this->damageLaw, _IFT_VarBasedDamageMaterial_damageLaw);
-    switch ( damageLaw ) {
-    case 0:
-        // Linear softening - default
-        // read ratio of eps_0/eps_f
-        IR_GIVE_FIELD(ir, beta, _IFT_VarBasedDamageMaterial_beta);
-	break;
-    case 1:
-        // Exponential softening
-        IR_GIVE_FIELD(ir, beta, _IFT_VarBasedDamageMaterial_beta);
-        break;
-    case 2:
-
-    */
-
-    
     return this->mapper.initializeFrom(ir);
 }
 
@@ -284,8 +270,6 @@ VarBasedDamageMaterial :: giveNonlocalInternalForces_B_factor(FloatArray &answer
   this->computeRegulirizingWork(gp, nonlocalDamageDrivingVariableGrad);
 }
 
- 
-
 void
 VarBasedDamageMaterial :: computeDamage(double &answer, double damageDrivingVariable, GaussPoint *gp)
 {
@@ -310,13 +294,7 @@ VarBasedDamageMaterial :: computeDamage(double &answer, double damageDrivingVari
   if(answer < 0.) {
     answer = 0.;
   }
-
-		   
-    
-  
-
 }
-
 
 void
 VarBasedDamageMaterial :: computeDamagePrime(double &answer, double damageDrivingVariable, GaussPoint *gp)
@@ -332,10 +310,8 @@ VarBasedDamageMaterial :: computeDamagePrime(double &answer, double damageDrivin
     //corresponds to the Miehe phase-field model
     answer = 2*(1-damageDrivingVariable);
   }
-
-
-  
 }
+  
 void
 VarBasedDamageMaterial :: computeDamagePrime2(double &answer, double damageDrivingVariable, GaussPoint *gp)
 {
@@ -350,42 +326,81 @@ VarBasedDamageMaterial :: computeDamagePrime2(double &answer, double damageDrivi
     //corresponds to the Miehe phase-field model
     answer = -2;
   }
-
-  
 }
 
+double
+VarBasedDamageMaterial :: solveExpLaw(double dam, double c)
+{
+  double answer = 0.;
+  double f, df;
+  for (int i=1; i<1000; i++){
+    f = (1.-dam)*(answer+1.)-exp(-c*answer);
+    df = 1.-dam+c*exp(-c*answer);
+    answer -= f/df;
+    if (fabs(f)<1.e-8)
+      return answer;
+  }
+  printf("No convergence in VarBasedDamageMaterial :: solveExpLaw(%g,%g)\n",dam,c);
+  exit(0);
+}
   
 void
 VarBasedDamageMaterial :: computeDissipationFunctionPrime(double &answer, double damageDrivingVariable, GaussPoint *gp)
 {
-  /// how to define type of softening?
-  // for now using linear
+  /// softening - currently using 0=linear (default), 1=Miehe, 2=Fremond, 3=pseudo-exponential, 4=exponential
   VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
   double damage = status->giveTempDamage();
 
-  answer = gf/(1. + ( beta - 1. )*damage )/(1. + ( beta - 1. )*damage );
-
-  if(pf!=0) {
-    //corresponds to the Miehe phase-field model
-    answer = gf/2. * (1./sqrt(1-damage) - 1.);
+  double aux, c;
+  switch (this->damageLaw){
+  case 1: // damage law used by Miehe phase-field model
+    answer = gf/2. * (1./sqrt(1.-damage) - 1.);
+    break;
+  case 2: // damage law used by Fremond-Nedjar
+    answer = gf*(1.+2.*(1.-beta)*damage/(1.-damage));
+    break;
+  case 3: // pseudo-exponential law, not successful
+    aux = 1.-(1.-beta)*log(1.-damage);
+    answer = gf*aux*aux;
+    break;
+  case 4: // exponential law, implicit
+    c = beta/(1.-beta);
+    aux = 1.+solveExpLaw(damage,c);
+    answer = gf*aux*aux;
+    break;
+  default: // linear softening
+    aux = 1. + ( beta - 1. )*damage;
+    answer = gf/(aux*aux);
   }
-
 }
 
 void
 VarBasedDamageMaterial :: computeDissipationFunctionPrime2(double &answer, double damageDrivingVariable, GaussPoint *gp)
 {
-  /// how to define type of softening?
-  // for now using linear
+  /// softening - currently using 0=linear (default), 1=Miehe, 2=Fremond, 3=pseudo-exponential, 4=exponential
   VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
   double damage = status->giveTempDamage();
-  answer = 2. * (1. - beta) * gf/(pow( 1. + ( beta - 1. ) * damage, 3. ));
-  if(pf!=0) {
-    //corresponds to the Miehe phase-field model
-    answer = gf/4. * 1./pow( 1- damage, 3./2. );
-  }
-
   
+  double aux, c;
+  switch (this->damageLaw){
+  case 1: // damage law used by Miehe phase-field model
+    answer = gf/4. * 1./pow( 1- damage, 3./2. );
+    break;
+  case 2: // damage law used by Fremond-Nedjar
+    answer = 2.*gf*(1.-beta)/(1.-damage)/(1.-damage);
+    break;
+  case 3: // pseudo-exponential law, not successful
+    aux = 1.-(1.-beta)*log(1.-damage);
+    answer = 2.*gf*aux*(1.-beta)/(1.-damage);
+    break;
+  case 4: // exponential law, implicit
+    c = beta/(1.-beta);
+    aux = 1.+solveExpLaw(damage,c);
+    answer = 2.*gf*aux*aux/(1.-damage+c*exp(-c*(aux-1.)));
+    break;
+  default: // linear softening
+    answer = 2. * (1. - beta) * gf/(pow( 1. + ( beta - 1. ) * damage, 3. ));
+  }
 }
 
 void
