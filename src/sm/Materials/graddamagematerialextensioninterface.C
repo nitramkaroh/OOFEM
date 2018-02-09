@@ -36,6 +36,7 @@
 #include "nonlocalbarrier.h"
 #include "graddamagematerialextensioninterface.h"
 #include "inputrecord.h"
+#include "floatmatrix.h"
 
 #include <list>
 
@@ -51,7 +52,12 @@ GradientDamageMaterialExtensionInterface :: GradientDamageMaterialExtensionInter
     
 }
 
-
+void
+GradientDamageMaterialExtensionInterface :: giveGradientDamageStiffnessMatrix_dd_dl(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
+ {
+   answer.clear();
+ }
+  
 IRResultType
 GradientDamageMaterialExtensionInterface :: initializeFrom(InputRecord *ir)
 {
@@ -65,7 +71,7 @@ GradientDamageMaterialExtensionInterface :: initializeFrom(InputRecord *ir)
     return IRRT_OK;
 }
 
-  GradientDamageMaterialStatusExtensionInterface :: GradientDamageMaterialStatusExtensionInterface():Interface()
+  GradientDamageMaterialStatusExtensionInterface :: GradientDamageMaterialStatusExtensionInterface() : Interface(), nonlocalDamageDrivingVariableGrad(), tempNonlocalDamageDrivingVariableGrad()
   {
     localDamageDrivingVariable = 0.;
     nonlocalDamageDrivingVariable = 0.;
@@ -79,7 +85,7 @@ GradientDamageMaterialStatusExtensionInterface :: initTempStatus()
 {
     tempLocalDamageDrivingVariable = localDamageDrivingVariable;
     tempNonlocalDamageDrivingVariable = nonlocalDamageDrivingVariable;
-
+    tempNonlocalDamageDrivingVariableGrad = nonlocalDamageDrivingVariableGrad;
 }
 
 
@@ -88,6 +94,7 @@ GradientDamageMaterialStatusExtensionInterface :: updateYourself(TimeStep *tStep
 {
   localDamageDrivingVariable = tempLocalDamageDrivingVariable;
   nonlocalDamageDrivingVariable = tempNonlocalDamageDrivingVariable;
+  nonlocalDamageDrivingVariableGrad = tempNonlocalDamageDrivingVariableGrad;
 }
 
   

@@ -521,7 +521,7 @@ GradientDamageElement :: computeStiffnessMatrix_dd(FloatMatrix &answer, MatRespo
 {
     StructuralElement *elem = this->giveStructuralElement();
     double dV;
-    FloatMatrix Ddd,Ddd_l;
+    FloatMatrix Ddd,Ddd_l, Ddd_dl;
     FloatArray Nd;
     FloatMatrix Bd;
     FloatMatrix Ddd_l_B;
@@ -543,6 +543,7 @@ GradientDamageElement :: computeStiffnessMatrix_dd(FloatMatrix &answer, MatRespo
 
         gdmat->giveGradientDamageStiffnessMatrix_dd(Ddd, rMode, gp, tStep);
 	gdmat->giveGradientDamageStiffnessMatrix_dd_l(Ddd_l, rMode, gp, tStep);
+	gdmat->giveGradientDamageStiffnessMatrix_dd_dl(Ddd_dl, rMode, gp, tStep);
 
 	
 
@@ -557,6 +558,18 @@ GradientDamageElement :: computeStiffnessMatrix_dd(FloatMatrix &answer, MatRespo
 	Ddd_l_B.beProductOf(Ddd_l, Bd);
 	answer.plusProductUnsym(Bd, Ddd_l_B, dV);
 
+
+
+	if(Ddd_dl.giveNumberOfRows() > 0) {
+	  FloatMatrix Ddd_dl_N;
+	  Ddd_dl_N.beProductOf(Ddd_dl,Ndm);
+	  answer.plusProductUnsym(Bd, Ddd_dl_N, dV);
+	}
+
+	
+
+
+	
 	
     }
 

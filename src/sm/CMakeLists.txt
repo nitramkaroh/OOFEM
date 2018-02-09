@@ -174,7 +174,7 @@ set (sm_material
     Materials/ConcreteMaterials/concretedpm2.C
     Materials/ConcreteMaterials/idm1.C 
     Materials/ConcreteMaterials/idmnl1.C 
-    Materials/ConcreteMaterials/idmgrad1.C
+    Materials/ConcreteMaterials/idmgrad.C
     Materials/ConcreteMaterials/variationalbaseddamage.C
     Materials/ConcreteMaterials/mazarsmodel.C 
     Materials/ConcreteMaterials/mazarsmodelnl.C

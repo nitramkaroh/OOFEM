@@ -37,6 +37,7 @@
 
 #include "interface.h"
 #include "matresponsemode.h"
+#include "floatarray.h"
 
 ///@name graddpdmaterialextensioninterface
 //@{
@@ -44,9 +45,11 @@
 //@}
 
 namespace oofem {
-class FloatMatrix;
 class GaussPoint;
 class TimeStep;
+class FloatArray;
+class FloatMatrix;
+ 
 
 
 
@@ -60,9 +63,6 @@ protected:
 
     /**
      * Initial(user defined) characteristic length of the nonlocal model
-     * (its interpretation depends on the weight function)
-     * Is different to cl when a Stress-based or a Distance-based
-     * nonlocal variation is applied
      */
     double internalLength;
     
@@ -85,6 +85,7 @@ public:
     /// Right lower block
     virtual void giveGradientDamageStiffnessMatrix_dd(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep) = 0;   
     virtual void giveGradientDamageStiffnessMatrix_dd_l(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep) = 0;
+    virtual void giveGradientDamageStiffnessMatrix_dd_dl(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep);
     /// gradient - based giveRealStressVector
     virtual void giveRealStressVectorGradientDamage(FloatArray &answer1, double &answer2, GaussPoint *gp, const FloatArray &totalStrain, double nonlocalDamageDrivningVariable, TimeStep *tStep) { OOFEM_ERROR("not implemented") }
     virtual void giveFirstPKStressVectorGradientDamage(FloatArray &answer1, double &answer2, GaussPoint *gp, const FloatArray &totalStrain, double nonlocalDamageDrivningVariable, TimeStep *tStep) { OOFEM_ERROR("not implemented") }
@@ -121,19 +122,24 @@ protected:
     double localDamageDrivingVariable;
     double tempNonlocalDamageDrivingVariable;
     double tempLocalDamageDrivingVariable;
+
+    FloatArray nonlocalDamageDrivingVariableGrad;
+    FloatArray tempNonlocalDamageDrivingVariableGrad;
  
 public:
     virtual double giveLocalDamageDrivingVariable() {return localDamageDrivingVariable;}
     virtual double giveNonlocalDamageDrivingVariable(){return nonlocalDamageDrivingVariable;}
     virtual double giveTempLocalDamageDrivingVariable() {return tempLocalDamageDrivingVariable;}
     virtual double giveTempNonlocalDamageDrivingVariable(){return tempNonlocalDamageDrivingVariable;}
+    const FloatArray &giveTempNonlocalDamageDrivingVariableGrad() const { return tempNonlocalDamageDrivingVariableGrad; }
+
  
     
     virtual void setLocalDamageDrivingVariable(double localDamageDrivingVariable) { this->localDamageDrivingVariable = localDamageDrivingVariable;}
     virtual void setNonlocalDamageDrivingVariable(double nonlocalDamageDrivingVariable){ this->nonlocalDamageDrivingVariable = nonlocalDamageDrivingVariable; }    
     virtual void setTempLocalDamageDrivingVariable(double localDamageDrivingVariable) { this->tempLocalDamageDrivingVariable = localDamageDrivingVariable;}
     virtual void setTempNonlocalDamageDrivingVariable(double nonlocalDamageDrivingVariable){ this->tempNonlocalDamageDrivingVariable = nonlocalDamageDrivingVariable; }
-   
+    virtual void letTempNonlocalDamageDrivingVariableGradBe(const FloatArray &nonlocalDamageDrivingVariableGrad){ this->tempNonlocalDamageDrivingVariableGrad = nonlocalDamageDrivingVariableGrad; }   
     
     virtual void initTempStatus();
     virtual void updateYourself(TimeStep *tStep);
