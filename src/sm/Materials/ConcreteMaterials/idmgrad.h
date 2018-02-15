@@ -99,12 +99,12 @@ public:
     virtual void giveRealStressVectorGradientDamage(FloatArray &answer1, double &answer2, GaussPoint *gp, const FloatArray &totalStrain, double nonlocalCumulatedStrain, TimeStep *tStep);
 
     void giveStiffnessMatrix(FloatMatrix &answer,  MatResponseMode rMode, GaussPoint *gp, TimeStep *tStep);
-    virtual void computeLocalDamageDrivingVariable(double &answer, GaussPoint *gp, TimeStep *tStep);
+    virtual void computeLocalDamageDrivingVariable(double &answer, GaussPoint *gp, TimeStep *tStep){;}
   virtual void giveNonlocalInternalForces_N_factor(double &answer,double nlddv, GaussPoint *gp, TimeStep *tStep);
   virtual void giveNonlocalInternalForces_B_factor(FloatArray &answer,const FloatArray &nlddv, GaussPoint *gp, TimeStep *tStep);
  protected:
   double computeInternalLength(GaussPoint *gp);
-    
+  int giveDimension(GaussPoint *gp);
 };
 
 

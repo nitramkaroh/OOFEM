@@ -762,6 +762,7 @@ IsotropicDamageMaterial1 :: computeEta(FloatArray &answer, const FloatArray &str
             if ( kappa != 0 ) {
                 Eta.times(1. / kappa);
             } else {
+   	        answer = eta;
                 answer.zero();
                 return;
             }
@@ -810,7 +811,11 @@ IsotropicDamageMaterial1 :: computeEta(FloatArray &answer, const FloatArray &str
 
         double kappa = sqrt( sum / lmat->give('E', gp) );
         answer = stress;
-        answer.times(1. / lmat->give('E', gp) / kappa);
+	if(kappa != 0) {
+	  answer.times(1. / lmat->give('E', gp) / kappa);
+	} else {
+	  answer.times(0);
+	}
     } else {
         OOFEM_ERROR("unknown EquivStrainType");
     }
