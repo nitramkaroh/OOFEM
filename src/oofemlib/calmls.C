@@ -194,13 +194,6 @@ restart:
     engngModel->updateComponent(tStep, NonLinearLhs, domain);
     linSolver->solve(k, R, deltaXt);
 
-    // If desired by the user, the solution is (slightly) perturbed, so that various symmetries can be broken.
-    // This is useful e.g. to trigger localization in a homogeneous material under uniform stress without
-    // the need to introduce material imperfections. The problem itself remains symmetric but the iterative
-    // solution is brought to a nonsymmetric state and it gets a chance to converge to a nonsymmetric solution.
-    // Parameters of the perturbation technique are specified by the user and by default no perturbation is done. 
-    // Milan Jirasek
-    SparseNonLinearSystemNM :: applyPerturbation(&deltaXt);
 
     if ( calm_Control == calm_hpc_off ) {
         XX = parallel_context->localNorm(deltaXt);
@@ -253,7 +246,18 @@ restart:
     if ( R0 ) {
         rhs.add(* R0);
     }
+
+  
     linSolver->solve(k, rhs, dX);
+ // If desired by the user, the solution is (slightly) perturbed, so that various symmetries can be broken.
+    // This is useful e.g. to trigger localization in a homogeneous material under uniform stress without
+    // the need to introduce material imperfections. The problem itself remains symmetric but the iterative
+    // solution is brought to a nonsymmetric state and it gets a chance to converge to a nonsymmetric solution.
+    // Parameters of the perturbation technique are specified by the user and by default no perturbation is done. 
+    // Milan Jirasek
+    SparseNonLinearSystemNM :: applyPerturbation(&dX);
+
+    
     X.add(dX);
 
     nite = 0;
