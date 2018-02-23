@@ -78,6 +78,7 @@ set (sm_element
     Elements/PlaneStress/basicelement.C
     Elements/PlaneStress/trplanestressrotallman3d.C
     Elements/PlaneStress/linquad3d_planestress.C
+    Elements/PlaneStress/quadmembrane.C
     Elements/AbaqusUserElement.C
     Elements/htselement.C
     Elements/latticestructuralelement.C

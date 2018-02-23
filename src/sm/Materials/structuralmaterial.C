@@ -798,6 +798,11 @@ StructuralMaterial :: giveStiffnessMatrix(FloatMatrix &answer,
     case _3dLattice:
         this->give3dLatticeStiffMtrx(answer, rMode, gp, tStep);
         break;
+    case _Membrane2d:
+        this->give3dMaterialStiffnessMatrix(answer, rMode, gp, tStep);
+	break;
+
+
 
     default:
         OOFEM_ERROR( "unknown mode (%s)", __MaterialModeToString(mMode) );
@@ -1215,6 +1220,13 @@ StructuralMaterial :: giveVoigtSymVectorMask(IntArray &answer, MaterialMode mmod
     case _Unknown:
         answer.clear();
         return 0;
+
+    case _Membrane2d:
+        answer = {
+            1, 2, 6
+        };
+        return 6;
+
 
     default:
         return 0;

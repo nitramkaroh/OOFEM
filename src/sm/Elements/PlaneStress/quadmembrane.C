@@ -1,0 +1,178 @@
+/*
+ *
+ *                 #####    #####   ######  ######  ###   ###
+ *               ##   ##  ##   ##  ##      ##      ## ### ##
+ *              ##   ##  ##   ##  ####    ####    ##  #  ##
+ *             ##   ##  ##   ##  ##      ##      ##     ##
+ *            ##   ##  ##   ##  ##      ##      ##     ##
+ *            #####    #####   ##      ######  ##     ##
+ *
+ *
+ *             OOFEM : Object Oriented Finite Element Code
+ *
+ *               Copyright (C) 1993 - 2013   Borek Patzak
+ *
+ *
+ *
+ *       Czech Technical University, Faculty of Civil Engineering,
+ *   Department of Structural Mechanics, 166 29 Prague, Czech Republic
+ *
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Lesser General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2.1 of the License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; if not, write to the Free Software
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
+
+#include "../sm/Elements/PlaneStress/quadmembrane.h"
+#include "../sm/Materials/structuralms.h"
+#include "fei2dquadlin.h"
+#include "node.h"
+#include "crosssection.h"
+#include "gausspoint.h"
+#include "gaussintegrationrule.h"
+#include "floatmatrix.h"
+#include "floatarray.h"
+#include "intarray.h"
+#include "domain.h"
+#include "mathfem.h"
+#include "strainvector.h"
+#include "classfactory.h"
+
+
+namespace oofem {
+REGISTER_Element(QuadMembrane);
+
+FEI2dQuadLin QuadMembrane :: interpolation(1, 2);
+
+QuadMembrane :: QuadMembrane(int n, Domain *aDomain) :
+    PlaneStress2d(n, aDomain)
+    // Constructor.
+{
+    numberOfDofMans  = 4;
+    numberOfGaussPoints = 4;
+    nlGeometry = 1;
+}
+
+QuadMembrane :: ~QuadMembrane()
+// Destructor
+{ }
+
+FEInterpolation *QuadMembrane :: giveInterpolation() const { return & interpolation; }
+
+void
+QuadMembrane :: computeBmatrixAt(GaussPoint *gp, FloatMatrix &answer, TimeStep *tStep, int li, int ui)
+//
+// Returns the [3x8] strain-displacement matrix {B} of the receiver,
+// evaluated at gp.
+// (epsilon_x,epsilon_y,gamma_xy) = B . r
+// r = ( u1,v1,u2,v2,u3,v3,u4,v4)
+{
+    FloatMatrix dnx;
+
+    this->interpolation.evaldNdx( dnx, gp->giveNaturalCoordinates(), *this->giveCellGeometryWrapper() );
+
+    answer.resize(3, 8);
+    answer.zero();
+
+    for ( int i = 1; i <= 4; i++ ) {
+        answer.at(1, 2 * i - 1) = dnx.at(i, 1);
+        answer.at(2, 2 * i - 0) = dnx.at(i, 2);
+    }
+
+  
+  OOFEM_ERROR("Should be called???")
+}
+
+
+void
+QuadMembrane :: computeBHmatrixAt(GaussPoint *gp, FloatMatrix &answer, TimeStep *tStep, double alpha)
+//
+// Returns the [4x8] displacement gradient matrix {BH} of the receiver,
+// evaluated at gp.
+// @todo not checked if correct
+{
+    FloatMatrix dNdx;
+
+    this->interpolation.evaldNdx( dNdx, gp->giveNaturalCoordinates(), *this->giveCellGeometryWrapper() );
+    answer.resize(9, 12);
+
+    for ( int i = 1; i <= dNdx.giveNumberOfRows(); i++ ) {
+        answer.at(1, 3 * i - 2) = dNdx.at(i, 1);     // du/dx
+        answer.at(2, 3 * i - 1) = dNdx.at(i, 2);     // dv/dy
+        answer.at(6, 3 * i - 2) = dNdx.at(i, 2);     // du/dy
+	answer.at(7, 3 * i - 0) = dNdx.at(i, 2);     // dw/dy
+        answer.at(8, 3 * i - 0) = dNdx.at(i, 1);     // dw/dx
+        answer.at(9, 3 * i - 1) = dNdx.at(i, 1);     // dv/dx
+    }
+
+}
+
+
+
+void
+QuadMembrane :: giveDofManDofIDMask(int inode, IntArray &answer) const
+{
+    answer = {
+      D_u, D_v, D_w
+    };
+}
+
+  
+
+IRResultType
+QuadMembrane :: initializeFrom(InputRecord *ir)
+{
+    numberOfGaussPoints = 4;
+    IRResultType result = PlaneStressElement :: initializeFrom(ir);
+    if ( result != IRRT_OK ) {
+        return result;
+    }
+
+    if ( numberOfGaussPoints != 1 && numberOfGaussPoints != 4 && numberOfGaussPoints != 9 && numberOfGaussPoints != 16 && numberOfGaussPoints != 25 ) {
+        numberOfGaussPoints = 4;
+        OOFEM_WARNING("Number of Gauss points enforced to 4");
+    }
+
+    return IRRT_OK;
+}
+
+
+void
+QuadMembrane :: computeDeformationGradientVector(FloatArray &answer, GaussPoint *gp, TimeStep *tStep, ValueModeType modeType)
+{
+    // Computes the deformation gradient in the Voigt format at the Gauss point gp of
+    // the receiver at time step tStep.
+    // Order of components: 11, 22, 33, 23, 13, 12, 32, 31, 21 in the 3D.
+
+    // Obtain the current displacement vector of the element and subtract initial displacements (if present)
+    FloatArray u;
+    this->computeVectorOf({D_u, D_v, D_w}, modeType, tStep, u); // solution vector
+    if ( initialDisplacements ) {
+        u.subtract(* initialDisplacements);
+    }
+
+    // Displacement gradient H = du/dX
+    FloatMatrix B;
+    this->computeBHmatrixAt(gp, B, tStep, 0);
+    answer.beProductOf(B, u);
+
+    answer.at(1) += 1.0;
+    answer.at(2) += 1.0;
+    answer.at(3) += 1.0;
+    
+}
+
+
+
+
+
+} // end namespace oofem

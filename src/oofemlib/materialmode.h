@@ -82,6 +82,7 @@ namespace oofem {
     ENUM_ITEM(_2dMTLattice) \
     ENUM_ITEM(_3dMTLattice) \
     ENUM_ITEM(_Warping) \
+    ENUM_ITEM(_Membrane2d)			\
 
 /**
  * Type representing material mode of integration point.

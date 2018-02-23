@@ -277,8 +277,10 @@ LinQuad3DPlaneStress :: giveIPValue(FloatArray &answer, GaussPoint *gp, Internal
         answer.clear();
         return 1;
     } else {
-        answer.clear();
+      return PlaneStress2d :: giveIPValue(answer, gp, type, tStep);
+      /* answer.clear();
         return 0;
+      */
     }
 }
 

@@ -56,7 +56,7 @@ StructuralCrossSection :: giveRealStresses(FloatArray &answer, GaussPoint *gp, c
         this->giveRealStress_3d(answer, gp, strain, tStep);
     } else if ( mode == _PlaneStrain ) {
         this->giveRealStress_PlaneStrain(answer, gp, strain, tStep);
-    } else if ( mode == _PlaneStress ) {
+    } else if ( mode == _PlaneStress || mode == _Membrane2d ) {
         this->giveRealStress_PlaneStress(answer, gp, strain, tStep);
     } else if ( mode == _1dMat ) {
         this->giveRealStress_1d(answer, gp, strain, tStep);
