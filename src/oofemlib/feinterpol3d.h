@@ -147,6 +147,19 @@ public:
      */
     virtual void surfaceEvalN(FloatArray &answer, int isurf, const FloatArray &lcoords, const FEICellGeometry &cellgeo) = 0;
     /**
+     * Evaluates the matrix of derivatives of surface interpolation functions (shape functions) at given point.
+     * These derivatives are in local (parent) coordinate system
+     * @param answer Contains resulting matrix of derivatives, the member at i,j position contains value of dN_j/dxi_i.
+     * @param iSurf Determines the surface number.
+     * @param lcoords Array containing (local) coordinates.
+     * @param cellgeo Underlying cell geometry.
+     */
+    virtual void surfaceEvaldNdxi(FloatMatrix &answer, int iSurf,
+                               const FloatArray &lcoords, const FEICellGeometry &cellgeo);
+
+
+    
+    /**
      * Evaluates the matrix of derivatives of edge interpolation functions (shape functions) at given point.
      * These derivatives are in global coordinate system (where the nodal coordinates are defined).
      * @param answer Contains resulting matrix of derivatives, the member at i,j position contains value of dNj/dxi.

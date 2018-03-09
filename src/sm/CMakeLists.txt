@@ -153,6 +153,8 @@ set (sm_loads
     Loads/constantpressureload.C
     Loads/structtemperatureload.C
     Loads/structeigenstrainload.C
+    Loads/pressurefollowerload.C
+    Loads/pressurefollowerloadinterface.C
     )
 
 set (sm_material

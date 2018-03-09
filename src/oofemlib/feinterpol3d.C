@@ -130,6 +130,14 @@ void FEInterpolation3d :: surfaceEvaldNdx(FloatMatrix &answer, int isurf, const 
     OOFEM_ERROR("Not implemented");
 }
 
+
+void FEInterpolation3d :: surfaceEvaldNdxi(FloatMatrix &answer, int iSurf, const FloatArray &lcoords, const FEICellGeometry &cellgeo)
+{
+    OOFEM_ERROR("Not implemented");
+}  
+
+  
+
 double FEInterpolation3d :: surfaceEvalNormal(FloatArray &answer, int isurf, const FloatArray &lcoords, const FEICellGeometry &cellgeo)
 {
     OOFEM_ERROR("Not implemented");

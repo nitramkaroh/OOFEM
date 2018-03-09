@@ -65,6 +65,7 @@
 #define _IFT_NRSolver_calcstiffbeforeres "calcstiffbeforeres"
 #define _IFT_NRSolver_constrainedNRalpha "constrainednralpha"
 #define _IFT_NRSolver_constrainedNRminiter "constrainednrminiter"
+#define _IFT_NRSolver_followerLoad "followerload"
 //@}
 
 namespace oofem {
@@ -149,6 +150,10 @@ protected:
     ///@todo This doesn't check units, it is nonsense and must be corrected / Mikael
     FloatArray forceErrVec;
     FloatArray forceErrVecOld;
+
+    // If the follower load is applied, external forces need to be assembled in each itration
+    bool followerLoadFlag;
+    
 public:
     NRSolver(Domain * d, EngngModel * m);
     virtual ~NRSolver();

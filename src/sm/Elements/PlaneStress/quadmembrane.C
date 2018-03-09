@@ -54,7 +54,7 @@ REGISTER_Element(QuadMembrane);
 FEI2dQuadLin QuadMembrane :: interpolation(1, 2);
 
 QuadMembrane :: QuadMembrane(int n, Domain *aDomain) :
-    PlaneStress2d(n, aDomain)
+    PlaneStress2d(n, aDomain), PressureFollowerLoadElementInterface(this)
     // Constructor.
 {
     numberOfDofMans  = 4;
@@ -173,6 +173,92 @@ QuadMembrane :: computeDeformationGradientVector(FloatArray &answer, GaussPoint 
 
 
 
+
+
+// support for pressure follower load interface
+Interface*
+QuadMembrane :: giveInterface(InterfaceType interface)
+{
+    if ( interface == PressureFollowerLoadElementInterfaceType) {
+        return static_cast< PressureFollowerLoadElementInterface* >(this);
+    }
+    return NULL;
+}
+
+
+void
+QuadMembrane :: computeNmatrixAt(const FloatArray &iLocCoord, FloatMatrix &answer)
+{
+    int numNodes = this->giveNumberOfDofManagers();
+    FloatArray N(numNodes);
+
+    int dim = 3;
+
+    answer.resize(dim, dim * numNodes);
+    answer.zero();
+    giveInterpolation()->evalN( N, iLocCoord, FEIElementGeometryWrapper(this) );
+
+    answer.beNMatrixOf(N, dim);
+}
+
+  
+void
+QuadMembrane ::  surfaceEvaldNdxi(FloatMatrix &answer, int iSurf, GaussPoint *gp)
+{
+
+  FEInterpolation2d *interp2d = static_cast<FEInterpolation2d*> (this->giveInterpolation());
+  interp2d->boundarySurfaceEvaldNdx(answer, iSurf, gp->giveNaturalCoordinates(), FEIElementGeometryWrapper(this));
+}
+
+
+void
+QuadMembrane ::  surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &dxdeta, FloatArray &dxdksi, int iSurf, GaussPoint *gp, TimeStep *tStep)
+{
+  IntArray bNodes;
+  FloatArray gcoords, lcoords, vU;
+  FloatMatrix dNdxi, dxdxi, x;
+
+  lcoords = gp->giveNaturalCoordinates();
+  this->giveBoundarySurfaceNodes (bNodes, iSurf);
+
+  this->surfaceEvaldNdxi(dNdxi, iSurf, gp);
+  double nNodes = bNodes.giveSize();
+  x.resize(nNodes,3);
+  if(this->domain->giveEngngModel()->giveFormulation() != AL) {
+    // compute actual node positions for Total Lagrangean formulation
+    this->computeBoundaryVectorOf(bNodes, {D_u, D_v, D_w}, VM_Total, tStep, vU); // solution vector    
+    for(int i = 1; i <= nNodes; i++) {
+      Node *node = this->giveNode(bNodes.at(i));
+      x.at(i,1) = node->giveCoordinate(1) + vU.at( (i-1) * 3 + 1);
+      x.at(i,2) = node->giveCoordinate(2) + vU.at( (i-1) * 3 + 2);
+      x.at(i,3) = node->giveCoordinate(3) + vU.at( (i-1) * 3 + 3);
+    }
+  } else {
+    for(int i = 1; i <= nNodes; i++) {
+      Node *node = this->giveNode(bNodes.at(i));
+      x.at(i,1) = node->giveCoordinate(1);
+      x.at(i,2) = node->giveCoordinate(2);
+      x.at(i,3) = node->giveCoordinate(3);
+    }
+    
+  }
+
+  /* testing stuff
+  FloatMatrix dNdk(4,1), xx, dxdx;
+  for(int i = 1; i <= 4; i++) {
+    dNdk.at(i,1) = dNdxi.at(i,1);
+  }
+
+  dxdx.beTProductOf(x, dNdk);
+  */
+  
+  dxdxi.beTProductOf(dNdxi,x);
+  dxdxi.copyRow(dxdksi, 2);
+  dxdxi.copyRow(dxdeta, 1);
+  answer.beVectorProductOf(dxdksi, dxdeta);
+
+}
+  
 
 
 } // end namespace oofem

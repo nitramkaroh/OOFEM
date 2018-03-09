@@ -32,22 +32,48 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef numericalcmpn_h
-#define numericalcmpn_h
+#ifndef pressurefollowerloadinterface_h
+#define pressurefollowerloadinterface_h
+
+#include "interface.h"
+#include "floatarray.h"
+#include "floatmatrix.h"
+#include "element.h"
+#include "feinterpol.h"
+#include "gausspoint.h"
+
 
 namespace oofem {
+class GaussPoint;
+class IntegrationRule;
+class TimeStep;
 /**
- * Type representing numerical component. The components of characteristic equations are mapped
- * to their corresponding numerical counterparts using these common component types.
- * All numerical methods solving the same problem have to use the same and compulsory
- * NumericalCmpn values. This allows to use generally any numerical method instance (even added in future)
- * without changing any code.
+ * Provides Pressure Follower Load for an element.
+ * @author Martin Horak
  */
-enum NumericalCmpn {
-    InternalRhs,
-    NonLinearLhs,
-    InitialGuess,
-    ExternalRhs,
+class OOFEM_EXPORT PressureFollowerLoadElementInterface : public Interface
+{
+public:
+    Element *element;
+
+
+    /// Constructor.
+    PressureFollowerLoadElementInterface(Element *e);
+    virtual ~PressureFollowerLoadElementInterface();
+
+    virtual const char *giveClassName() const { return "PressureFollowerLoadInterface"; }
+    //    std :: string errorInfo(const char *func) const { return std :: string( giveClassName() ) + func; }
+
+
+    
+    // private:
+
+    virtual double surfaceEvalVolumeAround(GaussPoint *gp, int iSurf) = 0;
+    virtual void surfaceEvalNmatrixAt(FloatMatrix &answer, int iSurf, GaussPoint *gp) = 0;
+    virtual void surfaceEvaldNdxi(FloatMatrix &answer, int iSurf, GaussPoint *gp) = 0;
+    virtual void surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &dxdksi, FloatArray &dxdeta, int iSurf, GaussPoint *gp, TimeStep *tStep) = 0;
+    virtual IntegrationRule* surfaceGiveIntegrationRule(int order, int iSurf) = 0;
+
 };
 } // end namespace oofem
-#endif // numericalcmpn_h
+#endif // pressurefollowerloadinterface

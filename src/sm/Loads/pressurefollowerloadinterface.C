@@ -32,22 +32,16 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef numericalcmpn_h
-#define numericalcmpn_h
+#include "pressurefollowerloadinterface.h"
 
 namespace oofem {
-/**
- * Type representing numerical component. The components of characteristic equations are mapped
- * to their corresponding numerical counterparts using these common component types.
- * All numerical methods solving the same problem have to use the same and compulsory
- * NumericalCmpn values. This allows to use generally any numerical method instance (even added in future)
- * without changing any code.
- */
-enum NumericalCmpn {
-    InternalRhs,
-    NonLinearLhs,
-    InitialGuess,
-    ExternalRhs,
-};
+  PressureFollowerLoadElementInterface :: PressureFollowerLoadElementInterface(Element *e) :  Interface(), element(e)
+{
+}
+
+PressureFollowerLoadElementInterface :: ~PressureFollowerLoadElementInterface()
+{}
+
+
+
 } // end namespace oofem
-#endif // numericalcmpn_h

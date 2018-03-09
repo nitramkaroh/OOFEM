@@ -575,6 +575,11 @@ public:
     void beMatrixFormOfStrain(const FloatArray &aArray);
     void beMatrixForm(const FloatArray &aArray);
 
+    /*@todo add description */
+    void beSkewMatrixForm(const FloatArray &aArray);
+    void giveMatrixOfAxialVector(const FloatArray &aArray);
+
+    
     /**
      * Swaps the indices in the 6x6 matrix such that it converts between OOFEM's
      * and Abaqus' way of writing matrices. Currently used to convert the 6x6 Jacobian

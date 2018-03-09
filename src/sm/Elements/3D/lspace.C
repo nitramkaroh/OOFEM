@@ -83,6 +83,8 @@ LSpace :: giveInterface(InterfaceType interface)
         return static_cast< HuertaErrorEstimatorInterface * >(this);
     } else if ( interface == MeanDilatationalMethodElementExtensionInterfaceType ) {
         return static_cast< MeanDilatationalMethodElementExtensionInterface* >(this);
+    } else {
+        return Structural3DElement :: giveInterface(interface);
     }
 
     return NULL;

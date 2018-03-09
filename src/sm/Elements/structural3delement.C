@@ -38,9 +38,10 @@
 #include "CrossSections/structuralcrosssection.h"
 #include "gaussintegrationrule.h"
 
+
 namespace oofem {
 Structural3DElement :: Structural3DElement(int n, Domain *aDomain) :
-  NLStructuralElement(n, aDomain), FbarElementExtensionInterface(aDomain),
+  NLStructuralElement(n, aDomain), FbarElementExtensionInterface(aDomain), PressureFollowerLoadElementInterface(this),
     matRotation(false)
 {
 }
@@ -428,6 +429,75 @@ Structural3DElement :: computeLoadLEToLRotationMatrix(FloatMatrix &answer, int i
     return 1;
 }
 
+Interface *
+Structural3DElement :: giveInterface(InterfaceType interface)
+{
+    if ( interface == PressureFollowerLoadElementInterfaceType) {
+        return static_cast< PressureFollowerLoadElementInterface* >(this);
+    }
+    return NULL;
+}
 
+// support for pressure follower load interface
+void
+Structural3DElement ::  surfaceEvaldNdxi(FloatMatrix &answer, int iSurf, GaussPoint *gp)
+{
+
+  FEInterpolation3d *interp3d = static_cast<FEInterpolation3d*> (this->giveInterpolation());
+  interp3d->surfaceEvaldNdxi(answer, iSurf, gp->giveNaturalCoordinates(), FEIElementGeometryWrapper(this));
+}
+
+
+void
+Structural3DElement ::  surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &dxdeta, FloatArray &dxdksi, int iSurf, GaussPoint *gp, TimeStep *tStep)
+{
+  IntArray bNodes;
+  FloatArray gcoords, lcoords, vU;
+  FloatMatrix dNdxi, dxdxi, x;
+
+  lcoords = gp->giveNaturalCoordinates();
+  this->giveBoundarySurfaceNodes (bNodes, iSurf);
+
+  this->surfaceEvaldNdxi(dNdxi, iSurf, gp);
+  double nNodes = bNodes.giveSize();
+  x.resize(nNodes,3);
+  if(this->domain->giveEngngModel()->giveFormulation() != AL) {
+    // compute actual node positions for Total Lagrangean formulation
+    this->computeBoundaryVectorOf(bNodes, {D_u, D_v, D_w}, VM_Total, tStep, vU); // solution vector    
+    for(int i = 1; i <= nNodes; i++) {
+      Node *node = this->giveNode(bNodes.at(i));
+      x.at(i,1) = node->giveCoordinate(1) + vU.at( (i-1) * 3 + 1);
+      x.at(i,2) = node->giveCoordinate(2) + vU.at( (i-1) * 3 + 2);
+      x.at(i,3) = node->giveCoordinate(3) + vU.at( (i-1) * 3 + 3);
+    }
+  } else {
+    for(int i = 1; i <= nNodes; i++) {
+      Node *node = this->giveNode(bNodes.at(i));
+      x.at(i,1) = node->giveCoordinate(1);
+      x.at(i,2) = node->giveCoordinate(2);
+      x.at(i,3) = node->giveCoordinate(3);
+    }
+    
+  }
+
+  /* testing stuff
+  FloatMatrix dNdk(4,1), xx, dxdx;
+  for(int i = 1; i <= 4; i++) {
+    dNdk.at(i,1) = dNdxi.at(i,1);
+  }
+
+  dxdx.beTProductOf(x, dNdk);
+  */
+  
+  dxdxi.beTProductOf(dNdxi,x);
+  dxdxi.copyRow(dxdksi, 2);
+  dxdxi.copyRow(dxdeta, 1);
+  answer.beVectorProductOf(dxdksi, dxdeta);
+
+}
+
+
+
+  
 
 } // end namespace oofem

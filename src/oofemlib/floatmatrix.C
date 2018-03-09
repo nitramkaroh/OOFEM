@@ -1695,6 +1695,65 @@ void FloatMatrix :: beMatrixForm(const FloatArray &aArray)
     }
 }
 
+
+
+
+void FloatMatrix :: beSkewMatrixForm(const FloatArray &aArray)
+{
+#  ifdef DEBUG
+  if ( ( aArray.giveSize() != 3) && ( aArray.giveSize() != 1) ){
+        OOFEM_ERROR("matrix dimension is not 3x3");
+    }
+#  endif
+    this->resize(3, 3);
+    this->zero();
+    if(aArray.giveSize() == 3) {
+      this->at(2, 3) = aArray.at(1);
+      this->at(1, 3) = aArray.at(2);
+      this->at(1, 2) = aArray.at(3);
+      this->at(3, 2) = -aArray.at(1);
+      this->at(3, 1) = -aArray.at(2);
+      this->at(2, 1) = -aArray.at(3); 
+    } else if(aArray.giveSize() == 1) {
+      this->at(1, 2) = aArray.at(1);
+      this->at(2, 1) = -aArray.at(1);
+    }
+}
+
+
+void FloatMatrix :: giveMatrixOfAxialVector(const FloatArray &aVector)
+{
+  // Revrites the axial vector into its associated matrix form
+  // Axial vector w of a skew tensor W is defined such that W.v = w x v, for any v
+  // That leads to W_(ik) = eps_(ijk) w_(j)
+ 
+#  ifdef DEBUG
+  if (( aVector.giveSize() != 3 ) && ( aVector.giveSize() != 1 )){
+        OOFEM_ERROR("matrix dimension is not 3x3");
+    }
+#  endif
+    this->resize(3, 3);
+    this->zero();
+  if(aVector.giveSize() == 3) {
+    this->at(2, 3) = -aVector.at(1);
+    this->at(1, 3) =  aVector.at(2);
+    this->at(1, 2) = -aVector.at(3);
+    this->at(3, 2) =  aVector.at(1);
+    this->at(3, 1) = -aVector.at(2);
+    this->at(2, 1) =  aVector.at(3);    
+  } else if(aVector.giveSize() == 1) {
+    this->at(1, 2) = -aVector.at(1);
+    this->at(2, 1) =  aVector.at(1);
+  }
+}
+
+
+
+
+
+
+
+  
 void FloatMatrix :: changeComponentOrder()
 {
     // Changes index order between abaqus <-> OOFEM

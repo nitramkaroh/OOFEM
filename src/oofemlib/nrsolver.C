@@ -179,6 +179,9 @@ NRSolver :: initializeFrom(InputRecord *ir)
     IR_GIVE_OPTIONAL_FIELD(ir, this->constrainedNRminiter, _IFT_NRSolver_constrainedNRminiter);
     this->constrainedNRFlag = this->constrainedNRminiter != 0;
 
+    this->followerLoadFlag = 0;
+    IR_GIVE_OPTIONAL_FIELD(ir, this->followerLoadFlag, _IFT_NRSolver_followerLoad);
+    
     return SparseNonLinearSystemNM :: initializeFrom(ir);
 }
 
@@ -341,6 +344,9 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
 	
         X.add(ddX);
         dX.add(ddX);
+	if(followerLoadFlag) {
+	  engngModel->updateComponent(tStep, ExternalRhs, domain);
+	}
         tStep->incrementStateCounter(); // update solution state counter
         tStep->incrementSubStepNumber();
 

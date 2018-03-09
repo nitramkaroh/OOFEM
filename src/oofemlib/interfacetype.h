@@ -82,7 +82,9 @@ enum InterfaceType {
     Beam3dSubsoilMaterialInterfaceType,
 
     IncompressibleMaterialExtensionInterfaceType,
-    MeanDilatationalMethodElementExtensionInterfaceType
+    MeanDilatationalMethodElementExtensionInterfaceType,
+
+    PressureFollowerLoadElementInterfaceType
 
 };
 } // end namespace oofem

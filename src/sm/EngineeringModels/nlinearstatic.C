@@ -572,6 +572,14 @@ NonLinearStatic :: updateComponent(TimeStep *tStep, NumericalCmpn cmpn, Domain *
     case InitialGuess:      
       this-> giveInitialGuess(d->giveNumber(), tStep);
       break;
+      
+    case ExternalRhs:
+#ifdef VERBOSE
+      OOFEM_LOG_DEBUG("Updating external forces\n");
+#endif
+      // update internalForces and internalForcesEBENorm concurrently
+      this->assembleIncrementalReferenceLoadVectors(incrementalLoadVector, incrementalLoadVectorOfPrescribed,this->refLoadInputMode, d, tStep);	
+      break;    
     default:
         OOFEM_ERROR("Unknown Type of component.");
     }

@@ -323,8 +323,8 @@ FEI3dHexaLin :: edgeComputeLength(IntArray &edgeNodes, const FEICellGeometry &ce
 {
     return cellgeo.giveVertexCoordinates( edgeNodes.at(2) )->distance( cellgeo.giveVertexCoordinates( edgeNodes.at(1) ) );
 }
-
-void
+  /*
+  void
 FEI3dHexaLin :: surfaceEvalN(FloatArray &answer, int isurf, const FloatArray &lcoords, const FEICellGeometry &cellgeo)
 {
     double ksi, eta;
@@ -338,6 +338,71 @@ FEI3dHexaLin :: surfaceEvalN(FloatArray &answer, int isurf, const FloatArray &lc
     answer.at(3) = ( 1. - ksi ) * ( 1. - eta ) * 0.25;
     answer.at(4) = ( 1. + ksi ) * ( 1. - eta ) * 0.25;
 }
+  */
+  
+void
+FEI3dHexaLin :: surfaceEvalN(FloatArray &answer, int isurf, const FloatArray &lcoords, const FEICellGeometry &cellgeo)
+{
+    double ksi, eta;
+    answer.resize(4);
+
+    ksi = lcoords.at(1);
+    eta = lcoords.at(2);
+
+    answer.at(1) = ( 1. - ksi ) * ( 1. - eta ) * 0.25;
+    answer.at(2) = ( 1. + ksi ) * ( 1. - eta ) * 0.25;
+    answer.at(3) = ( 1. - ksi ) * ( 1. + eta ) * 0.25;
+    answer.at(4) = ( 1. + ksi ) * ( 1. + eta ) * 0.25;
+}
+
+void
+FEI3dHexaLin :: surfaceEvaldNdxi(FloatMatrix &answer, int isurf, const FloatArray &lcoords, const FEICellGeometry &cellgeo)
+{
+
+    const double &ksi = lcoords[0];
+    const double &eta = lcoords[1];
+
+    answer.resize(4, 2);
+
+    // dn/dxi
+    answer.at(1, 1) =  0.25 * ( 1. + eta );
+    answer.at(2, 1) = -0.25 * ( 1. + eta );
+    answer.at(3, 1) = -0.25 * ( 1. - eta );
+    answer.at(4, 1) =  0.25 * ( 1. - eta );
+    // dn/deta
+    answer.at(1, 2) =  0.25 * ( 1. + ksi );
+    answer.at(2, 2) =  0.25 * ( 1. - ksi );
+    answer.at(3, 2) = -0.25 * ( 1. - ksi ); 
+    answer.at(4, 2) = -0.25 * ( 1. + ksi );
+
+}
+  /*
+  
+
+  
+void
+FEI3dHexaLin :: surfaceEvaldNdxi(FloatMatrix &answer, int isurf, const FloatArray &lcoords, const FEICellGeometry &cellgeo)
+{
+
+    const double &ksi = lcoords[0];
+    const double &eta = lcoords[1];
+
+    answer.resize(4, 2);
+
+    // dn/dxi
+    answer.at(1, 1) = -0.25 * ( 1. - eta );
+    answer.at(2, 1) =  0.25 * ( 1. - eta );
+    answer.at(3, 1) =  0.25 * ( 1. + eta );
+    answer.at(4, 1) = -0.25 * ( 1. + eta );
+    // dn/deta
+    answer.at(1, 2) = -0.25 * ( 1. - ksi );
+    answer.at(2, 2) = -0.25 * ( 1. + ksi );
+    answer.at(3, 2) =  0.25 * ( 1. + ksi );
+    answer.at(4, 2) =  0.25 * ( 1. - ksi );
+
+}
+  
+  */
 
 void
 FEI3dHexaLin :: surfaceLocal2global(FloatArray &answer, int iedge,

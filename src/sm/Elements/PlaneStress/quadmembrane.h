@@ -36,6 +36,7 @@
 #define quadmembrane_h
 
 #include "planstrss.h"
+#include "Loads/pressurefollowerloadinterface.h"
 
 #define _IFT_QuadMembrane_Name "quadmembrane"
 
@@ -46,7 +47,7 @@ class FEI2dQuadLin;
  * This class implements an isoparametric four-node quadrilateral plane-
  * stress membrane finite element. Each node has 3 degrees of freedom.
  */
-class QuadMembrane : public PlaneStress2d
+ class QuadMembrane : public PlaneStress2d, public PressureFollowerLoadElementInterface
 {
 protected:
     static FEI2dQuadLin interpolation;
@@ -57,7 +58,7 @@ public:
 
 
       virtual FEInterpolation *giveInterpolation() const;
-
+      void computeNmatrixAt(const FloatArray &iLocCoord, FloatMatrix &answer);
     // definition & identification
     virtual const char *giveInputRecordName() const { return _IFT_QuadMembrane_Name; }
     virtual const char *giveClassName() const { return "QuadMembrane"; }
@@ -66,11 +67,27 @@ public:
 
     void computeDeformationGradientVector(FloatArray &answer, GaussPoint *gp, TimeStep *tStep, ValueModeType modeType);
     virtual MaterialMode giveMaterialMode() { return _3dMat; }
+
+
+    // support for pressure follower load interface
+    virtual Interface *giveInterface(InterfaceType it);
+
+    virtual double surfaceEvalVolumeAround(GaussPoint *gp, int iSurf){return this->computeSurfaceVolumeAround(gp, iSurf);}
+    virtual void surfaceEvalNmatrixAt(FloatMatrix &answer, int iSurf, GaussPoint *gp){this->computeNmatrixAt(gp->giveNaturalCoordinates(),answer);}
+    virtual void surfaceEvaldNdxi(FloatMatrix &answer, int iSurf, GaussPoint *gp);
+    virtual void surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &dxdksi,FloatArray &dxdeta, int iSurf, GaussPoint *gp, TimeStep *tStep);
+    virtual IntegrationRule* surfaceGiveIntegrationRule(int order, int iSurf) { return this->giveInterpolation()->giveBoundarySurfaceIntegrationRule(order, iSurf);}
+
+    
     
 protected:
 
     virtual void computeBmatrixAt(GaussPoint *gp, FloatMatrix &answer, TimeStep *tStep = NULL, int = 0, int = ALL_STRAINS);
     virtual void computeBHmatrixAt(GaussPoint *gp, FloatMatrix &answer, TimeStep *tStep, double alpha = 0);
+
+
+
+    
 
 };
 } // end namespace oofem

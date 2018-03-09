@@ -105,6 +105,7 @@ public:
     void drawTriad(FloatArray &, int isurf);
 #endif
 
+
 protected:
     virtual int giveNumberOfIPForMassMtrxIntegration() { return 8; }
 

@@ -37,8 +37,8 @@
 
 
 #include "Elements/nlstructuralelement.h"
-#include "feinterpol2d.h"
 #include "fbarelementinterface.h"
+#include "Loads/pressurefollowerloadinterface.h"
 
 
 #define _IFT_Structural3DElement_materialCoordinateSystem "matcs" ///< [optional] Support for material directions based on element orientation.
@@ -55,7 +55,7 @@ class IntArray;
  * @author Jim Brouzoulis
  * @author Mikael Öhman
  */
- class Structural3DElement : public NLStructuralElement, FbarElementExtensionInterface
+ class Structural3DElement : public NLStructuralElement, FbarElementExtensionInterface, PressureFollowerLoadElementInterface
 {
 protected:
   /** 
@@ -85,6 +85,7 @@ public:
     virtual int computeNumberOfDofs();
     virtual void giveDofManDofIDMask(int inode, IntArray &answer) const;
     virtual double computeVolumeAround(GaussPoint *gp);
+    virtual double computeSurfaceVolumeAround(GaussPoint *gp, int);
     
     virtual double giveCharacteristicLength(const FloatArray &normalToCrackPlane);
 
@@ -95,6 +96,8 @@ public:
     virtual void computeDeformationGradientVector(FloatArray &answer, GaussPoint *gp, TimeStep *tStep, ValueModeType modeType);
     virtual void computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode rMode, TimeStep *tStep);
     virtual void computeFirstPKStressVector(FloatArray &answer, GaussPoint *gp, TimeStep *tStep);
+
+    virtual Interface *giveInterface(InterfaceType it);
 
 protected:
     virtual void computeBmatrixAt(GaussPoint *gp, FloatMatrix &answer, TimeStep *tStep = NULL, int lowerIndx = 1, int upperIndx = ALL_STRAINS);
@@ -108,13 +111,23 @@ protected:
 
     virtual int testElementExtension(ElementExtension ext)
     { return ( ( ( ext == Element_EdgeLoadSupport ) || ( ext == Element_SurfaceLoadSupport ) ) ? 1 : 0 ); }     
-     
-     
+
+
+        
     //virtual IntegrationRule *GetSurfaceIntegrationRule(int); // old
     virtual void computeSurfaceNMatrixAt(FloatMatrix &answer, int iSurf, GaussPoint *gp);
     virtual void giveSurfaceDofMapping(IntArray &answer, int) const;
-    virtual double computeSurfaceVolumeAround(GaussPoint *gp, int);
     virtual int computeLoadLSToLRotationMatrix(FloatMatrix &answer, int, GaussPoint *gp);
+
+
+    // support for pressure follower load interface
+    virtual double surfaceEvalVolumeAround(GaussPoint *gp, int iSurf){return this->computeSurfaceVolumeAround(gp, iSurf);}
+    virtual void surfaceEvalNmatrixAt(FloatMatrix &answer, int iSurf, GaussPoint *gp){this->computeSurfaceNMatrixAt(answer, iSurf, gp);}
+    virtual void surfaceEvaldNdxi(FloatMatrix &answer, int iSurf, GaussPoint *gp);
+    virtual void surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &dxdksi,FloatArray &dxdeta, int iSurf, GaussPoint *gp, TimeStep *tStep);
+    virtual IntegrationRule* surfaceGiveIntegrationRule(int order, int iSurf) { return this->giveInterpolation()->giveBoundarySurfaceIntegrationRule(order, iSurf);}
+
+    
     
 private:
     double dnx(int i, int arg2);
