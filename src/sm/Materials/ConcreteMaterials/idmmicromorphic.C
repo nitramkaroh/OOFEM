@@ -1,0 +1,314 @@
+/*
+ *
+ *                 #####    #####   ######  ######  ###   ###
+ *               ##   ##  ##   ##  ##      ##      ## ### ##
+ *              ##   ##  ##   ##  ####    ####    ##  #  ##
+ *             ##   ##  ##   ##  ##      ##      ##     ##
+ *            ##   ##  ##   ##  ##      ##      ##     ##
+ *            #####    #####   ##      ######  ##     ##
+ *
+ *
+ *             OOFEM : Object Oriented Finite Element Code
+ *
+ *               Copyright (C) 1993 - 2013   Borek Patzak
+ *
+ *
+ *
+ *       Czech Technical University, Faculty of Civil Engineering,
+ *   Department of Structural Mechanics, 166 29 Prague, Czech Republic
+ *
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Lesser General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2.1 of the License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; if not, write to the Free Software
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
+
+#include "idmmicromorphic.h"
+#include "gausspoint.h"
+#include "floatmatrix.h"
+#include "floatarray.h"
+#include "mathfem.h"
+#include "sparsemtrx.h"
+#include "Materials/isolinearelasticmaterial.h"
+#include "error.h"
+#include "nonlocalmaterialext.h"
+#include "datastream.h"
+#include "contextioerr.h"
+#include "stressvector.h"
+#include "strainvector.h"
+#include "classfactory.h"
+
+namespace oofem {
+REGISTER_Material(IsotropicDamageMaterialMicromorphic);
+
+IsotropicDamageMaterialMicromorphic :: IsotropicDamageMaterialMicromorphic(int n, Domain *d) : VarBasedDamageMaterial(n, d)
+//
+// constructor
+//
+{
+
+}
+
+
+IsotropicDamageMaterialMicromorphic :: ~IsotropicDamageMaterialMicromorphic()
+//
+// destructor
+//
+{ }
+
+IRResultType
+IsotropicDamageMaterialMicromorphic :: initializeFrom(InputRecord *ir)
+{
+    IRResultType result;
+    result = VarBasedDamageMaterial :: initializeFrom(ir);
+    if ( result != IRRT_OK ) {
+        return result;
+    }
+    //    IR_GIVE_OPTIONAL_FIELD(ir, di_eta, _IFT_IsotropicDamageMaterialMicromorphic_di_eta);
+    IR_GIVE_FIELD(ir, k1, _IFT_IsotropicDamageMaterialMicromorphic_k1);
+    IR_GIVE_FIELD(ir, k2, _IFT_IsotropicDamageMaterialMicromorphic_k2);
+    return IRRT_OK;
+}
+
+
+
+
+
+
+
+
+
+void
+IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_dd(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
+{
+  answer.resize(1,1);
+  answer.at(1,1) = k1;  
+}
+
+
+  
+void
+IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_dd_l(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
+{
+    MaterialMode matMode = gp->giveMaterialMode();
+  if(matMode == _1dMat) {
+    answer = {{1}};
+  } else if(matMode == _PlaneStress || matMode == _PlaneStrain) {
+    answer = {{1, 0},{0, 1}};
+  } else if(matMode == _3dMat) {
+    answer = {{1, 0, 0},{0, 1, 0}, {0, 0, 1}};
+  }
+  answer.times(k2 * k2);  
+}
+
+
+
+void
+IsotropicDamageMaterialMicromorphic :: giveNonlocalInternalForces_N_factor(double &answer, double micromorphicComplianceVariable, GaussPoint *gp, TimeStep *tStep)
+{
+
+  IsotropicDamageMaterialMicromorphicStatus *status = static_cast< IsotropicDamageMaterialMicromorphicStatus * >( this->giveStatus(gp) );
+
+  double gamma = status->giveTempComplianceVariable();
+  answer = k1 * ( micromorphicComplianceVariable - gamma);
+ 
+}
+
+void
+IsotropicDamageMaterialMicromorphic :: giveNonlocalInternalForces_B_factor(FloatArray &answer, const FloatArray &micromorphicComplianceVariableGrad, GaussPoint *gp, TimeStep *tStep)
+{
+  answer = micromorphicComplianceVariableGrad;
+  answer.times(k2);
+}
+
+
+  
+  
+void
+IsotropicDamageMaterialMicromorphic :: giveRealStressVectorGradientDamage(FloatArray &stress, double &localDamage, GaussPoint *gp, const FloatArray &totalStrain, double micromorphicComplianceVariable, TimeStep *tStep)
+//
+// returns real stress vector in 3d stress space of receiver according to
+// previous level of stress and current
+// strain increment, the only way, how to correctly update gp records
+//
+{
+    IsotropicDamageMaterialMicromorphicStatus *status = static_cast< IsotropicDamageMaterialMicromorphicStatus * >( this->giveStatus(gp) );
+    LinearElasticMaterial *lmat = this->giveLinearElasticMaterial();
+    FloatArray reducedTotalStrainVector, strain;
+    
+    FloatMatrix de;
+    double damage, tempDamage, f, dDiss;
+    this->initTempStatus(gp);
+    
+    // subtract stress independent part
+    // note: eigenStrains (temperature) is not contained in mechanical strain stored in gp
+    // therefore it is necessary to subtract always the total eigen strain value
+    this->giveStressDependentPartOfStrainVector(reducedTotalStrainVector, gp, totalStrain, tStep, VM_Total);
+    status->letTempStrainVectorBe(reducedTotalStrainVector);
+    lmat->giveStiffnessMatrix(de, SecantStiffness, gp, tStep);
+    stress.beProductOf(de, reducedTotalStrainVector);
+    // store the effective stress into the status
+    status->letTempEffectiveStressVectorBe(stress);
+    // compute equivalent strain
+    double gamma, tempGamma, epsEq, E, storedEnergy, dDamage;
+    E = linearElasticMaterial->give('E', gp);
+    this->computeEquivalentStrain(epsEq, strain, gp, tStep);
+    storedEnergy = 0.5*E*epsEq*epsEq;
+   
+    gamma = status->giveComplianceVariable();
+    damage = status->giveDamage();
+    this->computeDamagePrime(dDamage, gamma, gp);
+    this->computeDissipationFunctionPrime(dDiss, damage, gp);
+    f = dDamage * storedEnergy + k1 * ( gamma - micromorphicComplianceVariable) - dDamage * dDiss;
+    if(f <= 0) {
+      tempGamma = gamma;
+    } else {
+      // compute damage from the nonlocal field
+      this->computeComplianceVariable(tempGamma, gamma, micromorphicComplianceVariable, storedEnergy, gp);
+    }
+    this->computeDamage(tempDamage, tempGamma, gp);
+    
+    stress.times(1-tempDamage);
+    // update gp
+    status->letTempStressVectorBe(stress);
+    status->setTempComplianceVariable(tempGamma);
+    status->setTempDamage(tempDamage);
+    status->setTempMicromorphicComplianceVariable(micromorphicComplianceVariable);
+
+#ifdef keep_track_of_dissipated_energy
+    status->computeWork(gp);
+#endif
+
+}
+
+
+
+void
+IsotropicDamageMaterialMicromorphic :: computeComplianceVariable(double &answer, double complianceVariable, double micromorphicComplianceVariable, double storedEnergy, GaussPoint *gp)
+{
+
+  int index  = 0;
+  double f, df, dDiss, ddDiss, dDamage, damage;
+  while(true) {
+    index++;
+    this->computeDamage(damage, complianceVariable, gp);
+    this->computeDamagePrime(dDamage, complianceVariable, gp);
+    this->computeDamage(damage, complianceVariable, gp);
+    this->computeDissipationFunctionPrime(dDiss,damage, gp);
+    f = dDamage * storedEnergy + k1 * ( complianceVariable - micromorphicComplianceVariable ) - dDamage * dDiss;
+    this->computeDissipationFunctionPrime2(ddDiss, complianceVariable, gp);
+    df = dDamage * (ddDiss + k1);
+    answer += f/df;
+    if(fabs(f) < 1.e-8) {
+      break;
+    }
+    if(index > 1000) {
+      OOFEM_ERROR("Error in compute damage function");
+    }
+
+  }
+  
+}
+
+  
+
+
+MaterialStatus *
+IsotropicDamageMaterialMicromorphic :: CreateStatus(GaussPoint *gp) const
+{
+    return new IsotropicDamageMaterialMicromorphicStatus(1, IsotropicDamageMaterialMicromorphic :: domain, gp);
+}
+
+
+  IsotropicDamageMaterialMicromorphicStatus :: IsotropicDamageMaterialMicromorphicStatus(int n, Domain *d, GaussPoint *g) : VarBasedDamageMaterialStatus(n, d, g, 0)
+{ }
+
+
+IsotropicDamageMaterialMicromorphicStatus :: ~IsotropicDamageMaterialMicromorphicStatus()
+{ }
+
+
+
+  
+void
+IsotropicDamageMaterialMicromorphicStatus :: initTempStatus()
+//
+// initializes temp variables according to variables form previous equlibrium state.
+// builds new crackMap
+//
+{
+    VarBasedDamageMaterialStatus :: initTempStatus();
+    this->tempMicromorphicComplianceVariable = this->micromorphicComplianceVariable;
+    this->tempComplianceVariable = this->complianceVariable;
+}
+
+  
+void
+IsotropicDamageMaterialMicromorphicStatus :: updateYourself(TimeStep *tStep)
+//
+// updates variables (nonTemp variables describing situation at previous equilibrium state)
+// after a new equilibrium state has been reached
+// temporary variables are having values corresponding to newly reched equilibrium.
+//
+{
+    VarBasedDamageMaterialStatus :: initTempStatus();
+    this->micromorphicComplianceVariable = this->tempMicromorphicComplianceVariable;
+    this->complianceVariable = this->tempComplianceVariable;
+
+}
+ 
+
+  /*
+contextIOResultType
+IsotropicDamageMaterialMicromorphicStatus :: saveContext(DataStream &stream, ContextMode mode, void *obj)
+//
+// saves full information stored in this Status
+// no temp variables stored
+//
+{
+    contextIOResultType iores;
+    // save parent class status
+    if ( ( iores = IsotropicDamageMaterial1Status :: saveContext(stream, mode, obj) ) != CIO_OK ) {
+        THROW_CIOERR(iores);
+    }
+
+    // write a raw data
+    if ( !stream.write(le) ) {
+        THROW_CIOERR(CIO_IOERR);
+    }
+
+    return CIO_OK;
+}
+  */
+  /*
+contextIOResultType
+IsotropicDamageMaterialMicromorphicStatus :: restoreContext(DataStream &stream, ContextMode mode, void *obj)
+//
+// restores full information stored in stream to this Status
+//
+{
+    contextIOResultType iores;
+    // read parent class status
+    if ( ( iores = IsotropicDamageMaterialStatus :: restoreContext(stream, mode, obj) ) != CIO_OK ) {
+        THROW_CIOERR(iores);
+    }
+
+    // read raw data
+    if ( !stream.read(le) ) {
+        THROW_CIOERR(CIO_IOERR);
+    }
+
+    return CIO_OK;
+}
+  */
+
+}     // end namespace oofem

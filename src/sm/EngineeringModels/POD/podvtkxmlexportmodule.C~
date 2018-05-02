@@ -1,0 +1,542 @@
+/*
+ *
+ *                 #####    #####   ######  ######  ###   ###
+ *               ##   ##  ##   ##  ##      ##      ## ### ##
+ *              ##   ##  ##   ##  ####    ####    ##  #  ##
+ *             ##   ##  ##   ##  ##      ##      ##     ##
+ *            ##   ##  ##   ##  ##      ##      ##     ##
+ *            #####    #####   ##      ######  ##     ##
+ *
+ *
+ *             OOFEM : Object Oriented Finite Element Code
+ *
+ *               Copyright (C) 1993 - 2013   Borek Patzak
+ *
+ *
+ *
+ *       Czech Technical University, Faculty of Civil Engineering,
+ *   Department of Structural Mechanics, 166 29 Prague, Czech Republic
+ *
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Lesser General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2.1 of the License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; if not, write to the Free Software
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
+
+#include "podvtkxmlexportmodule.h"
+#include "element.h"
+#include "gausspoint.h"
+#include "timestep.h"
+#include "engngm.h"
+#include "node.h"
+#include "dof.h"
+#include "materialinterface.h"
+#include "mathfem.h"
+#include "cltypes.h"
+#include "material.h"
+#include "classfactory.h"
+#include "crosssection.h"
+#include "unknownnumberingscheme.h"
+#include "pod.h"
+
+
+#include <string>
+#include <sstream>
+#include <fstream>
+#include <ctime>
+
+#ifdef __VTK_MODULE
+#include <vtkPoints.h>
+#include <vtkPointData.h>
+#include <vtkDoubleArray.h>
+#include <vtkCellArray.h>
+#include <vtkCellData.h>
+#include <vtkXMLUnstructuredGridWriter.h>
+#include <vtkXMLPUnstructuredGridWriter.h>
+#include <vtkUnstructuredGrid.h>
+#include <vtkSmartPointer.h>
+#endif
+
+namespace oofem {
+REGISTER_ExportModule(PODVTKXMLExportModule)
+
+PODVTKXMLExportModule :: PODVTKXMLExportModule(int n, EngngModel *e) : VTKXMLExportModule( n, e) 
+{
+}
+
+
+PODVTKXMLExportModule :: ~PODVTKXMLExportModule()
+{
+}
+
+IRResultType
+PODVTKXMLExportModule :: initializeFrom(InputRecord *ir)
+{
+    IRResultType result;                // Required by IR_GIVE_FIELD macro
+    int val;
+    
+    
+    IR_GIVE_OPTIONAL_FIELD(ir, primaryVarsToExport, _IFT_PODVTKXMLExportModule_primvars); // Macro - see unknowntype.h
+    exportFileName = "huhu";
+    IR_GIVE_OPTIONAL_FIELD(ir, exportFileName, _IFT_PODVTKXMLExportModule_exportFileName); // Macro - see unknowntype.h
+   
+   
+}
+
+std :: string
+PODVTKXMLExportModule :: giveOutputFileName(int iSnapshot)
+{
+    char fext [ 100 ];
+    sprintf( fext, "_%d.Pod.Basis.vtu", iSnapshot);
+    return this->exportFileName + fext;
+    // return this->giveOutputBaseFileName(tStep) + ".vtu";
+}
+
+
+FILE *
+PODVTKXMLExportModule :: giveOutputStream(int iSnapshot)
+{
+    FILE *answer;
+    std :: string fileName = giveOutputFileName(iSnapshot);
+    if ( ( answer = fopen(fileName.c_str(), "w") ) == NULL ) {
+        OOFEM_ERROR("failed to open file %s", fileName.c_str());
+    }
+
+    return answer;
+}
+
+
+
+
+void
+PODVTKXMLExportModule :: doOutput(TimeStep *tStep, int nSnapshot)
+{
+  for(int iSnapshot = 1; iSnapshot<= nSnapshot; iSnapshot++) {
+    this->doOutputSnapshot(tStep, iSnapshot);
+  }
+ 
+  VTKXMLExportModule :: doOutput(tStep, true);
+
+}
+
+void
+PODVTKXMLExportModule :: doOutputSnapshot(TimeStep *tStep, int iSnapshot)
+{
+
+    this->fileStream = this->giveOutputStream(iSnapshot);
+    struct tm *current;
+    time_t now;
+    time(& now);
+    current = localtime(& now);
+
+
+    // Write output: VTK header
+#ifndef __VTK_MODULE
+    fprintf(this->fileStream, "<!-- TimeStep %e Computed %d-%02d-%02d at %02d:%02d:%02d -->\n", tStep->giveIntrinsicTime()*timeScale, current->tm_year + 1900, current->tm_mon + 1, current->tm_mday, current->tm_hour,  current->tm_min,  current->tm_sec);
+    fprintf(this->fileStream, "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">\n");
+    fprintf(this->fileStream, "<UnstructuredGrid>\n");
+#endif
+
+ 
+    int nPiecesToExport = this->giveNumberOfRegions(); //old name: region, meaning: sets
+    for ( int pieceNum = 1; pieceNum <= nPiecesToExport; pieceNum++ ) {
+      // Fills a data struct (VTKPiece) with all the necessary data.
+      this->setupVTKPiece(this->defaultVTKPiece, tStep, pieceNum, iSnapshot);
+      // Write the VTK piece to file.
+      this->writeVTKPiece(this->defaultVTKPiece, tStep);
+    }
+
+      // Finilize the output:
+    std :: string fname = giveOutputFileName(iSnapshot);
+    fprintf(this->fileStream, "</UnstructuredGrid>\n</VTKFile>");
+    fclose(this->fileStream);
+
+    std :: ostringstream pvdEntry;
+    std :: stringstream subStep;
+    if (tstep_substeps_out_flag)
+      subStep << "." << tStep->giveSubStepNumber();
+    pvdEntry << "<DataSet timestep=\"" << tStep->giveIntrinsicTime() << subStep.str() << "\" group=\"\" part=\"\" file=\"" << fname << "\"/>";
+    this->pvdBuffer.push_back( pvdEntry.str() );
+    this->writeVTKCollection();
+    
+}
+
+
+
+
+
+
+
+
+void
+  PODVTKXMLExportModule :: setupVTKPiece(VTKPiece &vtkPiece, TimeStep *tStep, int region, int iSnapshot)
+{
+    // Stores all neccessary data (of a region) in a VTKPiece so it can be exported later.
+
+    Domain *d  = emodel->giveDomain(1);
+    Element *elem;
+    FloatArray *coords;
+
+    // output nodes Region By Region
+    int numNodes, numRegionEl;
+    IntArray mapG2L, mapL2G;
+
+    // Assemble local->global and global->local region map and get number of
+    // single cells to process, the composite cells exported individually.
+    this->initRegionNodeNumbering(mapG2L, mapL2G, numNodes, numRegionEl, d, tStep, region);
+    if ( numNodes > 0 && numRegionEl > 0 ) {
+        // Export nodes as vtk vertices
+        vtkPiece.setNumberOfNodes(numNodes);
+        for ( int inode = 1; inode <= numNodes; inode++ ) {
+            coords = d->giveNode( mapL2G.at(inode) )->giveCoordinates();
+            vtkPiece.setNodeCoords(inode, * coords);
+        }
+
+
+        //-------------------------------------------
+        // Export all the cell data for the piece
+        //-------------------------------------------
+        IntArray cellNodes;
+        vtkPiece.setNumberOfCells(numRegionEl);
+
+        int offset = 0;
+        int cellNum = 0;
+        IntArray elems = this->giveRegionSet(region)->giveElementList();
+        for ( int ei = 1; ei <= elems.giveSize(); ei++ ) {
+            int elNum = elems.at(ei);
+            elem = d->giveElement(elNum);
+
+            // Skip elements that:
+            // are inactivated or of composite type ( these are exported individually later)
+            if ( this->isElementComposite(elem) || !elem->isActivated(tStep) ) {
+                continue;
+            }
+
+            if ( elem->giveParallelMode() != Element_local ) {
+                continue;
+            }
+
+            cellNum++;
+
+            // Set the connectivity
+            this->giveElementCell(cellNodes, elem);  // node numbering of the cell with according to the VTK format
+
+            // Map from global to local node numbers for the current piece
+            int numElNodes = cellNodes.giveSize();
+            IntArray connectivity(numElNodes);
+            for ( int i = 1; i <= numElNodes; i++ ) {
+                connectivity.at(i) = mapG2L.at( cellNodes.at(i) );
+            }
+
+            vtkPiece.setConnectivity(cellNum, connectivity);
+
+            vtkPiece.setCellType( cellNum, this->giveCellType(elem) ); // VTK cell type
+
+            offset += numElNodes;
+            vtkPiece.setOffset(cellNum, offset);
+        }
+
+        this->exportPrimaryVars(vtkPiece, mapG2L, mapL2G, region, tStep, iSnapshot);      
+    } // end of default piece for simple geometry elements
+}
+
+
+void
+PODVTKXMLExportModule :: writeVTKPiece(VTKPiece &vtkPiece, TimeStep *tStep)
+{
+    // Write a VTK piece to file. This could be the whole domain (most common case) or it can be a
+    // (so-called) composite element consisting of several VTK cells (layered structures, XFEM, etc.).
+
+    if ( !vtkPiece.giveNumberOfCells() ) {
+        return;                                  //{ // if there are no elements to output
+    }
+
+    // Write output: node coords
+    int numNodes = vtkPiece.giveNumberOfNodes();
+    int numEl = vtkPiece.giveNumberOfCells();
+    FloatArray coords;
+
+#ifdef __VTK_MODULE
+    FloatArray vtkCoords(3);
+    for ( int inode = 1; inode <= numNodes; inode++ ) {
+        coords = vtkPiece.giveNodeCoords(inode);
+        vtkCoords.zero();
+        for ( int i = 1; i <= coords.giveSize(); i++ ) {
+            vtkCoords.at(i) = coords.at(i);
+        }
+
+        this->nodes->InsertNextPoint( vtkCoords.at(1), vtkCoords.at(2), vtkCoords.at(3) );
+        this->fileStream->SetPoints(nodes);
+    }
+
+#else
+    fprintf(this->fileStream, "<Piece NumberOfPoints=\"%d\" NumberOfCells=\"%d\">\n", numNodes, numEl);
+    fprintf(this->fileStream, "<Points>\n <DataArray type=\"Float64\" NumberOfComponents=\"3\" format=\"ascii\"> ");
+
+    for ( int inode = 1; inode <= numNodes; inode++ ) {
+        coords = vtkPiece.giveNodeCoords(inode);
+        ///@todo move this below into setNodeCoords since it should alwas be 3 components anyway
+        for ( int i = 1; i <= coords.giveSize(); i++ ) {
+            fprintf( this->fileStream, "%e ", coords.at(i) );
+        }
+
+        for ( int i = coords.giveSize() + 1; i <= 3; i++ ) {
+            fprintf(this->fileStream, "%e ", 0.0);
+        }
+    }
+
+    fprintf(this->fileStream, "</DataArray>\n</Points>\n");
+#endif
+
+
+    // Write output: connectivity, offsets, cell types
+
+    // output the connectivity data
+#ifdef __VTK_MODULE
+    this->fileStream->Allocate(numEl);
+#else
+    fprintf(this->fileStream, "<Cells>\n");
+    fprintf(this->fileStream, " <DataArray type=\"Int32\" Name=\"connectivity\" format=\"ascii\"> ");
+#endif
+    IntArray cellNodes;
+    for ( int ielem = 1; ielem <= numEl; ielem++ ) {
+        cellNodes = vtkPiece.giveCellConnectivity(ielem);
+
+#ifdef __VTK_MODULE
+        elemNodeArray->Reset();
+        elemNodeArray->SetNumberOfIds( cellNodes.giveSize() );
+#endif
+        for ( int i = 1; i <= cellNodes.giveSize(); i++ ) {
+#ifdef __VTK_MODULE
+            elemNodeArray->SetId(i - 1, cellNodes.at(i) - 1);
+#else
+            fprintf(this->fileStream, "%d ", cellNodes.at(i) - 1);
+#endif
+        }
+
+#ifdef __VTK_MODULE
+        this->fileStream->InsertNextCell(vtkPiece.giveCellType(ielem), elemNodeArray);
+#else
+        fprintf(this->fileStream, " ");
+#endif
+    }
+
+#ifndef __VTK_MODULE
+    fprintf(this->fileStream, "</DataArray>\n");
+
+    // output the offsets (index of individual element data in connectivity array)
+    fprintf(this->fileStream, " <DataArray type=\"Int32\" Name=\"offsets\" format=\"ascii\"> ");
+
+    for ( int ielem = 1; ielem <= numEl; ielem++ ) {
+        fprintf( this->fileStream, "%d ", vtkPiece.giveCellOffset(ielem) );
+    }
+
+    fprintf(this->fileStream, "</DataArray>\n");
+
+
+    // output cell (element) types
+    fprintf(this->fileStream, " <DataArray type=\"UInt8\" Name=\"types\" format=\"ascii\"> ");
+    for ( int ielem = 1; ielem <= numEl; ielem++ ) {
+        fprintf( this->fileStream, "%d ", vtkPiece.giveCellType(ielem) );
+    }
+
+    fprintf(this->fileStream, "</DataArray>\n");
+    fprintf(this->fileStream, "</Cells>\n");
+
+
+    ///@todo giveDataHeaders is currently not updated wrt the new structure -> no file names in headers /JB
+    std :: string pointHeader, cellHeader;
+    this->giveDataHeaders(pointHeader, cellHeader);
+
+    fprintf( this->fileStream, "%s", pointHeader.c_str() );
+#endif
+
+    this->writePrimaryVars(vtkPiece);       // Primary field
+    this->writeIntVars(vtkPiece);           // Internal State Type variables smoothed to the nodes
+    this->writeExternalForces(vtkPiece);           // External forces
+
+    if ( emodel->giveDomain(1)->hasXfemManager() ) {
+        this->writeXFEMVars(vtkPiece);      // XFEM State Type variables associated with XFEM structure
+    }
+
+#ifndef __VTK_MODULE
+    fprintf(this->fileStream, "</PointData>\n");
+    fprintf( this->fileStream, "%s", cellHeader.c_str() );
+#endif
+
+    this->writeCellVars(vtkPiece);          // Single cell variables ( if given in the integration points then an average will be exported)
+
+#ifndef __VTK_MODULE
+    fprintf(this->fileStream, "</CellData>\n");
+    fprintf(this->fileStream, "</Piece>\n");
+#endif
+
+    //}
+
+
+    // Clear object so it can be filled with new data for the next piece
+    vtkPiece.clear();
+}
+
+//----------------------------------------------------
+// Primary variables - readily available in the nodes
+//----------------------------------------------------
+void
+  PODVTKXMLExportModule :: exportPrimaryVars(VTKPiece &vtkPiece, IntArray &mapG2L, IntArray &mapL2G, int region, TimeStep *tStep, int iSnapshot)
+{
+    Domain *d = emodel->giveDomain(1);
+    FloatArray valueArray;
+    this->givePrimVarSmoother()->clear(); // Makes sure primary smoother is up-to-date with potentially new mesh.
+
+    vtkPiece.setNumberOfPrimaryVarsToExport(primaryVarsToExport.giveSize(), mapL2G.giveSize());
+    for ( int i = 1, n = primaryVarsToExport.giveSize(); i <= n; i++ ) {
+        UnknownType type = ( UnknownType ) primaryVarsToExport.at(i);
+
+        for ( int inode = 1; inode <= mapL2G.giveSize(); inode++ ) {
+            DofManager *dman = d->giveNode( mapL2G.at(inode) );
+
+            this->getNodalVariableFromPrimaryField(valueArray, dman, tStep, type, region, iSnapshot);
+            vtkPiece.setPrimaryVarInNode(i, inode, std :: move(valueArray));
+        }
+    }
+}
+
+
+void
+  PODVTKXMLExportModule :: getNodalVariableFromPrimaryField(FloatArray &answer, DofManager *dman, TimeStep *tStep, UnknownType type, int ireg, int iSnapshot)
+{
+    // This code is not perfect. It should be rewritten to handle all cases more gracefully.
+    ///@todo This method needs to be cleaned up - maybe define the common vector types so
+    /// certain dofid's are associated with them /JB
+
+    IntArray dofIDMask(3);
+    int size;
+    const FloatArray *recoveredVal;
+
+    InternalStateType iState = IST_DisplacementVector; // Shouldn't be necessary
+
+    dofIDMask.clear();
+
+    if ( type == DisplacementVector ) {
+        dofIDMask = { ( int ) Undef, ( int ) Undef, ( int ) Undef };
+        for ( Dof *dof: *dman ) {
+            DofIDItem id = dof->giveDofID();
+            if ( id == D_u ) {
+                dofIDMask.at(1) = id;
+            } else if ( id == D_v ) {
+                dofIDMask.at(2) = id;
+            } else if ( id == D_w ) {
+                dofIDMask.at(3) = id;
+            }
+        }
+
+        answer.resize(3);
+    } else if ( type == VelocityVector ) {
+        dofIDMask = { ( int ) Undef, ( int ) Undef, ( int ) Undef };
+        for ( Dof *dof: *dman ) {
+            DofIDItem id = dof->giveDofID();
+            if ( id == V_u ) {
+                dofIDMask.at(1) = id;
+            } else if ( id == V_v ) {
+                dofIDMask.at(2) = id;
+            } else if ( id == V_w ) {
+                dofIDMask.at(3) = id;
+            }
+        }
+
+        answer.resize(3);
+    } else if ( type == EigenVector ) {
+        dofIDMask = { ( int ) Undef, ( int ) Undef, ( int ) Undef };
+        for ( Dof *dof: *dman ) {
+            DofIDItem id = dof->giveDofID();
+            if ( ( id == V_u ) || ( id == D_u ) ) {
+                dofIDMask.at(1) = id;
+            } else if ( ( id == V_v ) || ( id == D_v ) ) {
+                dofIDMask.at(2) = id;
+            } else if ( ( id == V_w ) || ( id == D_w ) ) {
+                dofIDMask.at(3) = id;
+            }
+        }
+
+        answer.resize(3);
+    } else if ( type == FluxVector || type == Humidity) {
+        dofIDMask.followedBy(C_1);
+        iState = IST_MassConcentration_1;
+        answer.resize(1);
+    } else if (type == DeplanationFunction) {
+        dofIDMask.followedBy(Warp_PsiTheta);
+        iState = IST_Temperature;
+        answer.resize(1);
+    } else if (type == MicromorphicStrainNorm) {
+        dofIDMask.followedBy(M_D);
+        iState = IST_MicromorphicStrainNorm;
+        answer.resize(1);
+    } else if (type == DeplanationFunction) {
+        dofIDMask.followedBy(Warp_PsiTheta);
+        iState = IST_Temperature;
+        answer.resize(1);
+    } 
+    else if ( type == Temperature ) {
+        dofIDMask.followedBy(T_f);
+        iState = IST_Temperature;
+        answer.resize(1);
+    } else if ( type == PressureVector ) {
+        dofIDMask.followedBy(P_f);
+        iState = IST_Pressure;
+        answer.resize(1);
+    } else if ( type == DirectorField ) {
+        for ( Dof *dof: *dman ) {
+            DofIDItem id = dof->giveDofID();
+            if ( ( id == W_u ) || ( id == W_v ) || ( id == W_w ) ) {
+                dofIDMask.followedBy(id);
+            }
+
+            answer.resize(3);
+        }
+
+        iState = IST_DirectorField;
+    } else {
+        OOFEM_ERROR("unsupported unknownType %s", __UnknownTypeToString(type) );
+    }
+
+    size = dofIDMask.giveSize();
+    answer.zero();
+
+    for ( int j = 1; j <= size; j++ ) {
+        DofIDItem id = ( DofIDItem ) dofIDMask.at(j);
+	if ( id == Undef ) {
+	  answer.at(j) = 0.;
+	} else if ( dman->hasDofID(id) ) {
+            // primary variable available directly in DOF-manager
+	  POD *pod = static_cast<POD*> (emodel);
+	  if(pod)
+	    answer.at(j) = pod->giveReducedBasisValue(tStep,dman, dofIDMask.at(j), iSnapshot);
+//reducedBasisMatrix.at(,1);
+	}
+    }
+    InternalStateValueType valType = giveInternalStateValueType(type);
+}
+
+void
+PODVTKXMLExportModule :: initialize()
+{
+  if ( regionSets.isEmpty() ) {
+    // default: whole domain region
+    regionSets.resize(1);
+    regionSets.at(1) = -1;
+    
+    defaultElementSet.addAllElements();
+  }
+}
+
+
+} // end namespace oofem
