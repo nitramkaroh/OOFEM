@@ -84,7 +84,10 @@ enum InterfaceType {
     IncompressibleMaterialExtensionInterfaceType,
     MeanDilatationalMethodElementExtensionInterfaceType,
 
-    PressureFollowerLoadElementInterfaceType
+    PressureFollowerLoadElementInterfaceType,
+
+    MicromorphicMaterialExtensionInterfaceType,
+    SecondGradientMaterialExtensionInterfaceType
 
 };
 } // end namespace oofem

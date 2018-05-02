@@ -396,6 +396,53 @@ StructuralMaterial :: giveFirstPKStressVector_PlaneStress(FloatArray &answer, Ga
 
 
 void
+StructuralMaterial :: giveFirstPKStressVector_Membrane2d(FloatArray &answer, GaussPoint *gp, FloatArray &reducedvF, TimeStep *tStep)
+{
+    StructuralMaterialStatus *status = static_cast< StructuralMaterialStatus * >( this->giveStatus(gp) );
+    IntArray F_control, P_control; // Determines which components are controlled by F and P resp.
+    FloatArray vF, increment_vF, vP, vP_control;
+    FloatMatrix tangent, tangent_Pcontrol;
+    // Iterate to find full vF.
+    StructuralMaterial :: giveVoigtVectorMask(F_control, _Membrane2d);
+    // Compute the negated the array of control since we need P_control as well;
+    P_control.resize( 9 - F_control.giveSize() );
+    for ( int i = 1, j = 1; i <= 9; i++ ) {
+        if ( !F_control.contains(i) ) {
+            P_control.at(j++) = i;
+        }
+    }
+
+    // Initial guess;
+    vF = status->giveFVector();
+    for ( int i = 1; i <= F_control.giveSize(); ++i ) {
+        vF.at( F_control.at(i) ) = reducedvF.at(i);
+    }
+
+    // Iterate to find full vF.
+    for ( int k = 0; k < 100; k++ ) { // Allow for a generous 100 iterations.
+        this->giveFirstPKStressVector_3d(vP, gp, vF, tStep);
+        vP_control.beSubArrayOf(vP, P_control);
+        if ( vP_control.computeNorm() < 1e-6 ) { ///@todo We need a tolerance here!
+	  answer = vP;
+            return;
+        }
+
+        this->give3dMaterialStiffnessMatrix_dPdF(tangent, TangentStiffness, gp, tStep);
+        tangent_Pcontrol.beSubMatrixOf(tangent, P_control, P_control);
+        tangent_Pcontrol.solveForRhs(vP_control, increment_vF);
+	increment_vF.negated();
+        vF.assemble(increment_vF, P_control);
+    }
+
+    OOFEM_WARNING("Iteration did not converge");
+    answer.clear();
+    
+}
+
+
+  
+
+void
 StructuralMaterial :: giveFirstPKStressVector_1d(FloatArray &answer, GaussPoint *gp, const FloatArray &vF, TimeStep *tStep)
 {
   StructuralMaterialStatus *status = static_cast< StructuralMaterialStatus * >( this->giveStatus(gp) );
@@ -673,7 +720,6 @@ StructuralMaterial :: convert_dSdE_2_dPdF(FloatMatrix &answer, const FloatMatrix
 #endif
     } else if ( matMode == _PlaneStress ) {
         // Save terms associated with H = [du/dx dv/dy du/dy dv/dx]
-
         answer.resize(4, 4);
         answer(0, 0) = F(0) * C(0, 0) * F(0) + F(0) * C(0, 2) * F(2) + F(2) * C(2, 0) * F(0) + F(2) * C(2, 2) * F(2) + S(0);
         answer(0, 1) = F(0) * C(0, 2) * F(3) + F(0) * C(0, 1) * F(1) + F(2) * C(2, 2) * F(3) + F(2) * C(2, 1) * F(1) + 0.0;
@@ -726,6 +772,52 @@ StructuralMaterial :: convert_dSdE_2_dPdF(FloatMatrix &answer, const FloatMatrix
 
         answer.resize(1, 1);
         answer(0, 0) = F(0) * C(0, 0) * F(0) + S(0);
+    } else if ( matMode == _Membrane2d ) {
+      //Save terms associated with H = [du/dx, dv/dy, du/dy, dw/dy, dw/dx, dv/dx]
+      answer.resize(6, 6);
+      answer(0, 0) = F(0) * C(0, 0) * F(0) + F(0) * C(0, 2) * F(2) + F(2) * C(2, 0) * F(0) + F(2) * C(2, 2) * F(2) + S(0);
+      answer(0, 1) = F(0) * C(0, 2) * F(5) + F(0) * C(0, 1) * F(1) + F(2) * C(2, 2) * F(5) + F(2) * C(2, 1) * F(1) + 0.0;
+      answer(0, 2) = F(0) * C(0, 2) * F(0) + F(0) * C(0, 1) * F(2) + F(2) * C(2, 2) * F(0) + F(2) * C(2, 1) * F(2) + S(2);
+      answer(0, 3) = F(0) * C(0, 2) * F(4) + F(0) * C(0, 1) * F(3) + F(2) * C(2, 2) * F(4) + F(2) * C(2, 1) * F(3) + 0.0;
+      answer(0, 4) = F(0) * C(0, 0) * F(4) + F(0) * C(0, 2) * F(3) + F(2) * C(2, 0) * F(4) + F(2) * C(2, 2) * F(3) + 0.0;
+      answer(0, 5) = F(0) * C(0, 0) * F(5) + F(0) * C(0, 2) * F(1) + F(2) * C(2, 0) * F(5) + F(2) * C(2, 2) * F(1) + 0.0;
+      
+      answer(1, 0) = F(5) * C(2, 0) * F(0) + F(5) * C(2, 2) * F(2) + F(1) * C(1, 0) * F(0) + F(1) * C(1, 2) * F(2) + 0.0;
+      answer(1, 1) = F(5) * C(2, 2) * F(5) + F(5) * C(2, 1) * F(1) + F(1) * C(1, 2) * F(5) + F(1) * C(1, 1) * F(1) + S(1);
+      answer(1, 2) = F(5) * C(2, 2) * F(0) + F(5) * C(2, 1) * F(2) + F(1) * C(1, 2) * F(0) + F(1) * C(1, 1) * F(2) + 0.0;
+      answer(1, 3) = F(5) * C(2, 2) * F(4) + F(5) * C(2, 1) * F(3) + F(1) * C(1, 2) * F(4) + F(1) * C(1, 1) * F(3) + 0.0;
+      answer(1, 4) = F(5) * C(2, 0) * F(4) + F(5) * C(2, 2) * F(3) + F(1) * C(1, 0) * F(4) + F(1) * C(1, 2) * F(3) + 0.0;
+      answer(1, 5) = F(5) * C(2, 0) * F(5) + F(5) * C(2, 2) * F(1) + F(1) * C(1, 0) * F(5) + F(1) * C(1, 2) * F(1) + S(2);
+      
+      answer(2, 0) = F(0) * C(2, 0) * F(0) + F(0) * C(2, 2) * F(2) + F(2) * C(1, 0) * F(0) + F(2) * C(1, 2) * F(2) + S(2);
+      answer(2, 1) = F(0) * C(2, 2) * F(5) + F(0) * C(2, 1) * F(1) + F(2) * C(1, 2) * F(5) + F(2) * C(1, 1) * F(1) + 0.0;
+      answer(2, 2) = F(0) * C(2, 2) * F(0) + F(0) * C(2, 1) * F(2) + F(2) * C(1, 2) * F(0) + F(2) * C(1, 1) * F(2) + S(1);
+      answer(2, 3) = F(0) * C(2, 2) * F(4) + F(0) * C(2, 1) * F(3) + F(2) * C(1, 2) * F(4) + F(2) * C(1, 1) * F(3) + 0.0;
+      answer(2, 4) = F(0) * C(2, 0) * F(4) + F(0) * C(2, 2) * F(3) + F(2) * C(1, 0) * F(4) + F(2) * C(1, 2) * F(3) + 0.0;
+      answer(2, 5) = F(0) * C(2, 0) * F(5) + F(0) * C(2, 2) * F(1) + F(2) * C(1, 0) * F(5) + F(2) * C(1, 2) * F(1) + 0.0;
+      
+      answer(3, 0) = F(4) * C(2, 0) * F(0) + F(4) * C(2, 2) * F(2) + F(3) * C(1, 0) * F(0) + F(3) * C(1, 2) * F(2) + 0.0;
+      answer(3, 1) = F(4) * C(2, 2) * F(5) + F(4) * C(2, 1) * F(1) + F(3) * C(1, 2) * F(5) + F(3) * C(1, 1) * F(1) + 0.0;
+      answer(3, 2) = F(4) * C(2, 2) * F(0) + F(4) * C(2, 1) * F(2) + F(3) * C(1, 2) * F(0) + F(3) * C(1, 1) * F(2) + 0.0;
+      answer(3, 3) = F(4) * C(2, 2) * F(4) + F(4) * C(2, 1) * F(3) + F(3) * C(1, 2) * F(4) + F(3) * C(1, 1) * F(3) + S(1);
+      answer(3, 4) = F(4) * C(2, 0) * F(4) + F(4) * C(2, 2) * F(3) + F(3) * C(1, 0) * F(4) + F(3) * C(1, 2) * F(3) + S(2);
+      answer(3, 5) = F(4) * C(2, 0) * F(5) + F(4) * C(2, 2) * F(1) + F(3) * C(1, 0) * F(5) + F(3) * C(1, 2) * F(1) + 0.0;
+      
+      answer(4, 0) = F(4) * C(0, 0) * F(0) + F(4) * C(0, 2) * F(2) + F(3) * C(2, 0) * F(0) + F(3) * C(2, 2) * F(2) + 0.0;
+      answer(4, 1) = F(4) * C(0, 2) * F(5) + F(4) * C(0, 1) * F(1) + F(3) * C(2, 2) * F(5) + F(3) * C(2, 1) * F(1) + 0.0;
+      answer(4, 2) = F(4) * C(0, 2) * F(0) + F(4) * C(0, 1) * F(2) + F(3) * C(2, 2) * F(0) + F(3) * C(2, 1) * F(2) + 0.0;
+      answer(4, 3) = F(4) * C(0, 2) * F(4) + F(4) * C(0, 1) * F(3) + F(3) * C(2, 2) * F(4) + F(3) * C(2, 1) * F(3) + S(2);
+      answer(4, 4) = F(4) * C(0, 0) * F(4) + F(4) * C(0, 2) * F(3) + F(3) * C(2, 0) * F(4) + F(3) * C(2, 2) * F(3) + S(0);
+      answer(4, 5) = F(4) * C(0, 0) * F(5) + F(4) * C(0, 2) * F(1) + F(3) * C(2, 0) * F(5) + F(3) * C(2, 2) * F(1) + 0.0;
+
+      answer(5, 0) = F(5) * C(0, 0) * F(0) + F(5) * C(0, 2) * F(2) + F(1) * C(2, 0) * F(0) + F(1) * C(2, 2) * F(2) + 0.0;
+      answer(5, 1) = F(5) * C(0, 2) * F(5) + F(5) * C(0, 1) * F(1) + F(1) * C(2, 2) * F(5) + F(1) * C(2, 1) * F(1) + S(2);
+      answer(5, 2) = F(5) * C(0, 2) * F(0) + F(5) * C(0, 1) * F(2) + F(1) * C(2, 2) * F(0) + F(1) * C(2, 1) * F(2) + 0.0;
+      answer(5, 3) = F(5) * C(0, 2) * F(4) + F(5) * C(0, 1) * F(3) + F(1) * C(2, 2) * F(4) + F(1) * C(2, 1) * F(3) + 0.0;
+      answer(5, 4) = F(5) * C(0, 0) * F(4) + F(5) * C(0, 2) * F(3) + F(1) * C(2, 0) * F(4) + F(1) * C(2, 2) * F(3) + 0.0;
+      answer(5, 5) = F(5) * C(0, 0) * F(5) + F(5) * C(0, 2) * F(1) + F(1) * C(2, 0) * F(5) + F(1) * C(2, 2) * F(1) + S(0);
+
+      
     }
 }
 
@@ -751,7 +843,7 @@ StructuralMaterial :: give_dPdF_from(const FloatMatrix &dSdE, FloatMatrix &answe
     StructuralMaterial :: giveReducedVectorForm(reducedvF, vF, matMode);
     StructuralMaterial :: giveReducedVectorForm(reducedvP, vP, matMode);
     StructuralMaterial :: giveReducedSymVectorForm(reducedvS, vS, matMode);
-    //this->convert_P_2_S(reducedvS, reducedvP, reducedvF, matMode);
+    //this->convert_P_2_mS(reducedvS, reducedvP, reducedvF, matMode);
     this->convert_dSdE_2_dPdF(answer, dSdE, reducedvS, reducedvF, matMode);
 }
 
@@ -829,6 +921,18 @@ StructuralMaterial :: givePlaneStressStiffMtrx_dPdF(FloatMatrix &answer,
     FloatMatrix dSdE;
     this->givePlaneStressStiffMtrx(dSdE, mode, gp, tStep);
     this->give_dPdF_from(dSdE, answer, gp, _PlaneStress);
+}
+
+
+
+void
+StructuralMaterial :: giveMembrane2dStiffMtrx_dPdF(FloatMatrix &answer,
+                                                    MatResponseMode mode,
+                                                    GaussPoint *gp, TimeStep *tStep)
+{
+    FloatMatrix dSdE;
+    this->givePlaneStressStiffMtrx(dSdE, mode, gp, tStep);
+    this->give_dPdF_from(dSdE, answer, gp, _Membrane2d);
 }
 
 
@@ -1223,7 +1327,7 @@ StructuralMaterial :: giveVoigtSymVectorMask(IntArray &answer, MaterialMode mmod
 
     case _Membrane2d:
         answer = {
-            1, 2, 6
+	  1, 2, 6
         };
         return 6;
 
@@ -1278,6 +1382,11 @@ StructuralMaterial :: giveVoigtVectorMask(IntArray &answer, MaterialMode mmode)
         answer.at(1) = 1;
         return 9;
 
+    case _Membrane2d:
+        answer = {
+	  1, 2, 6, 7, 8, 9
+        };
+        return 9;
     default:
         return 0;
     }

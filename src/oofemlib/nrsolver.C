@@ -393,6 +393,187 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
 }
 
 
+NM_Status
+NRSolver :: solveHR(SparseMtrx &k, FloatArray &R, FloatArray *R0, FloatArray *iR,
+                  FloatArray &X, FloatArray &dX, FloatArray &F,
+                  const FloatArray &internalForcesEBENorm, double &l, referenceLoadInputModeType rlm,
+		    int &nite, TimeStep *tStep, FloatMatrix &reducedBasis)
+//
+// this function solve the problem of the unbalanced equilibrium
+// using NR scheme
+//
+//
+{
+    // residual, iteration increment of solution, total external force
+    FloatArray rhs, ddX, RT;
+    double RRT;
+    int neq = X.giveSize();
+    bool converged, errorOutOfRangeFlag;
+    ParallelContext *parallel_context = engngModel->giveParallelContext( this->domain->giveNumber() );
+
+    if ( engngModel->giveProblemScale() == macroScale ) {
+        OOFEM_LOG_INFO("NRSolver: Iteration");
+        if ( rtolf.at(1) > 0.0 ) {
+            OOFEM_LOG_INFO(" ForceError");
+        }
+        if ( rtold.at(1) > 0.0 ) {
+            OOFEM_LOG_INFO(" DisplError");
+        }
+        OOFEM_LOG_INFO("\n----------------------------------------------------------------------------\n");
+    }
+
+    l = 1.0;
+
+    NM_Status status = NM_None;
+    this->giveLinearSolver();
+
+    // compute total load R = R+R0
+    RT = R;
+    if ( R0 ) {
+        RT.add(* R0);
+    }
+
+    RRT = parallel_context->localNorm(RT);
+    RRT *= RRT;
+
+    ddX.resize(neq);
+    ddX.zero();
+
+    // Fetch the matrix before evaluating internal forces.
+    // This is intentional, since its a simple way to drastically increase convergence for nonlinear problems.
+    // (This old tangent is just used)
+    // This improves convergence for many nonlinear problems, but not all. It may actually
+    // cause divergence for some nonlinear problems. Therefore a flag is used to determine if
+    // the stiffness should be evaluated before the residual (default yes). /ES
+
+    engngModel->updateComponent(tStep, NonLinearLhs, domain);
+    if ( this->prescribedDofsFlag ) {
+        if ( !prescribedEqsInitFlag ) {
+            this->initPrescribedEqs();
+        }
+        applyConstraintsToStiffness(k);
+    }
+
+    nite = 0;
+    for ( nite = 0; ; ++nite ) {
+      // Compute the residual
+      engngModel->updateComponent(tStep, InternalRhs, domain);
+      if (nite || iR == NULL) {
+        rhs.beDifferenceOf(RT, F);
+      } else {
+        rhs = R;
+        if (iR) {
+          rhs.add(*iR); // add initial guess
+        }
+      }
+        if ( this->prescribedDofsFlag ) {
+            this->applyConstraintsToLoadIncrement(nite, k, rhs, rlm, tStep);
+        }
+
+	engngModel->updateComponent(tStep, InternalRhs, domain);
+
+	FloatArray fullRT, fullF, fullRHS, fullddX, fullX;
+	fullRT.beProductOf(reducedBasis, RT);
+	fullF.beProductOf(reducedBasis, F);
+	fullRHS.beProductOf(reducedBasis, rhs);
+	fullddX.beProductOf(reducedBasis, ddX);
+	fullX.beProductOf(reducedBasis, X);
+
+        // convergence check
+        converged = this->checkConvergence(fullRT, fullF, fullRHS, fullddX, fullX, RRT, internalForcesEBENorm, nite, errorOutOfRangeFlag);
+
+        if ( errorOutOfRangeFlag ) {
+            status = NM_NoSuccess;
+            OOFEM_WARNING("Divergence reached after %d iterations", nite);
+            break;
+        } else if ( converged && ( nite >= minIterations ) ) {
+            break;
+        } else if ( nite >= nsmax ) {
+            OOFEM_LOG_DEBUG("Maximum number of iterations reached\n");
+            break;
+        }
+
+        if ( nite > 0 || !mCalcStiffBeforeRes ) {
+            if ( ( NR_Mode == nrsolverFullNRM ) || ( ( NR_Mode == nrsolverAccelNRM ) && ( nite % MANRMSteps == 0 ) ) ) {
+                engngModel->updateComponent(tStep, NonLinearLhs, domain);
+                applyConstraintsToStiffness(k);
+            }
+        }
+
+        if ( ( nite == 0 ) && ( deltaL < 1.0 ) ) { // deltaL < 1 means no increment applied, only equilibrate current state
+            rhs.zero();
+            R.zero();
+            ddX = rhs;
+        } else {
+            linSolver->solve(k, rhs, ddX);
+        }
+
+        //
+        // update solution
+        //
+        if ( this->lsFlag && ( nite > 0 ) ) { // Why not nite == 0 ?
+            // line search
+            LineSearchNM :: LS_status LSstatus;
+            double eta;
+            this->giveLineSearchSolver()->solve(X, ddX, F, R, R0, prescribedEqs, 1.0, eta, LSstatus, tStep);
+        } else if ( this->constrainedNRFlag && ( nite > this->constrainedNRminiter ) ) {
+            ///@todo This doesn't check units, it is nonsense and must be corrected / Mikael
+            if ( this->forceErrVec.computeSquaredNorm() > this->forceErrVecOld.computeSquaredNorm() ) {
+                OOFEM_LOG_INFO("Constraining increment to be %e times full increment...\n", this->constrainedNRalpha);
+                ddX.times(this->constrainedNRalpha);
+            }   
+            //this->giveConstrainedNRSolver()->solve(X, & ddX, this->forceErrVec, this->forceErrVecOld, status, tStep);
+        }
+        X.add(ddX);
+        dX.add(ddX);
+        tStep->incrementStateCounter(); // update solution state counter
+        tStep->incrementSubStepNumber();
+
+        engngModel->giveExportModuleManager()->doOutput(tStep, true);
+    }
+
+    status |= NM_Success;
+    solved = 1;
+
+    // Modify Load vector to include "quasi reaction"
+    if ( R0 ) {
+        for ( int i = 1; i <= numberOfPrescribedDofs; i++ ) {
+            R.at( prescribedEqs.at(i) ) = F.at( prescribedEqs.at(i) ) - R0->at( prescribedEqs.at(i) ) - R.at( prescribedEqs.at(i) );
+        }
+    } else {
+        for ( int i = 1; i <= numberOfPrescribedDofs; i++ ) {
+            R.at( prescribedEqs.at(i) ) = F.at( prescribedEqs.at(i) ) - R.at( prescribedEqs.at(i) );
+        }
+    }
+
+    this->lastReactions.resize(numberOfPrescribedDofs);
+
+#ifdef VERBOSE
+    if ( numberOfPrescribedDofs ) {
+        // print quasi reactions if direct displacement control used
+        OOFEM_LOG_INFO("\n");
+        OOFEM_LOG_INFO("NRSolver:     Quasi reaction table                                 \n");
+        OOFEM_LOG_INFO("NRSolver:     Node            Dof             Displacement    Force\n");
+        double reaction;
+        for ( int i = 1; i <= numberOfPrescribedDofs; i++ ) {
+            reaction = R.at( prescribedEqs.at(i) );
+            if ( R0 ) {
+                reaction += R0->at( prescribedEqs.at(i) );
+            }
+            lastReactions.at(i) = reaction;
+            OOFEM_LOG_INFO("NRSolver:     %-15d %-15d %-+15.5e %-+15.5e\n", prescribedDofs.at(2 * i - 1), prescribedDofs.at(2 * i),
+                           X.at( prescribedEqs.at(i) ), reaction);
+        }
+        OOFEM_LOG_INFO("\n");
+    }
+#endif
+
+    return status;
+}
+
+  
+
+
 SparseLinearSystemNM *
 NRSolver :: giveLinearSolver()
 {

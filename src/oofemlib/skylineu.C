@@ -86,6 +86,76 @@ SkylineUnsym :: ~SkylineUnsym()
     }
 }
 
+
+void
+SkylineUnsym  :: initializeFromFloatMatrix(FloatMatrix &answer)
+{
+  
+   // Instanciates the profile of the receiver and initializes all coefficients to zero.
+    // Warning : case diagonal (lumped) matrix to expected.
+
+    IntArray loc;
+    int first;
+    int neq = answer.giveNumberOfColumns();
+
+
+    size         = 0;//fM.giveNumberOfRows();
+    rowColumns   = NULL;
+    isFactorized = false;
+
+   
+    // clear receiver if exist
+
+
+    this->growTo(neq); // from now on, size = MaxIndex
+
+    // Set up the array with indices of first nonzero elements in each row
+    IntArray firstIndex(neq);
+    for ( int i = 1; i <= neq; i++ ) {
+        firstIndex.at(i) = i;
+    }
+
+      loc = firstIndex;
+      // elem->giveLocationArray(loc, s);
+      
+        //    Find 'first', the smallest positive number in LocArray
+        first = neq;
+        for ( int i = 1; i <= loc.giveSize(); i++ ) {
+            int ii = loc.at(i);
+            if ( ii && ii < first ) {
+                first = ii;
+            }
+        }
+
+        //    Make sure that the FirstIndex is not larger than 'first'
+        for ( int i = 1; i <= loc.giveSize(); i++ ) {
+            int ii = loc.at(i);
+            if ( ii && ( first < firstIndex.at(ii) ) ) {
+                firstIndex.at(ii) = first;
+            }
+        }
+ 
+
+    
+    
+    // Enlarge the rowcolumns
+    for ( int i = 1; i <= neq; i++ ) {
+        this->giveRowColumn(i)->growTo( firstIndex.at(i) );
+    }
+
+    // Print out basic information.
+    this->printStatistics();
+
+    nRows = nColumns = neq;
+    // increment version
+    this->version++;
+
+    this->assemble(loc,answer);
+
+}
+
+  
+
 void
 SkylineUnsym :: toFloatMatrix(FloatMatrix &answer) const
 {
@@ -628,6 +698,41 @@ SkylineUnsym :: times(const FloatArray &x, FloatArray &answer) const
         }
     }
 }
+
+void
+SkylineUnsym :: times(const FloatMatrix &A, FloatMatrix &answer) const
+{
+    int starti;
+    RowColumn *rowColumni;
+    //
+    // first check sizes
+    //
+    if ( this->size != A.giveNumberOfRows() ) {
+        OOFEM_ERROR("size mismatch");
+    }
+
+    answer.resize(this->size, A.giveNumberOfColumns());
+    answer.zero();
+    FloatArray x;
+    for (int k = 1; k <= A.giveNumberOfColumns(); k++) {
+      x.beColumnOf(A,k);
+      for ( int i = 1; i <= size; i++ ) {
+        rowColumni  = this->giveRowColumn(i);
+        starti     = rowColumni->giveStart();
+	answer.at(i,k) += rowColumni->dot(x, 'R', starti, i - 1);
+	answer.at(i,k) += rowColumni->atDiag() * x.at(i);
+	
+        for ( int j = starti; j <= i - 1; j++ ) {
+	  answer.at(j,k) += rowColumni->atU(j) * x.at(i);
+        }
+      }
+
+    }
+
+
+}
+
+  
 
 void SkylineUnsym :: times(double x)
 {

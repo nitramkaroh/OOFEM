@@ -457,6 +457,23 @@ int FloatArray :: giveIndexMaxElem()
     return index;
 }
 
+
+int FloatArray :: giveIndexMaxAbsElem()
+{
+    int index = 1;
+    if ( !this->giveSize() ) {
+        return -1;
+    }
+    double val = fabs((*this) [ 0 ]);
+    for ( int i = 1; i < this->giveSize(); i++ ) {
+      if ( val < fabs((*this) [ i ]) ) {
+	val = fabs((*this) [ i ]);
+            index = i + 1;
+        }
+    }
+    return index;
+}  
+
 double FloatArray :: dotProduct(const FloatArray &x) const
 {
 #  ifdef DEBUG

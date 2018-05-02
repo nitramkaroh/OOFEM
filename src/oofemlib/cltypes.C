@@ -116,6 +116,12 @@ InternalStateValueType giveInternalStateValueType(InternalStateType type)
 
     case IST_DeformationGradientTensor:
     case IST_FirstPKStressTensor:
+    case IST_MicromorphicStress:
+    case IST_MicromorphicStrain:
+    case IST_MicromorphicRelativeStress:
+    case IST_MicromorphicRelativeStrain:
+    case IST_MicromorphicHigherOrderStress:
+    case IST_MicromorphicHigherOrderStrain:
     //case IST_MaterialOrientation:
         return ISVT_TENSOR_G;
 

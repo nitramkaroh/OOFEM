@@ -218,6 +218,7 @@ public:
     virtual void giveFirstPKStressVector_PlaneStrain(FloatArray &answer, GaussPoint *gp, const FloatArray &reducedF, TimeStep *tStep);
     /// Default implementation relies on giveFirstPKStressVector_3d
     virtual void giveFirstPKStressVector_PlaneStress(FloatArray &answer, GaussPoint *gp, const FloatArray &reducedF, TimeStep *tStep);
+    virtual void giveFirstPKStressVector_Membrane2d(FloatArray &answer, GaussPoint *gp, FloatArray &reducedF, TimeStep *tStep);
     /// Default implementation relies on giveFirstPKStressVector_3d
     virtual void giveFirstPKStressVector_1d(FloatArray &answer, GaussPoint *gp, const FloatArray &reducedF, TimeStep *tStep);
     //@}
@@ -448,6 +449,13 @@ public:
                                                MatResponseMode mmode, GaussPoint *gp,
                                                TimeStep *tStep);
     //@}
+
+
+    virtual void giveMembrane2dStiffMtrx_dPdF(FloatMatrix &answer,
+                                               MatResponseMode mmode, GaussPoint *gp,
+                                               TimeStep *tStep);
+
+    
 
     /**
      * Method for computing plane strain stiffness matrix of receiver.

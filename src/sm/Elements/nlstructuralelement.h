@@ -240,7 +240,8 @@ protected:
     friend class XfemStructuralElementInterface;
     friend class MeanDilatationalMethodElementExtensionInterface;
     friend class FbarElementExtensionInterface;
-
+    friend class BaseMicromorphicElement;
+    friend class BaseSecondGradientElement;
 };
 } // end namespace oofem
 #endif // nlstructuralelement_h

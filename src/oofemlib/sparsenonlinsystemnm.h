@@ -123,6 +123,11 @@ public:
                             const FloatArray &internalForcesEBENorm, double &s, referenceLoadInputModeType rlm,
                             int &nite, TimeStep *tStep) = 0;
 
+     virtual NM_Status solveHR(SparseMtrx &K, FloatArray &R, FloatArray *R0, FloatArray *iR,
+                            FloatArray &X, FloatArray &dX, FloatArray &F,
+                            const FloatArray &internalForcesEBENorm, double &s, referenceLoadInputModeType rlm,
+			      int &nite, TimeStep *tStep, FloatMatrix &reducedBasis){ return NM_NoSuccess;}
+
     /**
      * Returns step length.
      * @see solve For more details on the step length s.

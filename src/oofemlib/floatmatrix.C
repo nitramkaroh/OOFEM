@@ -1390,6 +1390,26 @@ void FloatMatrix :: beID()
 }
   
 
+  void FloatMatrix :: beSkewProjectionMatrix()
+// this matrix is the 9x9 skew projection matrix
+{
+    this->resize(9, 9);
+    this->at(4,4) = this-> at(5,5) = this->at(6,6) = 0.5;
+    this->at(7,7) = this-> at(8,8) = this->at(9,9) = 0.5;
+
+    this->at(4,7) = this->at(5,8) = this->at(6,9) = -0.5;
+    this->at(7,4) = this->at(8,5) = this->at(9,6) = -0.5;
+}
+
+
+
+void FloatMatrix :: beSymProjectionMatrix()
+// this matrix is the 6x6 symmetric projection matrix
+{
+    this->resize(6, 6);
+    this->at(1,1) = this->at(2,2) = this->at(3,3) = 1.0;
+    this->at(4,4) = this-> at(5,5) = this->at(6,6) = 0.5;
+}
 
 void FloatMatrix :: resize(int rows, int columns)
 //
@@ -1527,6 +1547,22 @@ void FloatMatrix :: printYourself(const std::string &name) const
     }
 }
 
+  void FloatMatrix :: printYourself(FILE*  name) const
+// Prints the receiver on screen.
+{
+  //    printf("%s (%d x %d): \n", name.c_str(), nRows, nColumns);
+    if ( nRows <= 25000000 && nColumns <= 25000000 ) {
+        for ( int i = 1; i <= nRows; ++i ) {
+            for ( int j = 1; j <= nColumns && j <= 25000000; ++j ) {
+	      fprintf(name, "%10.3e  ", this->at(i, j) );
+            }
+
+            fprintf(name,"\n");
+        }
+    } else {
+      fprintf( name, "large matrix : coefficients not printed \n");
+    }
+}
 
 void FloatMatrix :: pY() const
 // Prints the receiver on screen with higher accuracy than printYourself.

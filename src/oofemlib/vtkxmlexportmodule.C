@@ -131,6 +131,21 @@ VTKXMLExportModule :: initialize()
     ExportModule :: initialize();
 }
 
+void
+VTKXMLExportModule :: reInitialize()
+{
+  defaultElementSet.setDomain(emodel->giveDomain(1) );
+
+ if ( regionSets.isEmpty() ) {
+        // default: whole domain region
+        regionSets.resize(1);
+        regionSets.at(1) = -1;
+	defaultElementSet.addAllElements();
+ } else if(regionSets.at(1) == -1) {
+   defaultElementSet.clear();
+   defaultElementSet.addAllElements();
+  }
+}
 
 void
 VTKXMLExportModule :: terminate()

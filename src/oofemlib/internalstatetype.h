@@ -163,7 +163,15 @@ namespace oofem {
     ENUM_ITEM_WITH_VALUE(IST_LocalEquivalentStrain, 113) \
     ENUM_ITEM_WITH_VALUE(IST_CrackIndex, 114) \
     ENUM_ITEM_WITH_VALUE(IST_EigenStrainTensor, 115) \
-    ENUM_ITEM_WITH_VALUE(IST_RegularizingEnergy, 116)
+    ENUM_ITEM_WITH_VALUE(IST_RegularizingEnergy, 116) \
+    ENUM_ITEM_WITH_VALUE(IST_MicromorphicStrainNorm, 1112) \
+    ENUM_ITEM_WITH_VALUE(IST_MicromorphicStress, 1113) \
+    ENUM_ITEM_WITH_VALUE(IST_MicromorphicStrain, 1114) \
+    ENUM_ITEM_WITH_VALUE(IST_MicromorphicRelativeStress, 1115) \
+    ENUM_ITEM_WITH_VALUE(IST_MicromorphicRelativeStrain, 1116) \
+    ENUM_ITEM_WITH_VALUE(IST_MicromorphicHigherOrderStress, 1117) \
+    ENUM_ITEM_WITH_VALUE(IST_MicromorphicHigherOrderStrain, 1118)\
+  
 
 /**
  * Type  representing the physical meaning of element or constitutive model internal variable.

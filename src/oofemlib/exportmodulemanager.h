@@ -64,6 +64,13 @@ public:
      * Initializes output manager. The corresponding initialize module services are called.
      */
     void initialize();
+    
+    /** 
+     *reinitialize the outputmanager. This is needed by hyperreduction methods
+     * do nothing for many modulemanagers, vtkxmlmodulemanager change elementSet
+     */
+    virtual void reInitialize();
+
     /**
      * Terminates the receiver, the corresponding terminate module services are called.
      */

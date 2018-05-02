@@ -557,7 +557,7 @@ StructuralElement :: computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode
                 }
 
                 for ( GaussPoint *gp: *iRule ) {
-		  this->computeBmatrixAt(gp, bi, tStep, iStartIndx, iEndIndx);
+		    this->computeBmatrixAt(gp, bi, tStep, iStartIndx, iEndIndx);
                     this->computeConstitutiveMatrixAt(d, rMode, gp, tStep);
                     dij.beSubMatrixOf(d, iStartIndx, iEndIndx, jStartIndx, jEndIndx);
                     if ( i != j ) {

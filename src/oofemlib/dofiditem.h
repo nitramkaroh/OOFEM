@@ -68,7 +68,35 @@ namespace oofem {
     ENUM_ITEM_WITH_VALUE(D_v_edge_lin, 22) /* Linear part of boundary v-displacement used by Trefftz element*/ \
     ENUM_ITEM_WITH_VALUE(Warp_PsiTheta, 23) /* Relative twist times deplanation function, used by Trwarp element*/ \
     ENUM_ITEM_WITH_VALUE(Warp_Theta, 24) /* Relative twist, used by Trwarp element*/ \
+/*Micromorphic degrees of freedom, i.e. components of full micromorphic displacement gradient tensor */ \
+      ENUM_ITEM_WITH_VALUE(M_X11, 25)					\
+      ENUM_ITEM_WITH_VALUE(M_X22, 26)					\
+      ENUM_ITEM_WITH_VALUE(M_X33, 27)					\
+      ENUM_ITEM_WITH_VALUE(M_X23, 28)					\
+      ENUM_ITEM_WITH_VALUE(M_X13, 29)					\
+      ENUM_ITEM_WITH_VALUE(M_X12, 30)					\
+      ENUM_ITEM_WITH_VALUE(M_X32, 31)					\
+      ENUM_ITEM_WITH_VALUE(M_X31, 32)					\
+      ENUM_ITEM_WITH_VALUE(M_X21, 33)					\
+      /*Microstretch degrees of freedom, i.e. components of symetric part of  micromorphic displacement gradient tensor */ \
+      ENUM_ITEM_WITH_VALUE(M_E11, 34)					\
+      ENUM_ITEM_WITH_VALUE(M_E22, 35)					\
+      ENUM_ITEM_WITH_VALUE(M_E33, 36)					\
+      ENUM_ITEM_WITH_VALUE(M_E23, 37)					\
+      ENUM_ITEM_WITH_VALUE(M_E13, 38)					\
+      ENUM_ITEM_WITH_VALUE(M_E12, 39)					\
+      /*Micropolar(Cosserat) degrees of freedom, i.e. components of skew part of  micromorphic displacement gradient tensor */ \
+      ENUM_ITEM_WITH_VALUE(M_W1, 40)					\
+      ENUM_ITEM_WITH_VALUE(M_W2, 41)					\
+      ENUM_ITEM_WITH_VALUE(M_W3, 42)					\
+      /*Microstrain norm degree of freedom, i.e. trace of micromorphic displacement gradient(or other equivalent micromorphic "strain" norm) */ \
+      ENUM_ITEM_WITH_VALUE(M_D, 43)					\
+      /*Microstrain penalty degree of freedom, within this formulation, the srain gradient or coupled stress theory can be implemented with C0 elements*/ \
+      ENUM_ITEM_WITH_VALUE(M_P, 44)					\
+      /*Micromorphic cumulative strain degree of freedom, within this formulation, the Aifantis gradient plasticity can be implemented with C0 elements*/ \
+      ENUM_ITEM_WITH_VALUE(M_MP, 45)	
 
+  
 /**
  * Type representing particular dof type. Values of this type describe the physical meaning of
  * available DOFs.

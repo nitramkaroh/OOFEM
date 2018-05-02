@@ -144,25 +144,28 @@ void
 IsotropicGradientDamageMaterial :: giveGradientDamageStiffnessMatrix_ud(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
 {
 
-  
   IsotropicGradientDamageMaterialStatus *status = static_cast< IsotropicGradientDamageMaterialStatus * >( this->giveStatus(gp) );
-  double tempKappa =  status->giveTempKappa();
-  double gPrime =  this->damageFunctionPrime(tempKappa, gp);
-  double tempDamage = status->giveTempDamage();
-  FloatArray stress =  status->giveTempStressVector();
-  if(tempDamage < 1.) {
-    stress.times( 1. /( 1 - tempDamage ) );
+  FloatArray stress =  status->giveTempStressVector();  
+  if ( mode == TangentStiffness) {  
+    double tempKappa =  status->giveTempKappa();
+    double gPrime =  this->damageFunctionPrime(tempKappa, gp);
+    double tempDamage = status->giveTempDamage();
+    if(tempDamage < 1.) {
+      stress.times( 1. /( 1 - tempDamage ) );
+    } else {
+      stress.times(0.);
+    }
+    answer.initFromVector(stress, false);
+    if(tempDamage > status->giveDamage()) {
+      answer.times(-gPrime);
+    } else {
+      answer.times(0.);
+    }
+    // zero block for now
   } else {
-    stress.times(0.);
+    answer.initFromVector(stress, false);
+    answer.times(0);
   }
-  answer.initFromVector(stress, false);
-  if(tempDamage > status->giveDamage()) {
-    answer.times(-gPrime);
-  } else {
-    answer.times(0.);
-  }
-  // zero block for now
-  answer.times(0);
 }
 
 
@@ -178,9 +181,10 @@ IsotropicGradientDamageMaterial :: giveGradientDamageStiffnessMatrix_du(FloatMat
   this->computeEta(eta, totalStrain, gp, tStep);
   answer.initFromVector(eta, false);
   answer.times(-1.);
-
-  // zero block for now  
-  answer.times(0);
+  if ( mode != TangentStiffness) {  
+    // zero block for now  
+    answer.times(0);
+  }
 
 
 }
@@ -216,6 +220,7 @@ IsotropicGradientDamageMaterial :: giveGradientDamageStiffnessMatrix_dd_l(FloatM
 void
 IsotropicGradientDamageMaterial :: giveGradientDamageStiffnessMatrix_dd_dl(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
 {
+  if(mode == TangentStiffness) {
   if(internalLengthDependenceType == ILD_None) {
     answer.clear();
   } else if( internalLengthDependenceType == ILD_Damage_DecreasingInteractions) {  
@@ -236,6 +241,10 @@ IsotropicGradientDamageMaterial :: giveGradientDamageStiffnessMatrix_dd_dl(Float
     
   } else {
     OOFEM_WARNING("Unknown internalLengthDependenceType");
+  }
+
+  } else {
+    answer.clear();
   }
 }
 

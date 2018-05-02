@@ -138,6 +138,8 @@ public:
     bool testSubStepOutput() { return this->tstep_substeps_out_flag; }
 
     virtual void initialize();
+    virtual void reInitialize() { }
+
 
     /**
      * Fill regionSets with all elements if regionSets is initially empty.

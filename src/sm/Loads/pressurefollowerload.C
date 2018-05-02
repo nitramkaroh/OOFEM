@@ -255,8 +255,11 @@ void PressureFollowerLoad :: computeLoadVectorFromElement(FloatArray &answer, El
 	//	double dV = pfli->surfaceEvalVolumeAround(gp, iSurf);
 	double w = gp->giveWeight();
 	answer.plusProduct(N, n, w);
+	
     }
-    answer.times(pressure);
+    // ask time distribution
+    double factor = this->giveTimeFunction()->evaluate(tStep, VM_Total);
+    answer.times(pressure*factor);
 
     
 }

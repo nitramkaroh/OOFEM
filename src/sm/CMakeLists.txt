@@ -79,6 +79,8 @@ set (sm_element
     Elements/PlaneStress/trplanestressrotallman3d.C
     Elements/PlaneStress/linquad3d_planestress.C
     Elements/PlaneStress/quadmembrane.C
+    Elements/PlaneStress/quadmembraneSE.C
+    Elements/PlaneStress/trmembrane.C
     Elements/AbaqusUserElement.C
     Elements/htselement.C
     Elements/latticestructuralelement.C
@@ -95,6 +97,30 @@ set (sm_element
     Elements/nodalspringelement.C
     Elements/meandilelementinterface.C
     Elements/fbarelementinterface.C
+    #Micromorphic continua
+    Elements/Micromorphic/basemicromorphicelement.C
+    Elements/Micromorphic/basesecondgradientelement.C
+    Elements/Micromorphic/Microdil/lspacemicrodil.C
+    Elements/Micromorphic/Microdil/planestrainmicrodil.C
+    Elements/Micromorphic/Microdil/trplanestrainmicrodil.C
+    Elements/Micromorphic/Microdil/qplanestrainmicrodil.C
+    Elements/Micromorphic/Micropolar/planestrainmicropolar.C
+    Elements/Micromorphic/Micropolar/trplanestrainmicropolar.C
+    Elements/Micromorphic/Micropolar/qplanestrainmicropolar.C
+    Elements/Micromorphic/Micropolar/planestressmicropolar.C
+    Elements/Micromorphic/Micropolar/qplanestressmicropolar.C
+    Elements/Micromorphic/Microstretch/planestrainmicrostretch.C
+    Elements/Micromorphic/Micromorphic/planestrainmicromorphic.C
+    Elements/Micromorphic/Microplastic/truss1dmicroplastic.C
+    Elements/Micromorphic/Microplastic/planestrainmicroplastic.C
+    Elements/Micromorphic/Microplastic/qplanestrainmicroplastic.C
+    #Gradient-polyconvex element based on micromorph continua
+    Elements/Micromorphic/GradientPolyconvex/planestraingradpolyconvex.C
+    #Second-gradient continua
+    Elements/Micromorphic/Straindivergence/planestrainstraindivergence.C
+
+
+
     #qplanstrssphf.C
     )
 
@@ -143,6 +169,12 @@ set (sm_emodel
     EngineeringModels/freewarping.C 
     EngineeringModels/structuralmaterialevaluator.C
     EngineeringModels/variationaldamage.C
+    #POD with hyper-reduction
+    EngineeringModels/POD/pod.C  
+    EngineeringModels/POD/hyperreduction.C  
+    EngineeringModels/POD/reducedstate.C  
+    EngineeringModels/POD/podvtkxmlexportmodule.C
+    EngineeringModels/POD/reduceddomainnumberingscheme.C	
     )
 
 set (sm_loads
@@ -178,7 +210,8 @@ set (sm_material
     Materials/ConcreteMaterials/idm1.C 
     Materials/ConcreteMaterials/idmnl1.C 
     Materials/ConcreteMaterials/idmgrad.C
-    Materials/ConcreteMaterials/variationalbaseddamage.C
+    Materials/ConcreteMaterials/idmmicromorphic.C
+    Materials/ConcreteMaterials/variationalbaseddamage.C    
     Materials/ConcreteMaterials/mazarsmodel.C 
     Materials/ConcreteMaterials/mazarsmodelnl.C
     Materials/ConcreteMaterials/mplasticmaterial2.C
@@ -241,6 +274,21 @@ set (sm_material
     Materials/ConcreteMaterials/mplasticdamagematerial2.C
     Materials/simpleplasticgradientdamagematerial.C
     Materials/plasticgradientdamagematerials.C
+    #Micromorphic materials
+    Materials/Micromorphic/micromorphicms.C
+    Materials/Micromorphic/micromorphicmaterialextensioninterface.C
+    Materials/Micromorphic/Microdil/microdilmaterial_elastic.C
+    Materials/Micromorphic/Micropolar/micropolarmaterial_elastic.C
+    Materials/Micromorphic/Micromorphic/micromorphicmaterial_elastic.C
+    Materials/Micromorphic/Microplasticity/misesmatmicroplastic.C
+    Materials/Micromorphic/GradientPolyconvex/gradientpolyconvexmaterial.C
+    # Second-gradient materials
+    Materials/Micromorphic/secondgradientms.C
+    Materials/Micromorphic/secondgradientmaterialextensioninterface.C
+
+
+
+
     )
 
 if (USE_PYTHON)

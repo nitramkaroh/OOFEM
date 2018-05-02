@@ -549,6 +549,8 @@ public:
      * @param name Display name of reciever.
      */
     void printYourself(const std::string &name) const;
+    void printYourself(FILE*  name) const;
+
 
     /// Higher accuracy than printYourself.
     void pY() const;
@@ -578,7 +580,8 @@ public:
     /*@todo add description */
     void beSkewMatrixForm(const FloatArray &aArray);
     void giveMatrixOfAxialVector(const FloatArray &aArray);
-
+    void beSkewProjectionMatrix();
+    void beSymProjectionMatrix();
     
     /**
      * Swaps the indices in the 6x6 matrix such that it converts between OOFEM's

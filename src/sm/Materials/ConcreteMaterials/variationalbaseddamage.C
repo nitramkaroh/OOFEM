@@ -212,19 +212,19 @@ VarBasedDamageMaterial :: giveGradientDamageStiffnessMatrix_ud(FloatMatrix &answ
 void
 VarBasedDamageMaterial :: giveGradientDamageStiffnessMatrix_dd(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
 {  
-  double localDamageDrivingVariable, damageDrivingVariable, dDamage,ddDamage, dDiss, ddDiss;
+  double localDamageDrivingVariable, damageDrivingVariable, dDamage,ddDamage, dDiss, ddDiss, damage;
 
     VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
-  damageDrivingVariable = status->giveTempNonlocalDamageDrivingVariable();
-
+    //  damageDrivingVariable = status->giveTempNonlocalDamageDrivingVariable();
+  damage = status->giveTempDamage();
 
   // stored elastic energy
   this-> computeLocalDamageDrivingVariable(localDamageDrivingVariable, gp, tStep);
   
   this->computeDamagePrime(dDamage, damageDrivingVariable, gp);
   this->computeDamagePrime2(ddDamage, damageDrivingVariable, gp);
-  this->computeDissipationFunctionPrime(dDiss, damageDrivingVariable, gp);
-  this->computeDissipationFunctionPrime2(ddDiss, damageDrivingVariable, gp);
+  this->computeDissipationFunctionPrime(dDiss, damage, gp);
+  this->computeDissipationFunctionPrime2(ddDiss, damage, gp);
 
   answer.resize(1,1);
   answer.at(1,1) = (ddDiss*dDamage*dDamage) + (dDiss-localDamageDrivingVariable)*ddDamage;
@@ -254,10 +254,15 @@ VarBasedDamageMaterial :: giveGradientDamageStiffnessMatrix_dd_l(FloatMatrix &an
 void
 VarBasedDamageMaterial :: giveNonlocalInternalForces_N_factor(double &answer, double nonlocalDamageDrivingVariable, GaussPoint *gp, TimeStep *tStep)
 {
-  double localDamageDrivingVariable, dDamage, dDiss;    
+  double localDamageDrivingVariable, dDamage, dDiss, damage;
+
+   VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
+    //  damageDrivingVariable = status->giveTempNonlocalDamageDrivingVariable();
+  damage = status->giveTempDamage();
+  
   this-> computeLocalDamageDrivingVariable(localDamageDrivingVariable, gp, tStep);
   this->computeDamagePrime(dDamage, nonlocalDamageDrivingVariable, gp);
-  this->computeDissipationFunctionPrime(dDiss, nonlocalDamageDrivingVariable, gp);  
+  this->computeDissipationFunctionPrime(dDiss, damage, gp);  
   answer = ( dDiss - localDamageDrivingVariable ) * dDamage;
  
 }
@@ -345,11 +350,9 @@ VarBasedDamageMaterial :: solveExpLaw(double dam, double c)
 }
   
 void
-VarBasedDamageMaterial :: computeDissipationFunctionPrime(double &answer, double damageDrivingVariable, GaussPoint *gp)
+VarBasedDamageMaterial :: computeDissipationFunctionPrime(double &answer, double damage, GaussPoint *gp)
 {
   /// softening - currently using 0=linear (default), 1=Miehe, 2=Fremond, 3=pseudo-exponential, 4=exponential
-  VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
-  double damage = status->giveTempDamage();
 
   double aux, c;
   switch (this->damageLaw){
@@ -375,11 +378,9 @@ VarBasedDamageMaterial :: computeDissipationFunctionPrime(double &answer, double
 }
 
 void
-VarBasedDamageMaterial :: computeDissipationFunctionPrime2(double &answer, double damageDrivingVariable, GaussPoint *gp)
+VarBasedDamageMaterial :: computeDissipationFunctionPrime2(double &answer, double damage, GaussPoint *gp)
 {
   /// softening - currently using 0=linear (default), 1=Miehe, 2=Fremond, 3=pseudo-exponential, 4=exponential
-  VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
-  double damage = status->giveTempDamage();
   
   double aux, c;
   switch (this->damageLaw){

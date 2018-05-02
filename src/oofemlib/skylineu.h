@@ -73,11 +73,16 @@ public:
     /// Destructor
     virtual ~SkylineUnsym();
 
+
+    void initializeFromFloatMatrix(FloatMatrix &answer);
+
     // Overloaded methods:
     virtual SparseMtrx *GiveCopy() const;
     virtual void times(const FloatArray &x, FloatArray &answer) const;
     virtual void timesT(const FloatArray &x, FloatArray &answer) const;
     virtual void times(double x);
+    virtual void times(const FloatMatrix &B, FloatMatrix &answer) const;
+
     virtual int buildInternalStructure(EngngModel *, int, const UnknownNumberingScheme &s);
     int setInternalStructure(IntArray &a);
     virtual int assemble(const IntArray &loc, const FloatMatrix &mat);

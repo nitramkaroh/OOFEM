@@ -103,15 +103,15 @@ QuadMembrane :: computeBHmatrixAt(GaussPoint *gp, FloatMatrix &answer, TimeStep 
     FloatMatrix dNdx;
 
     this->interpolation.evaldNdx( dNdx, gp->giveNaturalCoordinates(), *this->giveCellGeometryWrapper() );
-    answer.resize(9, 12);
+    answer.resize(6, 12);
 
     for ( int i = 1; i <= dNdx.giveNumberOfRows(); i++ ) {
-        answer.at(1, 3 * i - 2) = dNdx.at(i, 1);     // du/dx
-        answer.at(2, 3 * i - 1) = dNdx.at(i, 2);     // dv/dy
-        answer.at(6, 3 * i - 2) = dNdx.at(i, 2);     // du/dy
-	answer.at(7, 3 * i - 0) = dNdx.at(i, 2);     // dw/dy
-        answer.at(8, 3 * i - 0) = dNdx.at(i, 1);     // dw/dx
-        answer.at(9, 3 * i - 1) = dNdx.at(i, 1);     // dv/dx
+        answer.at(1, 3 * i - 2) = dNdx.at(i, 1);     // du/dx - 1
+        answer.at(2, 3 * i - 1) = dNdx.at(i, 2);     // dv/dy - 2
+        answer.at(3, 3 * i - 2) = dNdx.at(i, 2);     // du/dy - 6
+	answer.at(4, 3 * i - 0) = dNdx.at(i, 2);     // dw/dy - 7
+        answer.at(5, 3 * i - 0) = dNdx.at(i, 1);     // dw/dx - 8
+        answer.at(6, 3 * i - 1) = dNdx.at(i, 1);     // dv/dx - 9
     }
 
 }
@@ -167,7 +167,6 @@ QuadMembrane :: computeDeformationGradientVector(FloatArray &answer, GaussPoint 
 
     answer.at(1) += 1.0;
     answer.at(2) += 1.0;
-    answer.at(3) += 1.0;
     
 }
 

@@ -693,10 +693,13 @@ SimpleCrossSection :: giveFirstPKStresses(FloatArray &answer, GaussPoint *gp, co
         mat->giveFirstPKStressVector_3d(answer, gp, reducedvF, tStep);
     } else if ( mode == _PlaneStrain ) {
         mat->giveFirstPKStressVector_PlaneStrain(answer, gp, reducedvF, tStep);
-    } else if ( mode == _PlaneStress ) {
+    } else if ( mode == _PlaneStress) {
         mat->giveFirstPKStressVector_PlaneStress(answer, gp, reducedvF, tStep);
     } else if ( mode == _1dMat ) {
         mat->giveFirstPKStressVector_1d(answer, gp, reducedvF, tStep);
+    } else if( mode == _Membrane2d ) {
+      FloatArray vF = reducedvF;
+      mat->giveFirstPKStressVector_Membrane2d(answer, gp, vF, tStep);
     } else {
         OOFEM_ERROR( "unknown mode (%s)", __MaterialModeToString(mode) );
     }
@@ -758,6 +761,8 @@ SimpleCrossSection :: giveStiffnessMatrix_dPdF(FloatMatrix &answer,
         mat->givePlaneStrainStiffMtrx_dPdF(answer, rMode, gp, tStep);
     } else if ( mode == _1dMat ) {
         mat->give1dStressStiffMtrx_dPdF(answer, rMode, gp, tStep);
+    } else if (mode == _Membrane2d) {
+      mat->giveMembrane2dStiffMtrx_dPdF(answer, rMode, gp, tStep);
     } else {
         OOFEM_ERROR( "unknown mode (%s)", __MaterialModeToString(mode) );
     }

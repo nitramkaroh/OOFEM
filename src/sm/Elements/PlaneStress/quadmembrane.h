@@ -66,7 +66,7 @@ public:
     virtual IRResultType initializeFrom(InputRecord *ir);
 
     void computeDeformationGradientVector(FloatArray &answer, GaussPoint *gp, TimeStep *tStep, ValueModeType modeType);
-    virtual MaterialMode giveMaterialMode() { return _3dMat; }
+    virtual MaterialMode giveMaterialMode() { return _Membrane2d; }
 
 
     // support for pressure follower load interface
@@ -74,6 +74,10 @@ public:
 
     virtual double surfaceEvalVolumeAround(GaussPoint *gp, int iSurf){return this->computeSurfaceVolumeAround(gp, iSurf);}
     virtual void surfaceEvalNmatrixAt(FloatMatrix &answer, int iSurf, GaussPoint *gp){this->computeNmatrixAt(gp->giveNaturalCoordinates(),answer);}
+
+    void computeSurfaceNMatrix (FloatMatrix &answer, int boundaryID, const FloatArray& lcoords)
+    {this->computeNmatrixAt(lcoords,answer);}
+    
     virtual void surfaceEvaldNdxi(FloatMatrix &answer, int iSurf, GaussPoint *gp);
     virtual void surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &dxdksi,FloatArray &dxdeta, int iSurf, GaussPoint *gp, TimeStep *tStep);
     virtual IntegrationRule* surfaceGiveIntegrationRule(int order, int iSurf) { return this->giveInterpolation()->giveBoundarySurfaceIntegrationRule(order, iSurf);}

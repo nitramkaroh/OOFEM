@@ -163,6 +163,9 @@ public:
                             FloatArray &X, FloatArray &dX, FloatArray &F,
                             const FloatArray &internalForcesEBENorm, double &l, referenceLoadInputModeType rlm,
                             int &nite, TimeStep *);
+
+    virtual NM_Status solveHR(SparseMtrx &k, FloatArray &R, FloatArray *R0, FloatArray *iR, FloatArray &X, FloatArray &dX, FloatArray &F, const FloatArray &internalForcesEBENorm, double &l, referenceLoadInputModeType rlm, int &nite, TimeStep *tStep, FloatMatrix &reducedBasis);
+    
     virtual void printState(FILE *outputStream);
 
     virtual IRResultType initializeFrom(InputRecord *ir);

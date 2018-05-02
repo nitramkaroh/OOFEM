@@ -81,6 +81,15 @@ ExportModuleManager :: initialize()
     }
 }
 
+void
+ExportModuleManager :: reInitialize()
+{
+  for ( auto &module: moduleList ) {
+    module->reInitialize();
+  }
+  
+}
+  
 
 void
 ExportModuleManager :: terminate()
