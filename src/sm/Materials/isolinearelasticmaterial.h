@@ -146,6 +146,9 @@ public:
                                        MatResponseMode, GaussPoint *gp,
                                        TimeStep *tStep);
 
+    virtual void giveStiffnessMatrix_AxisymMembrane1d(FloatMatrix &answer,                                                           MatResponseMode mode, GaussPoint *gp,
+						      TimeStep *tStep);
+
     /**
      * Computes bulk modulus from given Young's modulus and Poisson's ratio.
      * @param young Young's modulus (@f$ E @f$).

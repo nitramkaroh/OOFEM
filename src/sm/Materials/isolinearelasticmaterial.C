@@ -219,6 +219,30 @@ IsotropicLinearElasticMaterial :: give1dStressStiffMtrx(FloatMatrix &answer,
 }
 
 
+
+void
+IsotropicLinearElasticMaterial ::  giveStiffnessMatrix_AxisymMembrane1d(FloatMatrix &answer,                                                           MatResponseMode mode,
+                                                           GaussPoint *gp,
+                                                           TimeStep *tStep)
+{
+    this->giveStatus(gp);
+    double e, nu, ee;
+
+    e     = this->E;
+    nu    = this->nu;
+    ee    = e / ( 1. - nu * nu );
+
+    answer.resize(2, 2);
+    answer.zero();
+
+    answer.at(1, 1) = ee;
+    answer.at(1, 2) = nu * ee;
+    answer.at(2, 1) = nu * ee;
+    answer.at(2, 2) = ee;
+
+}
+
+  
 void
 IsotropicLinearElasticMaterial :: giveThermalDilatationVector(FloatArray &answer,
                                                               GaussPoint *gp,  TimeStep *tStep)

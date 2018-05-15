@@ -95,6 +95,12 @@ SimpleCrossSection :: giveRealStress_Warping(FloatArray &answer, GaussPoint *gp,
     mat->giveRealStressVector_Warping(answer, gp, strain, tStep);
 }
 
+void 
+SimpleCrossSection :: giveRealStress_AxisymMembrane1d(FloatArray &answer, GaussPoint *gp, const FloatArray &strain, TimeStep *tStep)
+{
+    StructuralMaterial *mat = dynamic_cast< StructuralMaterial * >( this->giveMaterial(gp) );
+    mat->giveRealStressVector_AxisymMembrane1d(answer, gp, strain, tStep);
+}   
 
 void
 SimpleCrossSection :: giveStiffnessMatrix_3d(FloatMatrix &answer, MatResponseMode rMode, GaussPoint *gp, TimeStep *tStep)
@@ -127,6 +133,14 @@ SimpleCrossSection :: giveStiffnessMatrix_1d(FloatMatrix &answer, MatResponseMod
     mat->give1dStressStiffMtrx(answer, rMode, gp, tStep);
 }
 
+
+void 
+SimpleCrossSection :: giveStiffnessMatrix_AxisymMembrane1d(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
+{
+  StructuralMaterial *mat = dynamic_cast< StructuralMaterial * >( this->giveMaterial(gp) );
+  mat->giveStiffnessMatrix_AxisymMembrane1d(answer, mode, gp, tStep);
+
+}  
 
 void
 SimpleCrossSection :: giveGeneralizedStress_Beam2d(FloatArray &answer, GaussPoint *gp, const FloatArray &strain, TimeStep *tStep)

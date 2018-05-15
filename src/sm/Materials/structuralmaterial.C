@@ -308,6 +308,13 @@ StructuralMaterial :: giveRealStressVector_3dBeamSubSoil(FloatArray &answer, Gau
 
 
 void
+StructuralMaterial :: giveRealStressVector_AxisymMembrane1d(FloatArray &answer, GaussPoint *gp, const FloatArray &reducedStrain, TimeStep *tStep)
+{
+    OOFEM_ERROR("AxisymMembrane1d mode not supported");
+}
+  
+
+void
 StructuralMaterial :: giveFirstPKStressVector_3d(FloatArray &answer, GaussPoint *gp, const FloatArray &vF, TimeStep *tStep)
 {
     // Default implementation used if this method is not overloaded by the particular material model.
@@ -890,6 +897,11 @@ StructuralMaterial :: giveStiffnessMatrix(FloatMatrix &answer,
     case _3dLattice:
         this->give3dLatticeStiffMtrx(answer, rMode, gp, tStep);
         break;
+
+    case _AxisymMemebrane1d:
+        this->giveStiffnessMatrix_AxisymMembrane1d(answer, rMode, gp, tStep);
+	break;
+	
     case _Membrane2d:
         this->give3dMaterialStiffnessMatrix(answer, rMode, gp, tStep);
 	break;
@@ -1325,6 +1337,13 @@ StructuralMaterial :: giveVoigtSymVectorMask(IntArray &answer, MaterialMode mmod
         answer.clear();
         return 0;
 
+    case _AxisymMemebrane1d:
+      answer = {
+	1, 2
+      };
+      return 2;
+
+	
     case _Membrane2d:
         answer = {
 	  1, 2, 6
@@ -1613,6 +1632,14 @@ StructuralMaterial :: give3dBeamSubSoilStiffMtrx(FloatMatrix &answer,
 }
 
 
+void StructuralMaterial :: giveStiffnessMatrix_AxisymMembrane1d(FloatMatrix &answer,
+                                             MatResponseMode mmode, GaussPoint *gp,
+                                             TimeStep *tStep)
+{
+    OOFEM_ERROR("No general implementation provided");
+}
+
+  
 
 
 void

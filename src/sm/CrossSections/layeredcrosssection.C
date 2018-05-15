@@ -121,7 +121,13 @@ LayeredCrossSection :: giveRealStress_Warping(FloatArray &answer, GaussPoint *gp
     OOFEM_ERROR("Not supported");
 }
 
+void
+LayeredCrossSection :: giveRealStress_AxisymMembrane1d(FloatArray &answer, GaussPoint *gp, const FloatArray &strain, TimeStep *tStep)
+{
+  OOFEM_ERROR("Not supported");
+}
 
+  
 void
 LayeredCrossSection :: giveStiffnessMatrix_3d(FloatMatrix &answer, MatResponseMode rMode, GaussPoint *gp, TimeStep *tStep)
 {
@@ -175,7 +181,14 @@ LayeredCrossSection :: giveStiffnessMatrix_1d(FloatMatrix &answer, MatResponseMo
     OOFEM_ERROR("Not supported");
 }
 
+void
+LayeredCrossSection :: giveStiffnessMatrix_AxisymMembrane1d(FloatMatrix &answer, MatResponseMode rMode, GaussPoint *gp, TimeStep *tStep)
+{
+    OOFEM_ERROR("Not supported");
+}
+  
 
+  
 void
 LayeredCrossSection :: giveGeneralizedStress_Beam2d(FloatArray &answer, GaussPoint *gp, const FloatArray &strain, TimeStep *tStep)
 {

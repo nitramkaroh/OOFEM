@@ -62,6 +62,8 @@ StructuralCrossSection :: giveRealStresses(FloatArray &answer, GaussPoint *gp, c
         this->giveRealStress_1d(answer, gp, strain, tStep);
     } else if ( mode == _Warping ) {
         this->giveRealStress_Warping(answer, gp, strain, tStep);
+    } else if ( mode == _AxisymMemebrane1d ) {
+        this->giveRealStress_AxisymMembrane1d(answer, gp, strain, tStep);
     } else {
         // This should never happen ?
         ///@todo this part only works for simple cross section and will be removed soon when new interface elements are done /JB

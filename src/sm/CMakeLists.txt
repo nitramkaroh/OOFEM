@@ -52,6 +52,7 @@ set (sm_element
     Elements/Axisymmetry/q4axisymm.C
     Elements/Axisymmetry/axisymm3d.C 
     Elements/Axisymmetry/l4axisymm.C
+    Elements/Axisymmetry/membrane1d.C
     Elements/PlaneStrain/quad1planestrain.C
     Elements/PlaneStrain/quad1planestraingraddamage.C 
     Elements/PlaneStrain/qplanestrain.C 

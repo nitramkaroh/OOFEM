@@ -118,11 +118,11 @@ QuadMembraneSE :: computeNlBmatrixAt(GaussPoint *gp, FloatMatrix &Bnl, FloatMatr
     for ( int i = 1; i <= 4; i++ ) {
         G.at(1, 3 * i - 2) = dnx.at(i, 1);
         G.at(2, 3 * i - 1) = dnx.at(i, 2);
-	G.at(3, 3 * i - 0) = dnx.at(i, 2);
+	G.at(3, 3 * i - 2) = dnx.at(i, 2);
 
-	G.at(4, 3 * i - 2) = dnx.at(i, 2);
-        G.at(5, 3 * i - 1) = dnx.at(i, 1);
-	G.at(6, 3 * i - 0) = dnx.at(i, 1);
+	G.at(4, 3 * i - 0) = dnx.at(i, 2);
+        G.at(5, 3 * i - 0) = dnx.at(i, 1);
+	G.at(6, 3 * i - 1) = dnx.at(i, 1);
     }
 
     dU.beProductOf(G,vU);
@@ -221,6 +221,9 @@ QuadMembraneSE :: computeStiffnessMatrix(FloatMatrix &answer,MatResponseMode rMo
   double dV;
   FloatArray u, strain, S;
   FloatMatrix B, BE, Bnl, d, dbj, G;
+  //testing
+  FloatMatrix ism(6,6);
+  ism.zero();
   bool matStiffSymmFlag = this->giveCrossSection()->isCharacteristicMtrxSymmetric(rMode);
   for ( GaussPoint *gp: *this->giveDefaultIntegrationRulePtr() ) {
     this->computeBmatrixAt(gp, B, tStep);
@@ -231,15 +234,15 @@ QuadMembraneSE :: computeStiffnessMatrix(FloatMatrix &answer,MatResponseMode rMo
     B.add(Bnl);
     this->giveStructuralCrossSection()->giveStiffnessMatrix_PlaneStress(d, rMode, gp, tStep);
     StructuralMaterialStatus *status = static_cast< StructuralMaterialStatus * >( this->giveStructuralCrossSection()->giveMaterial(gp)->giveStatus(gp) );
-    const FloatArray &S = status->giveTempStressVector();
+    FloatArray S = status->giveTempStressVector();
     dV = this->computeVolumeAround(gp);
     dbj.beProductOf(d, B);
     answer.plusProductUnsym(B, dbj, dV);    
 
-    /*    if(S.at(1) == 0 && S.at(2) == 0) {
-      S.at(1) = 0.1;
-      S.at(2) = 0.1;
-      }*/
+    if(S.at(1) == 0 && S.at(2) == 0) {
+      S.at(1) = 1;
+      S.at(2) = 1;
+    }
 
     FloatMatrix mS;
     mS.resize(6,6);
@@ -249,7 +252,7 @@ QuadMembraneSE :: computeStiffnessMatrix(FloatMatrix &answer,MatResponseMode rMo
     FloatMatrix SG;
     SG.beProductOf(mS,G);
     answer.plusProductUnsym(G, SG, dV);    
-  
+    ism.plusProductUnsym(G,SG,dV);
     
 
   }
@@ -262,6 +265,13 @@ QuadMembraneSE :: giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, 
 {
   FloatMatrix B, BE, Bnl, G;
   FloatArray u, stress, strain;
+  //@todo:test to remove
+  FloatMatrix k1(12,12), k2(12,12),k3(12,12), k4(12,12), D, DBl, DBnl;
+  k1.zero();
+  k2.zero();
+  k3.zero();
+  k4.zero();
+  /////////////////////////////////////////
   // This function can be quite costly to do inside the loops when one has many slave dofs.
   this->computeVectorOf(VM_Total, tStep, u);
   // subtract initial displacements, if defined
@@ -275,6 +285,10 @@ QuadMembraneSE :: giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, 
   for ( GaussPoint *gp: *this->giveDefaultIntegrationRulePtr() ) {
     this->computeBmatrixAt(gp, B, tStep);
     this->computeNlBmatrixAt(gp, Bnl, G, tStep);
+    //@todo: test- matrix to remove
+    FloatMatrix Bl;
+    Bl = B;
+    //
     BE = Bnl;
     BE.times(0.5);
     BE.add(B);
@@ -294,7 +308,16 @@ QuadMembraneSE :: giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, 
     }
     // compute nodal representation of internal forces using f = B^T*Sigma dV
     double dV = this->computeVolumeAround(gp);
-    answer.plusProduct(B, stress, dV);      
+    answer.plusProduct(B, stress, dV);
+
+    //@todo: test to remove
+    this->giveStructuralCrossSection()->giveStiffnessMatrix_PlaneStress(D, TangentStiffness, gp, tStep);
+    DBl.beProductOf(D,Bl);
+    DBnl.beProductOf(D,Bnl);
+    k1.plusProductUnsym(Bl, DBl, dV);
+    k2.plusProductUnsym(Bnl, DBl, dV);
+    k3.plusProductUnsym(Bl, DBnl, 0.5*dV);
+    k4.plusProductUnsym(Bnl, DBnl, 0.5*dV);      
   }
   
   // if inactive update state, but no contribution to global system

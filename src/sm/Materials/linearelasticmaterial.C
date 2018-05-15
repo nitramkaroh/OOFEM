@@ -218,6 +218,23 @@ LinearElasticMaterial :: giveRealStressVector_Fiber(FloatArray &answer, GaussPoi
     status->letTempStressVectorBe(answer);
 }
 
+
+void
+LinearElasticMaterial :: giveRealStressVector_AxisymMembrane1d(FloatArray &answer, GaussPoint *gp, const FloatArray &strainVector, TimeStep *tStep)
+{
+
+    FloatMatrix d;
+    StructuralMaterialStatus *status = static_cast< StructuralMaterialStatus * >( this->giveStatus(gp) );
+    this->giveStiffnessMatrix_AxisymMembrane1d(d, TangentStiffness, gp, tStep);
+    answer.beProductOf(d, strainVector);
+    // update gp
+    status->letTempStrainVectorBe(strainVector);
+    status->letTempStressVectorBe(answer);
+}
+
+
+  
+
 void
 LinearElasticMaterial :: giveEshelbyStressVector_PlaneStrain(FloatArray &answer, GaussPoint *gp, const FloatArray &reducedF, TimeStep *tStep)
 {

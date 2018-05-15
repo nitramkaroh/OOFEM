@@ -182,6 +182,8 @@ public:
     virtual void giveRealStressVector_1d(FloatArray &answer, GaussPoint *gp, const FloatArray &reducedE, TimeStep *tStep);
     /// Default implementation relies on giveRealStressVector_StressControl
     virtual void giveRealStressVector_Warping(FloatArray &answer, GaussPoint *gp, const FloatArray &reducedE, TimeStep *tStep);
+        /// Default implementation relies on giveRealStressVector_StressControl
+    virtual void giveRealStressVector_AxisymMembrane1d(FloatArray &answer, GaussPoint *gp, const FloatArray &reducedE, TimeStep *tStep);
     /// Default implementation relies on giveRealStressVector_StressControl
     virtual void giveRealStressVector_2dBeamLayer(FloatArray &answer, GaussPoint *gp, const FloatArray &reducedE, TimeStep *tStep);
     /// Default implementation relies on giveRealStressVector_StressControl
@@ -518,7 +520,14 @@ public:
 						    GaussPoint *gp, TimeStep *tStep);
 
 
+    virtual void giveStiffnessMatrix_AxisymMembrane1d(FloatMatrix &answer,
+                                       MatResponseMode mmode, GaussPoint *gp,
+                                       TimeStep *tStep);
+
     //@}
+
+
+    
 
     /**
      * Method for computing 2d beam layer stiffness matrix of receiver.
