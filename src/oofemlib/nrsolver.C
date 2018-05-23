@@ -256,7 +256,7 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
     for ( nite = 1; ; ++nite ) {
         // Compute the residual
         engngModel->updateComponent(tStep, InternalRhs, domain);
-            rhs.beDifferenceOf(RT, F);
+	rhs.beDifferenceOf(RT, F);
         if ( this->prescribedDofsFlag ) {
             this->applyConstraintsToLoadIncrement(nite, k, rhs, rlm, tStep);
         }
@@ -346,6 +346,7 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
         dX.add(ddX);
 	if(followerLoadFlag) {
 	  engngModel->updateComponent(tStep, ExternalRhs, domain);
+	  RT = R;
 	}
         tStep->incrementStateCounter(); // update solution state counter
         tStep->incrementSubStepNumber();

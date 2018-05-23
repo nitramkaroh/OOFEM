@@ -85,7 +85,8 @@ public:
     virtual const char *giveClassName() const { return "PressureFollowerLoad"; }
     virtual const char *giveInputRecordName() const { return _IFT_PressureFollowerLoad_Name; }
     virtual int giveApproxOrder() { return 0; }
-
+    void computeVolumeLoadVectorFromElement(FloatArray &answer, Element *e, int iSurf, TimeStep *tStep){;}
+    
 
 protected:
     /**

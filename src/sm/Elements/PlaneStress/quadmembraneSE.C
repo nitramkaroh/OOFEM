@@ -328,8 +328,7 @@ QuadMembraneSE :: giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, 
   
 }
 
-
-
+ 
 // support for pressure follower load interface
 Interface*
 QuadMembraneSE :: giveInterface(InterfaceType interface)
@@ -376,7 +375,7 @@ void
 QuadMembraneSE ::  surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &dxdeta, FloatArray &dxdksi, int iSurf, GaussPoint *gp, TimeStep *tStep)
 {
   IntArray bNodes;
-  FloatArray gcoords, lcoords, vU;
+  FloatArray lcoords, vU;
   FloatMatrix dNdxi, dxdxi, x;
 
   lcoords = gp->giveNaturalCoordinates();
@@ -418,8 +417,83 @@ QuadMembraneSE ::  surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &d
   dxdxi.copyRow(dxdeta, 1);
   answer.beVectorProductOf(dxdksi, dxdeta);
 
+  //test
+  double J;
+  FloatArray redvF, vF, N, n, answer2;
+  FloatMatrix F, invF;
+  N = {0,0,1};
+  this->computeDeformationGradientVector(vF, gp, tStep,VM_Total);
+  //  StructuralMaterial :: giveFullVectorFormF(vF, redvF, _Membrane2d);
+  F.beMatrixForm(vF);
+  J = F.giveDeterminant();
+  invF.beInverseOf(F);
+  answer2.beTProductOf(invF,N);
+  answer2.times(J);
+  //  answer = answer2;
+  
+  FloatArray gcoords;
+  this->interpolation.local2global(gcoords, lcoords, FEIElementGeometryWrapper(this));
+  double r = sqrt(gcoords.at(1)*gcoords.at(1) + gcoords.at(2)*gcoords.at(2));
+  FloatArray dU, U, grad;
+  FloatArray answer3(3);
+  FloatArray answer4(3);
+  FloatMatrix Bh, Nm;
+  this->computeNmatrixAt(lcoords, Nm);
+  computeBHmatrixAt(gp, Bh, tStep);
+  dU.beProductOf(Bh, vU);
+  U.beProductOf(Nm, vU);
+
+
+  double ur = sqrt(U.at(1)*U.at(1) + U.at(2)*U.at(2));
+
+  double cos = gcoords.at(1)/r;
+  double sin = gcoords.at(2)/r;
+  
+  double du = dU.at(1) * cos + dU.at(6) * sin;
+  double dw = dU.at(8) * cos + dU.at(7) * sin;
+
+
+  
+  
+  answer3.at(1) = -(r+ur)/r*dw * cos;
+  answer3.at(2) = -(r+ur)/r*dw * sin;
+  answer3.at(3) = (r+ur)/r*(1+du);
+
+
+  answer4.at(1) = -(r)/r*dw * cos;
+  answer4.at(2) = -(r)/r*dw * sin;
+  answer4.at(3) =  (r)/r*(1+du);
+
+  
+  
+
+  
+
+  FloatArray dudksi, dudeta, a1, a2;
+  FloatMatrix u, dudxi;
+  u.resize(nNodes,3);
+  for(int i = 1; i <= nNodes; i++) {
+    u.at(i,1) = vU.at( (i-1) * 3 + 1);
+    u.at(i,2) = vU.at( (i-1) * 3 + 2);
+    u.at(i,3) = vU.at( (i-1) * 3 + 3);
+  }
+  
+
+  dudxi.beTProductOf(dNdxi,u);
+  dudxi.copyRow(dudksi, 2);
+  dudxi.copyRow(dudeta, 1);
+
+  a1.beVectorProductOf(dudksi, dxdeta);
+  a2.beVectorProductOf(dudeta, dxdksi);
+
+  answer2.add(a1);
+  answer2.subtract(a2);
+  
+  
 }
   
 
+
+  
 
 } // end namespace oofem

@@ -72,7 +72,9 @@ public:
     // support for pressure follower load interface
     virtual Interface *giveInterface(InterfaceType it);
 
-    virtual double surfaceEvalVolumeAround(GaussPoint *gp, int iSurf){return this->computeSurfaceVolumeAround(gp, iSurf);}
+    virtual double surfaceEvalVolumeAround(GaussPoint *gp, int iSurf){
+      return this->computeSurfaceVolumeAround(gp, iSurf);
+    }
     virtual void surfaceEvalNmatrixAt(FloatMatrix &answer, int iSurf, GaussPoint *gp){this->computeNmatrixAt(gp->giveNaturalCoordinates(),answer);}
     virtual void surfaceEvaldNdxi(FloatMatrix &answer, int iSurf, GaussPoint *gp);
     virtual void surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &dxdksi,FloatArray &dxdeta, int iSurf, GaussPoint *gp, TimeStep *tStep);

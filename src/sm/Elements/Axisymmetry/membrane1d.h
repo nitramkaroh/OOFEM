@@ -125,7 +125,7 @@ protected:
 
     // pressure follower load load support
 
-    virtual double surfaceEvalVolumeAround(GaussPoint *gp, int iSurf){ return this->computeVolumeAround(gp); }
+    virtual double surfaceEvalVolumeAround(GaussPoint *gp, int iSurf){ return this->computeEdgeVolumeAround(gp, iSurf); }
     virtual void surfaceEvalNmatrixAt(FloatMatrix &answer, int iSurf, GaussPoint *gp){ this->computeNmatrixAt(gp->giveNaturalCoordinates(), answer); }
     virtual void surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &dxdksi, FloatArray &dxdeta, int iSurf, GaussPoint *gp, TimeStep *tStep);
     virtual IntegrationRule* surfaceGiveIntegrationRule(int order, int iSurf){ return this->giveDefaultIntegrationRulePtr(); }

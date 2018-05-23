@@ -238,6 +238,7 @@ set (sm_material
     Materials/microplane_m1.C
     Materials/druckerPragerPlasticitySM.C
     Materials/druckerpragercutmat.C
+    Materials/camclaymat.C
     Materials/j2mat.C
     Materials/mdm.C
     Materials/micromaterial.C

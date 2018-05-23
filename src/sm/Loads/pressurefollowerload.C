@@ -243,7 +243,7 @@ void PressureFollowerLoad :: computeLoadVectorFromElement(FloatArray &answer, El
 
     answer.clear();
     IntegrationRule *iRule = pfli->surfaceGiveIntegrationRule(this->giveApproxOrder(), iSurf);
-    
+    double a = 0;
     for ( GaussPoint *gp : *iRule) {
 	// compute normal vector
         FloatArray n, dxdksi,dxdeta;
@@ -252,9 +252,11 @@ void PressureFollowerLoad :: computeLoadVectorFromElement(FloatArray &answer, El
 	FloatMatrix N;
 	pfli->surfaceEvalNmatrixAt(N, iSurf, gp);
 	// compute pressure follower load matrix
-	//	double dV = pfli->surfaceEvalVolumeAround(gp, iSurf);
-	double w = gp->giveWeight();
-	answer.plusProduct(N, n, w);
+	double dV = pfli->surfaceEvalVolumeAround(gp, iSurf);
+	//double w = gp->giveWeight();
+	answer.plusProduct(N, n, dV);
+	a += dV*n.computeNorm();
+	
 	
     }
     // ask time distribution
@@ -264,5 +266,7 @@ void PressureFollowerLoad :: computeLoadVectorFromElement(FloatArray &answer, El
     
 }
 
+
+ 
 
 } // end namespace oofem
