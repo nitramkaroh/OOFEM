@@ -77,7 +77,7 @@ LargeStrainMasterMaterial :: CreateStatus(GaussPoint *gp) const
   return new LargeStrainMasterMaterialStatus(1, this->giveDomain(), gp, slaveMat);
 }
 
-
+  
 void
 LargeStrainMasterMaterial :: giveFirstPKStressVector_3d(FloatArray &answer, GaussPoint *gp, const FloatArray &vF, TimeStep *tStep)
 {
@@ -128,6 +128,8 @@ LargeStrainMasterMaterial :: giveFirstPKStressVector_3d(FloatArray &answer, Gaus
     status->letTempPVectorBe(answer);
 
 }
+
+ 
 
 
 void
@@ -224,12 +226,70 @@ LargeStrainMasterMaterial :: give3dMaterialStiffnessMatrix_dPdF(FloatMatrix &ans
 
     answer.beTProductOf(PP, EP);
     answer.add(TL);   
-    answer.add(delta_S);
-    
+    answer.add(delta_S);  
 
 }
 
 
+void
+LargeStrainMasterMaterial :: giveMembrane2dStiffMtrx_dPdF(FloatMatrix &answer,
+                                                    MatResponseMode mode,
+                                                    GaussPoint *gp, TimeStep *tStep)
+{
+
+    LargeStrainMasterMaterialStatus *status = static_cast< LargeStrainMasterMaterialStatus * >( this->giveStatus(gp) );
+    StructuralMaterial *sMat = static_cast< StructuralMaterial * >( domain->giveMaterial(slaveMat) );
+    FloatArray eVals;
+    FloatMatrix stiffness, F, C, P, eVecs, SethHillStress, PP, TL;
+    
+    //store of deformation gradient into 3x3 matrix
+    F.beMatrixForm(status->giveTempFVector());
+    //compute right Cauchy-Green tensor(C), its eigenvalues and eigenvectors
+    C.beTProductOf(F, F);
+    // compute eigen values and eigen vectors of C
+    C.jaco_(eVals, eVecs, 15);
+    
+
+    FloatArray vSethHillStress, vP(status->giveTempPVector());
+    
+    StructuralMaterial :: giveFullSymVectorForm( vSethHillStress, status->giveTempStressVector(), gp->giveMaterialMode() );
+    
+    P.beMatrixForm(vP);    
+    SethHillStress.beMatrixForm(vSethHillStress);
+    FloatMatrix invF, S, EP, delta_S;;
+    // compute 2-PK stress
+    invF.beInverseOf(F);
+    S.beProductOf(invF, P);
+
+    this->giveTransformationMatrices(PP,TL, F, SethHillStress, eVals, eVecs);
+    if(S.at(1,1) == 0 && S.at(2,2) == 0) {
+      S.at(1,1) = 1;
+      S.at(2,2) = 1;
+    }
+    this->giveDeltaS_Product(delta_S, S);
+
+    GaussPoint *slaveGp = status->giveSlaveGp();
+    sMat->give3dMaterialStiffnessMatrix(stiffness, mode, slaveGp, tStep);
+    EP.beProductOf(stiffness, PP);
+
+    FloatMatrix m3d, invAnswer, invMat3d;
+    
+    m3d.beTProductOf(PP, EP);
+    m3d.add(TL);   
+    m3d.add(delta_S);
+
+  
+  invMat3d.beInverseOf(m3d);  
+  invAnswer.resize(6, 6);
+  IntArray loc = {1, 2, 6, 7, 8, 9};
+  invAnswer.beSubMatrixOf(invMat3d, loc, loc);  
+  answer.beInverseOf(invAnswer);  
+
+}
+
+
+
+  
 void
 LargeStrainMasterMaterial :: giveSpatial3dMaterialStiffnessMatrix(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
 {
@@ -327,8 +387,8 @@ LargeStrainMasterMaterial :: giveTransformationMatrices(FloatMatrix &PP,FloatMat
 {   
 
     FloatMatrix n;
-    //n = N;
     n.beProductOf(F,N);
+    
     FloatArray  d(3),f(3), eps(3);
     if(this->m == 0) { // log strain formulation (m = 0) has a special treatment
       d.at(1)= 1./lam.at(1);

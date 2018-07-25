@@ -6,7 +6,8 @@ set (sm_element
     Elements/structural2delement.C
     Elements/structural3delement.C
     Elements/3D/space3delementevaluator.C
-    Elements/3D/lspace.C 
+    Elements/3D/lspace.C
+    Elements/3D/lspaceSE.C 
     Elements/3D/lspacebb.C
     Elements/3D/qspace.C 
     Elements/3D/qspacegraddamage.C
@@ -98,6 +99,10 @@ set (sm_element
     Elements/nodalspringelement.C
     Elements/meandilelementinterface.C
     Elements/fbarelementinterface.C
+    #Mixed pressure elements
+    Elements/MixedPressure/basemixedpressureelement.C
+    Elements/MixedPressure/PlaneStrain/qtrplanestrainp1.C
+    Elements/MixedPressure/PlaneStrain/quad1planestrainp1.C
     #Micromorphic continua
     Elements/Micromorphic/basemicromorphicelement.C
     Elements/Micromorphic/basesecondgradientelement.C
@@ -276,6 +281,8 @@ set (sm_material
     Materials/ConcreteMaterials/mplasticdamagematerial2.C
     Materials/simpleplasticgradientdamagematerial.C
     Materials/plasticgradientdamagematerials.C
+    #Mixed pressure material interface
+    Materials/MixedPressure/mixedpressurematerialextensioninterface.C
     #Micromorphic materials
     Materials/Micromorphic/micromorphicms.C
     Materials/Micromorphic/micromorphicmaterialextensioninterface.C

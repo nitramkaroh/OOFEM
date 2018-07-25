@@ -32,62 +32,20 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+
+
 #include "domain.h"
-#include "nonlocalbarrier.h"
-#include "graddamagematerialextensioninterface.h"
-#include "inputrecord.h"
+#include "micromorphicmaterialextensioninterface.h"
 
 #include <list>
 
 
 namespace oofem {
 
-
 // constructor
-GradientDamageMaterialExtensionInterface :: GradientDamageMaterialExtensionInterface(Domain *d)  : Interface()
+MicromorphicMaterialExtensionInterface :: MicromorphicMaterialExtensionInterface(Domain *d)  : Interface()
 {
     dom = d;
-    internalLength = 0.;
-    penalty = 0;
-    
 }
-
-
-IRResultType
-GradientDamageMaterialExtensionInterface :: initializeFrom(InputRecord *ir)
-{
-    IRResultType result;              // Required by IR_GIVE_FIELD macro
-
-
-    // read the characteristic length
-    IR_GIVE_FIELD(ir, internalLength, _IFT_GradientDamageMaterialExtensionInterface_l);
-    IR_GIVE_OPTIONAL_FIELD(ir, penalty, _IFT_GradientDamageMaterialExtensionInterface_penalty);
-
-
-    return IRRT_OK;
-}
-
-  GradientDamageMaterialStatusExtensionInterface :: GradientDamageMaterialStatusExtensionInterface():Interface()
-  {
-    localDamageDrivingVariable = 0.;
-    nonlocalDamageDrivingVariable = 0.;
-  }
-
-  
-void
-GradientDamageMaterialStatusExtensionInterface :: initTempStatus()
-{
-    tempLocalDamageDrivingVariable = localDamageDrivingVariable;
-}
-
-
-void
-GradientDamageMaterialStatusExtensionInterface :: updateYourself(TimeStep *tStep)
-{
-  localDamageDrivingVariable = tempLocalDamageDrivingVariable;
-
-}
-
-  
 
 } // end namespace oofem

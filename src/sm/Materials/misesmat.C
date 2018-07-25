@@ -222,6 +222,7 @@ MisesMat :: performPlasticityReturn(GaussPoint *gp, const FloatArray &totalStrai
 	yieldValue = sqrt(3./2.) * trialS - sigmaY;
 	if ( yieldValue > 0. ) {
 	  double dKappa = 0;
+	  int iter = 0;
 	  while(true) {
 	    double HiP = this->computeYieldStressPrime(kappa + dKappa);
 	    double Hi = this->computeYieldStress(kappa + dKappa);
@@ -229,9 +230,11 @@ MisesMat :: performPlasticityReturn(GaussPoint *gp, const FloatArray &totalStrai
 	    double Dg = - 3. * G - HiP;
 	    // increment of cumulative plastic strain
 	    dKappa -= g/Dg;
-	    if(fabs(g) < 1.e-10) {
+	    if(fabs(g) < 1.e-10*G) {
 	      break;
 	    }
+	    iter++;
+	   	      
 	  }
 	  kappa += dKappa;
 	  FloatArray dPlStrain;

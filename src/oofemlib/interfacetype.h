@@ -87,7 +87,10 @@ enum InterfaceType {
     PressureFollowerLoadElementInterfaceType,
 
     MicromorphicMaterialExtensionInterfaceType,
-    SecondGradientMaterialExtensionInterfaceType
+    SecondGradientMaterialExtensionInterfaceType,
+
+    MixedPressureMaterialExtensionInterfaceType
+    
 
 };
 } // end namespace oofem

@@ -40,6 +40,9 @@
 #include "floatarray.h"
 #include "floatmatrix.h"
 
+#include "MixedPressure/mixedpressurematerialextensioninterface.h"
+
+
 ///@name Input fields for IsotropicLinearElasticMaterial
 //@{
 #define _IFT_IsotropicLinearElasticMaterial_Name "isole"
@@ -65,7 +68,7 @@ class GaussPoint;
  * - Returning a material property (method 'give'). Only for non-standard elements.
  * - Returning real stress state vector(tensor) at gauss point for 3d - case.
  */
-class IsotropicLinearElasticMaterial : public LinearElasticMaterial
+ class IsotropicLinearElasticMaterial : public LinearElasticMaterial,MixedPressureMaterialExtensionInterface 
 {
 protected:
     /// Young's modulus.
@@ -82,7 +85,7 @@ public:
      * @param n material model number in domain
      * @param d domain which receiver belongs to
      */
-    IsotropicLinearElasticMaterial(int n, Domain * d) : LinearElasticMaterial(n, d) { }
+ IsotropicLinearElasticMaterial(int n, Domain * d) : LinearElasticMaterial(n, d), MixedPressureMaterialExtensionInterface(d) { }
     /**
      * Creates a new IsotropicLinearElasticMaterial class instance
      * with given number belonging to domain d.
@@ -170,6 +173,37 @@ public:
     {
         return young / ( 2. * ( 1. + nu ) );
     }
+
+    /**
+     ** support for mixed u-p formulation
+     **
+     */
+    
+    virtual void giveDeviatoric3dMaterialStiffnessMatrix(FloatMatrix &answer,
+                                               MatResponseMode,
+                                               GaussPoint *gp,
+                                               TimeStep *tStep);
+
+    
+    virtual void giveDeviatoricPlaneStrainStiffMtrx(FloatMatrix &answer,
+                                          MatResponseMode, GaussPoint *gp,
+                                          TimeStep *tStep);
+    
+
+    virtual void giveInverseOfBulkModulus(double &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep){ answer  = 3. * ( 1. - 2. * nu ) / E; }
+
+    virtual void giveRealStressVector_3d(FloatArray &answer, GaussPoint *gp, const FloatArray &reducedStrain, double pressure, TimeStep *tStep);    
+    virtual void giveRealStressVector_PlaneStrain(FloatArray &answer, GaussPoint *gp, const FloatArray &reducedStrain, double pressure, TimeStep *tStep);
+
+    virtual Interface *giveInterface(InterfaceType t) {
+      if ( t == MixedPressureMaterialExtensionInterfaceType ) {
+	return static_cast< MixedPressureMaterialExtensionInterface * >(this);
+      } else {
+	return NULL;
+      }
+    }
+    
+    
 };
 } // end namespace oofem
 #endif // isolinearelasticmaterial_h

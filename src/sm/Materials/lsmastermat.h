@@ -90,16 +90,21 @@ public:
     virtual void give3dMaterialStiffnessMatrix_dPdF(FloatMatrix & answer,
                                                     MatResponseMode,
                                                     GaussPoint * gp,
-                                                    TimeStep * tStep);
+                                                    TimeStep * tStep);  
 
 
     virtual void giveSpatial3dMaterialStiffnessMatrix(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep);
+
+
+    void giveMembrane2dStiffMtrx_dPdF(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep);
+    
 
 
     virtual void giveRealStressVector_3d(FloatArray &answer, GaussPoint *, const FloatArray &, TimeStep *)
     { OOFEM_ERROR("not implemented, this material is designed for large strains only"); }
     virtual void giveFirstPKStressVector_3d(FloatArray &answer, GaussPoint *gp, const FloatArray &vF, TimeStep *tStep);
     virtual void giveCauchyStressVector_3d(FloatArray &answer, GaussPoint *gp, const FloatArray &vF, TimeStep *tStep);
+    void giveSecondPKStressVector_3d(FloatArray &answer, GaussPoint *gp, const FloatArray &vF, TimeStep *tStep);
 
     /// transformation matrices
     void giveTransformationMatrices(FloatMatrix &PP,FloatMatrix &TL, const FloatMatrix &F, const FloatMatrix &logStress, const FloatArray &lam, const FloatMatrix &N);

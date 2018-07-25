@@ -56,7 +56,7 @@ QTrPlaneStrain :: QTrPlaneStrain(int n, Domain *aDomain) :
     PlaneStrainElement(n, aDomain), SpatialLocalizerInterface(this), ZZNodalRecoveryModelInterface(this)
 {
     numberOfDofMans = 6;
-    numberOfGaussPoints = 4;
+    numberOfGaussPoints = 3;
 }
 
 
@@ -76,6 +76,9 @@ QTrPlaneStrain :: giveInterface(InterfaceType interface)
 }
 
 
+FEInterpolation *QTrPlaneStrain :: giveInterpolation() const { return & interpolation; }
+
+  
 #ifdef __OOFEG
  #define TR_LENGHT_REDUCT 0.3333
 

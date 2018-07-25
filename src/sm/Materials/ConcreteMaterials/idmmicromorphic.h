@@ -39,9 +39,8 @@
 #include "variationalbaseddamage.h"
 
 
-#define _IFT_IsotropicDamageMaterialMicromorphic_Name "idmmicromrophic"
-#define _IFT_IsotropicDamageMaterialMicromorphic_k1 "k1"
-#define _IFT_IsotropicDamageMaterialMicromorphic_k2 "k2"
+#define _IFT_IsotropicDamageMaterialMicromorphic_Name "idmmicromorphic"
+#define _IFT_IsotropicDamageMaterialMicromorphic_k "k"
 
 
 namespace oofem {
@@ -83,7 +82,7 @@ public:
     virtual void giveNonlocalInternalForces_B_factor(FloatArray &answer, const FloatArray &nlddv, GaussPoint *gp, TimeStep *tStep);
     
     
-    virtual void computeComplianceVariable(double &answer, double micromorphicDamage, double damage, double storedEnergy, GaussPoint *gp);
+    virtual void computeDamage(double &answer, double micromorphicDamage, double damage, double storedEnergy, GaussPoint *gp);
 
     //    int giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType type, TimeStep *tStep);
 
@@ -98,11 +97,8 @@ public:
 class IsotropicDamageMaterialMicromorphicStatus : public VarBasedDamageMaterialStatus
 {
  protected:
-    double tempMicromorphicComplianceVariable;
-    double micromorphicComplianceVariable;
-
-    double tempComplianceVariable;
-    double complianceVariable;
+    double tempMicromorphicDamage;
+    double micromorphicDamage;
 
 
  public:
@@ -110,18 +106,10 @@ class IsotropicDamageMaterialMicromorphicStatus : public VarBasedDamageMaterialS
     virtual ~IsotropicDamageMaterialMicromorphicStatus();
 
     virtual const char *giveClassName() const { return "IsotropicDamageMaterialMicromorphicStatus"; }
-
-
-    void setTempComplianceVariable(double mcv) {tempMicromorphicComplianceVariable = mcv;}
-    double giveTempComplianceVariable(){return tempMicromorphicComplianceVariable;}
-    double giveComplianceVariable(){return micromorphicComplianceVariable;}
-    
-    
-
-
-    void setTempMicromorphicComplianceVariable(double mcv) {tempMicromorphicComplianceVariable = mcv;}
-    double giveTempMicromorphicComplianceVariable(){return tempMicromorphicComplianceVariable;}
-    double giveMicromorphicComplianceVariable(){return micromorphicComplianceVariable;}
+     
+    void setTempMicromorphicDamage(double md) {tempMicromorphicDamage = md;}
+    double giveTempMicromorphicDamage(){return tempMicromorphicDamage;}
+    double giveMicromorphicDamage(){return micromorphicDamage;}
 
     virtual void initTempStatus();
     virtual void updateYourself(TimeStep *);

@@ -310,7 +310,8 @@ restart:
         //
         // B.3.
         //
-        if ( this->computeDeltaLambda(deltaLambda, dX, deltaXt, deltaX_, R, RR, eta, deltaL, DeltaLambda, neq) ) {
+	status = this->computeDeltaLambda(deltaLambda, dX, deltaXt, deltaX_, R, RR, eta, deltaL, DeltaLambda, neq);
+        if (status) {
             irest++;
             if ( irest <= maxRestarts ) {
                 // convergence problems
@@ -337,6 +338,7 @@ restart:
                 goto restart;
             } else {
                 status = NM_NoSuccess;
+		goto restart;
                 OOFEM_ERROR("can't continue further");
             }
         }
@@ -1057,7 +1059,8 @@ CylindricalALM :: computeDeltaLambda(double &deltaLambda, const FloatArray &dX, 
         // solution of quadratic eqn.
         double discr = a2 * a2 - 4.0 * a1 * a3;
         if ( discr < 0.0 ) {
-            OOFEM_ERROR("discriminant is negative, solution failed");
+	  OOFEM_WARNING("discriminant is negative, restarting the step");
+	  //OOFEM_ERROR("discriminant is negative, solution failed");
         }
 
         discr = sqrt(discr);

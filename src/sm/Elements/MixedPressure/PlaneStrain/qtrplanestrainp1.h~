@@ -32,47 +32,50 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef qtrplstrgraddamage_h
-#define qtrplstrgraddamage_h
+#ifndef qtrplanestrainp1_h
+#define qtrplanestrainp1_h
 
-#include "../sm/Elements/PlaneStress/qtrplstr.h"
-#include "../sm/Elements/graddamageelement.h"
-
-#define _IFT_QTrPlaneStressGradDamage_Name "qtrplstrgraddamage"
+#include "../sm/Elements/PlaneStrain/qtrplanestrain.h"
+#include "../sm/Elements/MixedPressure/basemixedpressureelement.h"
 
 namespace oofem {
 class FEI2dTrLin;
 
-class QTrPlaneStressGradDamage : public QTrPlaneStress2d, public GradientDamageElement
+class QTrPlaneStrainP1 : public QTrPlaneStrain, public BaseMicromorphicElement
 {
 protected:
     static FEI2dTrLin interpolation_lin;
 
 public:
-    QTrPlaneStressGradDamage(int n, Domain * d);
-    virtual ~QTrPlaneStressGradDamage() { }
+    QTrPlaneStrainP1(int n, Domain * d);
+    virtual ~QTrPlaneStrainP1() { }
 
     virtual IRResultType initializeFrom(InputRecord *ir);
 
-    virtual const char *giveInputRecordName() const { return _IFT_QTrPlaneStressGradDamage_Name; }
-    virtual const char *giveClassName() const { return "QTrPlaneStressGradDamage"; }
+    virtual const char *giveClassName() const { return "QTrPlaneStrainP1Grad"; }
+    //    virtual const char *giveInputRecordName() const { return _IFT_Quad1PlaneStrainP1_Name; }
 
-    virtual MaterialMode giveMaterialMode() { return _PlaneStress; }
-    virtual int computeNumberOfDofs() { return 15; }
+
+    virtual void giveDofManDofIDMask(int inode, IntArray &answer) const;
+    virtual void giveDofManDofIDMask_u(IntArray &answer);
+    virtual void giveDofManDofIDMask_m(IntArray &answer);
+
+    virtual void computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode mode, TimeStep *tStep){BaseMixedPressureElement :: computeStiffnessMatrix(answer, mode, tStep);}
+    virtual void giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord){BaseMixedPressureElement :: giveInternalForcesVector(answer, tStep, useUpdatedGpRecord);}
+
+
+    virtual int giveNumberOfPressureDofs(){return 3;}
+    virtual int giveNumberOfDisplacementDofs(){return 12;}
+    virtual int giveNumberOfDofs(){return 15;}
 
 protected:
-    virtual void computeBdMatrixAt(GaussPoint *gp, FloatMatrix &answer);
-    virtual void computeNdMatrixAt(GaussPoint *gp, FloatArray &answer);
-    virtual void computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode rMode, TimeStep *tStep) { GradientDamageElement :: computeStiffnessMatrix(answer, rMode, tStep); }
-    virtual void giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord = 0) { GradientDamageElement :: giveInternalForcesVector(answer, tStep, useUpdatedGpRecord); }
+    virtual void computePressureNMatrixAt(GaussPoint *gp, FloatArray &Np);
+    virtual void computeVolumetricBMatrixAt(FloatArray &answer, GaussPoint *gp, NLStructuralElement *element);
 
-    virtual void computeGaussPoints();
-    virtual void giveDofManDofIDMask(int inode, IntArray &answer) const;
-    void giveDofManDofIDMask_u(IntArray &answer) const;
-    void giveDofManDofIDMask_d(IntArray &answer) const;
+    virtual NLStructuralElement *giveElement() { return this; }
+
+
     
-    virtual StructuralElement *giveStructuralElement() { return this; }
-    virtual NLStructuralElement *giveNLStructuralElement() { return this; }
 };
 } // end namespace oofem
-#endif // qtrplstrgrad_h
+#endif // qtrplanestrainp1_h

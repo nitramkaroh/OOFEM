@@ -141,7 +141,7 @@ QuadMembraneSE :: computeBHmatrixAt(GaussPoint *gp, FloatMatrix &answer, TimeSte
 {
     FloatMatrix dNdx;
 
-    this->interpolation.evaldNdx( dNdx, gp->giveNaturalCoordinates(), *this->giveCellGeometryWrapper() );
+    this->interpolation.evaldNdx( dNdx, gp->giveNaturalCoordinates(), *this->giveCellGeometryWrapper(tStep, alpha));
     answer.resize(9, 12);
 
     for ( int i = 1; i <= dNdx.giveNumberOfRows(); i++ ) {
@@ -186,7 +186,7 @@ QuadMembraneSE :: initializeFrom(InputRecord *ir)
 
 
 void
-QuadMembraneSE :: computeDeformationGradientVector(FloatArray &answer, GaussPoint *gp, TimeStep *tStep, ValueModeType modeType)
+QuadMembraneSE :: computeDeformationGradientVector(FloatArray &answer, GaussPoint *gp, TimeStep *tStep, ValueModeType modeType, double alpha)
 {
     // Computes the deformation gradient in the Voigt format at the Gauss point gp of
     // the receiver at time step tStep.
@@ -201,7 +201,7 @@ QuadMembraneSE :: computeDeformationGradientVector(FloatArray &answer, GaussPoin
 
     // Displacement gradient H = du/dX
     FloatMatrix B;
-    this->computeBHmatrixAt(gp, B, tStep, 0);
+    this->computeBHmatrixAt(gp, B, tStep, alpha);
     answer.beProductOf(B, u);
 
     answer.at(1) += 1.0;
@@ -451,6 +451,7 @@ QuadMembraneSE ::  surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &d
   
   double du = dU.at(1) * cos + dU.at(6) * sin;
   double dw = dU.at(8) * cos + dU.at(7) * sin;
+  
 
 
   
@@ -460,9 +461,18 @@ QuadMembraneSE ::  surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &d
   answer3.at(3) = (r+ur)/r*(1+du);
 
 
-  answer4.at(1) = -(r)/r*dw * cos;
-  answer4.at(2) = -(r)/r*dw * sin;
-  answer4.at(3) =  (r)/r*(1+du);
+  answer4.at(1) = -dw * cos;
+  answer4.at(2) = -dw * sin;
+  answer4.at(3) = (1+du);
+
+  
+  this->computeDeformationGradientVector(vF, gp, tStep, VM_Incremental, 1);
+  F.beMatrixForm(vF);
+  invF.beInverseOf(F);
+  J = F.giveDeterminant();
+  answer4.beTProductOf(invF,N);
+  answer4.times(J);
+
 
   
   
@@ -486,8 +496,53 @@ QuadMembraneSE ::  surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &d
   a1.beVectorProductOf(dudksi, dxdeta);
   a2.beVectorProductOf(dudeta, dxdksi);
 
-  answer2.add(a1);
-  answer2.subtract(a2);
+  /*  answer.add(a1);
+  answer.subtract(a2);
+  */
+  /*
+
+  FloatArray tu, tF, strain, nlstrain, linstrain;
+  FloatMatrix tB, tBh, tBnl, tBE, tE, tG;
+  this->computeVectorOf(VM_Total, tStep, tu);
+  // subtract initial displacements, if defined
+  
+  for ( GaussPoint *gp: *this->giveDefaultIntegrationRulePtr() ) {
+    this->computeBmatrixAt(gp, tB, tStep);
+    this->computeNlBmatrixAt(gp, tBnl, tG, tStep);
+    //@todo: test- matrix to remove
+    FloatMatrix Bl, FF;
+    this->computeDeformationGradientVector(tF, gp, tStep, VM_Total);
+    this->computeBHmatrixAt(gp, tBh, tStep, 0);
+    FF.beMatrixForm(tF);
+   
+    tE.beTProductOf(FF,FF);
+    tE.at(1,1) -= 1;
+    tE.at(2,2) -= 1;
+    tE.at(3,3) -= 1;
+    tE.times(0.5);
+
+    FloatArray grad;
+    FloatMatrix A, AA;
+    grad.beProductOf(tG, tu);
+    A = {{grad.at(1), 0, grad.at(3)},{0, grad.at(2), grad.at(6)},{0, grad.at(3),dU.at(1)},{0, grad.at(4),grad.at(5)},{grad.at(5), 0, grad.at(4)},{grad.at(6), 0, grad.at(2)}};
+    AA.beProductOf(A,grad);
+    nlstrain.beProductOf(tBnl, tu);
+    nlstrain.times(0.5);
+    //    tE.subtract(nlStrain);
+
+    linstrain.beProductOf(tB, tu);
+    
+    //
+    tBE = tBnl;
+    tBE.times(0.5);
+    tBE.add(tB);
+    tB.add(tBnl);
+    strain.beProductOf(tBE, tu);
+  }
+  */
+
+
+  
   
   
 }

@@ -65,7 +65,7 @@ public:
     void giveDofManDofIDMask(int inode, IntArray &answer) const;
     virtual IRResultType initializeFrom(InputRecord *ir);
     
-    void computeDeformationGradientVector(FloatArray &answer, GaussPoint *gp, TimeStep *tStep, ValueModeType modeType);
+    void computeDeformationGradientVector(FloatArray &answer, GaussPoint *gp, TimeStep *tStep, ValueModeType modeType, double alpha = 0);
     virtual MaterialMode giveMaterialMode() { return _PlaneStress; }
 
 

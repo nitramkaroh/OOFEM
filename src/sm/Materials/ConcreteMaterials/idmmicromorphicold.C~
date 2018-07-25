@@ -74,8 +74,8 @@ IsotropicDamageMaterialMicromorphic :: initializeFrom(InputRecord *ir)
         return result;
     }
     //    IR_GIVE_OPTIONAL_FIELD(ir, di_eta, _IFT_IsotropicDamageMaterialMicromorphic_di_eta);
-    IR_GIVE_FIELD(ir, k1, _IFT_IsotropicDamageMaterialMicromorphic_k);
-    k2 = 2.*gf*internalLength*internalLength;
+    IR_GIVE_FIELD(ir, k1, _IFT_IsotropicDamageMaterialMicromorphic_k1);
+    IR_GIVE_FIELD(ir, k2, _IFT_IsotropicDamageMaterialMicromorphic_k2);
     return IRRT_OK;
 }
 
@@ -107,26 +107,26 @@ IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_dd_l(Fl
   } else if(matMode == _3dMat) {
     answer = {{1, 0, 0},{0, 1, 0}, {0, 0, 1}};
   }
-  answer.times(k2);  
+  answer.times(k2 * k2);  
 }
 
 
 
 void
-IsotropicDamageMaterialMicromorphic :: giveNonlocalInternalForces_N_factor(double &answer, double micromorphicDamage, GaussPoint *gp, TimeStep *tStep)
+IsotropicDamageMaterialMicromorphic :: giveNonlocalInternalForces_N_factor(double &answer, double micromorphicComplianceVariable, GaussPoint *gp, TimeStep *tStep)
 {
 
   IsotropicDamageMaterialMicromorphicStatus *status = static_cast< IsotropicDamageMaterialMicromorphicStatus * >( this->giveStatus(gp) );
 
-  double damage = status->giveTempDamage();
-  answer = k1 * ( micromorphicDamage - damage);
+  double gamma = status->giveTempComplianceVariable();
+  answer = k1 * ( micromorphicComplianceVariable - gamma);
  
 }
 
 void
-IsotropicDamageMaterialMicromorphic :: giveNonlocalInternalForces_B_factor(FloatArray &answer, const FloatArray &micromorphicDamageGrad, GaussPoint *gp, TimeStep *tStep)
+IsotropicDamageMaterialMicromorphic :: giveNonlocalInternalForces_B_factor(FloatArray &answer, const FloatArray &micromorphicComplianceVariableGrad, GaussPoint *gp, TimeStep *tStep)
 {
-  answer = micromorphicDamageGrad;
+  answer = micromorphicComplianceVariableGrad;
   answer.times(k2);
 }
 
@@ -134,7 +134,7 @@ IsotropicDamageMaterialMicromorphic :: giveNonlocalInternalForces_B_factor(Float
   
   
 void
-IsotropicDamageMaterialMicromorphic :: giveRealStressVectorGradientDamage(FloatArray &stress, double &tempDamage, GaussPoint *gp, const FloatArray &totalStrain, double micromorphicDamage, TimeStep *tStep)
+IsotropicDamageMaterialMicromorphic :: giveRealStressVectorGradientDamage(FloatArray &stress, double &localDamage, GaussPoint *gp, const FloatArray &totalStrain, double micromorphicComplianceVariable, TimeStep *tStep)
 //
 // returns real stress vector in 3d stress space of receiver according to
 // previous level of stress and current
@@ -146,8 +146,8 @@ IsotropicDamageMaterialMicromorphic :: giveRealStressVectorGradientDamage(FloatA
     FloatArray strain;
     
     FloatMatrix de;
-    double damage, f, dDiss;
-    //    this->initTempStatus(gp);
+    double damage, tempDamage, f, dDiss;
+    this->initTempStatus(gp);
     
     // subtract stress independent part
     // note: eigenStrains (temperature) is not contained in mechanical strain stored in gp
@@ -156,26 +156,33 @@ IsotropicDamageMaterialMicromorphic :: giveRealStressVectorGradientDamage(FloatA
     status->letTempStrainVectorBe(strain);
     lmat->giveStiffnessMatrix(de, SecantStiffness, gp, tStep);
     stress.beProductOf(de, strain);
+    // store the effective stress into the status
+    status->letTempEffectiveStressVectorBe(stress);
     // compute equivalent strain
-    double epsEq, E, storedEnergy;
+    double gamma, tempGamma, epsEq, E, storedEnergy, dDamage;
     E = linearElasticMaterial->give('E', gp);
     this->computeEquivalentStrain(epsEq, strain, gp, tStep);
     storedEnergy = 0.5*E*epsEq*epsEq;
+   
+    gamma = status->giveComplianceVariable();
     damage = status->giveDamage();
+    this->computeDamagePrime(dDamage, gamma, gp);
     this->computeDissipationFunctionPrime(dDiss, damage, gp);
-    f = storedEnergy + k1 * ( micromorphicDamage - damage) - dDiss;
+    f = dDamage * storedEnergy + k1 * ( gamma - micromorphicComplianceVariable) - dDamage * dDiss;
     if(f <= 0) {
-      tempDamage = damage;
+      tempGamma = gamma;
     } else {
       // compute damage from the nonlocal field
-      this->computeDamage(tempDamage, damage, micromorphicDamage, storedEnergy, gp);
+      this->computeComplianceVariable(tempGamma, gamma, micromorphicComplianceVariable, storedEnergy, gp);
     }
+    this->computeDamage(tempDamage, tempGamma, gp);
     
     stress.times(1-tempDamage);
     // update gp
     status->letTempStressVectorBe(stress);
+    status->setTempComplianceVariable(tempGamma);
     status->setTempDamage(tempDamage);
-    status->setTempMicromorphicDamage(micromorphicDamage);
+    status->setTempMicromorphicComplianceVariable(micromorphicComplianceVariable);
 
 #ifdef keep_track_of_dissipated_energy
     status->computeWork(gp);
@@ -186,26 +193,22 @@ IsotropicDamageMaterialMicromorphic :: giveRealStressVectorGradientDamage(FloatA
 
 
 void
-IsotropicDamageMaterialMicromorphic :: computeDamage(double &answer, double damage_n, double micromorphicDamage, double storedEnergy, GaussPoint *gp)
+IsotropicDamageMaterialMicromorphic :: computeComplianceVariable(double &answer, double complianceVariable, double micromorphicComplianceVariable, double storedEnergy, GaussPoint *gp)
 {
 
   int index  = 0;
-  double f, df, dDiss, ddDiss;
-  answer = damage_n;
+  double f, df, dDiss, ddDiss, dDamage, damage;
   while(true) {
     index++;
-    this->computeDissipationFunctionPrime(dDiss,answer, gp);
-    f = storedEnergy + k1 * ( micromorphicDamage - answer) - dDiss;
-    this->computeDissipationFunctionPrime2(ddDiss, answer, gp);
-    df = -k1 - ddDiss;
-    answer -= f/df;
-    if(answer > 1.) {
-      answer = 1.;
-    } else if(answer < 0.) {
-      answer = 0.;
-    }
-    
-    if(fabs(f) < 1.e-8*k1) {     
+    this->computeDamage(damage, complianceVariable, gp);
+    this->computeDamagePrime(dDamage, complianceVariable, gp);
+    this->computeDissipationFunctionPrime(dDiss,damage, gp);
+    f = dDamage * storedEnergy + k1 * ( complianceVariable - micromorphicComplianceVariable ) - dDamage * dDiss;
+    this->computeDissipationFunctionPrime2(ddDiss, complianceVariable, gp);
+    df = dDamage * (ddDiss + k1);
+    complianceVariable += f/df;
+    if(fabs(complianceVariable) < 1.e-8) {
+      answer = complianceVariable;
       break;
     }
     if(index > 1000) {
@@ -228,7 +231,8 @@ IsotropicDamageMaterialMicromorphic :: CreateStatus(GaussPoint *gp) const
 
   IsotropicDamageMaterialMicromorphicStatus :: IsotropicDamageMaterialMicromorphicStatus(int n, Domain *d, GaussPoint *g) : VarBasedDamageMaterialStatus(n, d, g, 0)
 {
-  micromorphicDamage = tempMicromorphicDamage = 0;
+  complianceVariable = tempComplianceVariable = 0;
+  micromorphicComplianceVariable = tempMicromorphicComplianceVariable = 0;
 
 }
 
@@ -247,7 +251,8 @@ IsotropicDamageMaterialMicromorphicStatus :: initTempStatus()
 //
 {
     VarBasedDamageMaterialStatus :: initTempStatus();
-    this->tempMicromorphicDamage = this->micromorphicDamage;
+    this->tempMicromorphicComplianceVariable = this->micromorphicComplianceVariable;
+    this->tempComplianceVariable = this->complianceVariable;
 }
 
   
@@ -259,8 +264,10 @@ IsotropicDamageMaterialMicromorphicStatus :: updateYourself(TimeStep *tStep)
 // temporary variables are having values corresponding to newly reched equilibrium.
 //
 {
-    VarBasedDamageMaterialStatus :: updateYourself(tStep);
-    this->micromorphicDamage = this->tempMicromorphicDamage;
+    VarBasedDamageMaterialStatus :: initTempStatus();
+    this->micromorphicComplianceVariable = this->tempMicromorphicComplianceVariable;
+    this->complianceVariable = this->tempComplianceVariable;
+
 }
  
 

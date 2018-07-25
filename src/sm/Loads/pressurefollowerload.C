@@ -113,7 +113,7 @@ void PressureFollowerLoad :: assemble(SparseMtrx &answer, TimeStep *tStep,
         Element *e = this->giveDomain()->giveElement( boundaries.at(pos * 2 - 1) );
         int boundary = boundaries.at(pos * 2);
 
-        e->giveInterpolation()->boundaryGiveNodes(bNodes, boundary);
+        e->giveInterpolation()->boundarySurfaceGiveNodes(bNodes, boundary);
 
         e->giveBoundaryLocationArray(r_loc, bNodes, this->dofs, r_s);
         e->giveBoundaryLocationArray(c_loc, bNodes, this->dofs, c_s);
@@ -231,7 +231,7 @@ PressureFollowerLoad :: giveSurfacedNdxi_dDdDMatrces(FloatMatrix &dNk_dD, FloatM
 void PressureFollowerLoad :: computeLoadVectorFromElement(FloatArray &answer, Element *e, int iSurf, TimeStep *tStep)
 {
 
-    PressureFollowerLoadElementInterface *pfli = static_cast< PressureFollowerLoadElementInterface * >(e->giveInterface(PressureFollowerLoadElementInterfaceType) );
+  PressureFollowerLoadElementInterface *pfli = static_cast< PressureFollowerLoadElementInterface * >(e->giveInterface(PressureFollowerLoadElementInterfaceType) );
 
     if ( !pfli ) {
         OOFEM_ERROR("Element doesn't implement the required Pressure Follower load interface!");

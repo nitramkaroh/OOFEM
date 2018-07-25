@@ -165,7 +165,7 @@ StructuralMaterial :: giveRealStressVector_StressControl(FloatArray &answer, Gau
         reducedvS.beSubArrayOf(vS, stressControl);
         // Pick out the (response) stresses for the controlled strains
         answer.beSubArrayOf(vS, strainControl);
-        if ( reducedvS.computeNorm() <= 1e0 && k >= 5 ) { // Absolute tolerance right now (with at least one iteration)
+        if ( reducedvS.computeNorm() <= 1e-10 && k >= 5 ) { // Absolute tolerance right now (with at least one iteration)
             ///@todo We need a relative tolerance here!
             /// A relative tolerance like this could work, but if a really small increment is performed it won't work
             /// (it will be limited by machine precision)
@@ -403,14 +403,28 @@ StructuralMaterial :: giveFirstPKStressVector_PlaneStress(FloatArray &answer, Ga
 
 
 void
-StructuralMaterial :: giveFirstPKStressVector_Membrane2d(FloatArray &answer, GaussPoint *gp, FloatArray &reducedvF, TimeStep *tStep)
+StructuralMaterial :: giveFirstPKStressVector_Membrane2d(FloatArray &answer, GaussPoint *gp, FloatArray &vF, TimeStep *tStep)
 {
     StructuralMaterialStatus *status = static_cast< StructuralMaterialStatus * >( this->giveStatus(gp) );
     IntArray F_control, P_control; // Determines which components are controlled by F and P resp.
-    FloatArray vF, increment_vF, vP, vP_control;
+    FloatArray increment_vF, vP, vP_control;
     FloatMatrix tangent, tangent_Pcontrol;
     // Iterate to find full vF.
     StructuralMaterial :: giveVoigtVectorMask(F_control, _Membrane2d);
+
+    double n1,n2,n3;
+    n1 = vF.at(5);
+    n2 = vF.at(4);
+    n3 = vF.at(3);
+    
+
+    
+    FloatArray iiF(9);
+    iiF.at(3) = vF.at(3);
+    iiF.at(4) = vF.at(4);
+    iiF.at(5) = vF.at(5);
+    
+
     // Compute the negated the array of control since we need P_control as well;
     P_control.resize( 9 - F_control.giveSize() );
     for ( int i = 1, j = 1; i <= 9; i++ ) {
@@ -420,25 +434,75 @@ StructuralMaterial :: giveFirstPKStressVector_Membrane2d(FloatArray &answer, Gau
     }
 
     // Initial guess;
-    vF = status->giveFVector();
+    /*    vF = status->giveFVector();
     for ( int i = 1; i <= F_control.giveSize(); ++i ) {
         vF.at( F_control.at(i) ) = reducedvF.at(i);
-    }
+	}*/
 
     // Iterate to find full vF.
     for ( int k = 0; k < 100; k++ ) { // Allow for a generous 100 iterations.
-        this->giveFirstPKStressVector_3d(vP, gp, vF, tStep);
+      /******************/
+      FloatArray vE, vS, vPt;
+      FloatMatrix F, E, S, P;
+      F.beMatrixForm(vF);
+      E.beTProductOf(F, F);
+      E.at(1, 1) -= 1.0;
+      E.at(2, 2) -= 1.0;
+      E.at(3, 3) -= 1.0;
+      E.times(0.5);
+      vE.beSymVectorFormOfStrain(E);      // 6
+      ///@todo Have this function:
+      //      this->giveRealStressVector_3d(vS, gp, vE, tStep);
+      /* S.beMatrixForm(vS);
+      P.beProductOf(F, S);
+      vPt.beVectorForm(P);
+      */
+      /*****************/
+      this->giveFirstPKStressVector_3d(vP, gp, vF, tStep);
         vP_control.beSubArrayOf(vP, P_control);
-        if ( vP_control.computeNorm() < 1e-6 ) { ///@todo We need a tolerance here!
-	  answer = vP;
+	double norm = vP.computeNorm();
+        if ( vP_control.computeNorm() <= 1e-10*norm ) { ///@todo We need a tolerance here!
+            StructuralMaterial :: giveReducedVectorForm(answer, vP, _Membrane2d);
             return;
         }
 
+	
+
+
         this->give3dMaterialStiffnessMatrix_dPdF(tangent, TangentStiffness, gp, tStep);
         tangent_Pcontrol.beSubMatrixOf(tangent, P_control, P_control);
+
+	double kk = tangent_Pcontrol.at(1,1)*n3 + tangent_Pcontrol.at(1,2) * n2 + tangent_Pcontrol.at(1,3) * n1;
+	double l = vP_control.at(1)/kk;
+
+	
         tangent_Pcontrol.solveForRhs(vP_control, increment_vF);
+	/********************************/
+	FloatArray ivE, ivF(9);
+	FloatMatrix iF, iE, iE2, iE3;
+	ivF.assemble(increment_vF, P_control);
+	iF.beMatrixForm(ivF);
+	iE.beTProductOf(iF, iF);
+	iE2.beTProductOf(F, iF);
+	iE3.beTProductOf(iF, F);
+	iE.add(iE2);
+	iE.add(iE3);
+	iE.times(0.5);
+	ivE.beSymVectorFormOfStrain(iE);
+	/*********************************/
+	double dF = vP.at(3)/tangent.at(3,3);
+	iiF.times(dF);
+	iF.beMatrixForm(iiF);
+	iE.beTProductOf(iF, iF);
+	iE2.beTProductOf(F, iF);
+	iE3.beTProductOf(iF, F);
+	iE.add(iE2);
+	iE.add(iE3);
+	iE.times(0.5);
+	ivE.beSymVectorFormOfStrain(iE);
+	
 	increment_vF.negated();
-        vF.assemble(increment_vF, P_control);
+	vF.assemble(increment_vF, P_control);
     }
 
     OOFEM_WARNING("Iteration did not converge");
@@ -613,11 +677,9 @@ StructuralMaterial :: convert_dSdE_2_dPdF(FloatMatrix &answer, const FloatMatrix
     // Performs the following operation dPdF = I_ik * S_jl + F_im F_kn C_mjnl,
     // See for example: G.A. Holzapfel, Nonlinear Solid Mechanics: A Continuum Approach for
     // Engineering, 2000, ISBN-10: 0471823198.
-
+    FloatMatrix answer1;
     if ( matMode == _3dMat ) {
         //Save terms associated with H = [du/dx, dv/dy, dw/dz, dv/dz, du/dz, du/dy, dw/dy, dw/dx, dv/dx]
-
-#if 1
 
         answer.resize(9, 9);
         answer(0, 0) = F(0) * C(0, 0) * F(0) + F(0) * C(0, 5) * F(5) + F(0) * C(0, 4) * F(4) + F(5) * C(5, 0) * F(0) + F(5) * C(5, 5) * F(5) + F(5) * C(5, 4) * F(4) + F(4) * C(4, 0) * F(0) + F(4) * C(4, 5) * F(5) + F(4) * C(4, 4) * F(4) + S(0);
@@ -702,21 +764,22 @@ StructuralMaterial :: convert_dSdE_2_dPdF(FloatMatrix &answer, const FloatMatrix
         answer(8, 7) = F(8) * C(0, 0) * F(7) + F(8) * C(0, 5) * F(6) + F(8) * C(0, 4) * F(2) + F(1) * C(5, 0) * F(7) + F(1) * C(5, 5) * F(6) + F(1) * C(5, 4) * F(2) + F(3) * C(4, 0) * F(7) + F(3) * C(4, 5) * F(6) + F(3) * C(4, 4) * F(2) + 0.0;
         answer(8, 8) = F(8) * C(0, 0) * F(8) + F(8) * C(0, 5) * F(1) + F(8) * C(0, 4) * F(3) + F(1) * C(5, 0) * F(8) + F(1) * C(5, 5) * F(1) + F(1) * C(5, 4) * F(3) + F(3) * C(4, 0) * F(8) + F(3) * C(4, 5) * F(1) + F(3) * C(4, 4) * F(3) + S(0);
 
-#else
-        ///@todo Experimental - added 110814 by JB
+         ///@todo Experimental - added 110814 by JB
         // Conversion expressed in index form. Seems a tiny bit slower than that above but easier to debug.
         FloatMatrix I(3, 3);
         I.beUnitMatrix();
 
         //I_ik * S_jl + F_im F_kn C_mjnl
-        answer.resize(9, 9);
+        answer1.resize(9, 9);
+	answer1.zero();
         for ( int i = 1; i <= 3; i++ ) {
             for ( int j = 1; j <= 3; j++ ) {
                 for ( int k = 1; k <= 3; k++ ) {
                     for ( int l = 1; l <= 3; l++ ) {
+		      answer1.at( giveVI(i, j), giveVI(k, l) ) += I.at(i, k) * S.at( giveSymVI(j, l) );
                         for ( int m = 1; m <= 3; m++ ) {
                             for ( int n = 1; n <= 3; n++ ) {
-                                answer.at( giveVI(i, j), giveVI(k, l) ) += I.at(i, k) * S.at( giveSymVI(j, l) ) + F.at( giveVI(i, m) ) * F.at( giveVI(k, n) ) * C.at( giveSymVI(m, j), giveSymVI(n, l) );
+                                answer1.at( giveVI(i, j), giveVI(k, l) ) += F.at( giveVI(i, m) ) * F.at( giveVI(k, n) ) * C.at( giveSymVI(m, j), giveSymVI(n, l) );
                             }
                         }
                     }
@@ -724,7 +787,7 @@ StructuralMaterial :: convert_dSdE_2_dPdF(FloatMatrix &answer, const FloatMatrix
             }
         }
 
-#endif
+
     } else if ( matMode == _PlaneStress ) {
         // Save terms associated with H = [du/dx dv/dy du/dy dv/dx]
         answer.resize(4, 4);
@@ -780,25 +843,31 @@ StructuralMaterial :: convert_dSdE_2_dPdF(FloatMatrix &answer, const FloatMatrix
         answer.resize(1, 1);
         answer(0, 0) = F(0) * C(0, 0) * F(0) + S(0);
     } else if ( matMode == _Membrane2d ) {
+      FloatArray mS(S);
       //Save terms associated with H = [du/dx, dv/dy, du/dy, dw/dy, dw/dx, dv/dx]
+      if(S.at(1) == 0 && S.at(2) == 0 ) {
+	mS.at(1) = 1;
+	mS.at(2) = 1;
+      }
+	
       answer.resize(6, 6);
-      answer(0, 0) = F(0) * C(0, 0) * F(0) + F(0) * C(0, 2) * F(2) + F(2) * C(2, 0) * F(0) + F(2) * C(2, 2) * F(2) + S(0);
+      answer(0, 0) = F(0) * C(0, 0) * F(0) + F(0) * C(0, 2) * F(2) + F(2) * C(2, 0) * F(0) + F(2) * C(2, 2) * F(2) + mS(0);
       answer(0, 1) = F(0) * C(0, 2) * F(5) + F(0) * C(0, 1) * F(1) + F(2) * C(2, 2) * F(5) + F(2) * C(2, 1) * F(1) + 0.0;
-      answer(0, 2) = F(0) * C(0, 2) * F(0) + F(0) * C(0, 1) * F(2) + F(2) * C(2, 2) * F(0) + F(2) * C(2, 1) * F(2) + S(2);
+      answer(0, 2) = F(0) * C(0, 2) * F(0) + F(0) * C(0, 1) * F(2) + F(2) * C(2, 2) * F(0) + F(2) * C(2, 1) * F(2) + mS(2);
       answer(0, 3) = F(0) * C(0, 2) * F(4) + F(0) * C(0, 1) * F(3) + F(2) * C(2, 2) * F(4) + F(2) * C(2, 1) * F(3) + 0.0;
       answer(0, 4) = F(0) * C(0, 0) * F(4) + F(0) * C(0, 2) * F(3) + F(2) * C(2, 0) * F(4) + F(2) * C(2, 2) * F(3) + 0.0;
       answer(0, 5) = F(0) * C(0, 0) * F(5) + F(0) * C(0, 2) * F(1) + F(2) * C(2, 0) * F(5) + F(2) * C(2, 2) * F(1) + 0.0;
       
       answer(1, 0) = F(5) * C(2, 0) * F(0) + F(5) * C(2, 2) * F(2) + F(1) * C(1, 0) * F(0) + F(1) * C(1, 2) * F(2) + 0.0;
-      answer(1, 1) = F(5) * C(2, 2) * F(5) + F(5) * C(2, 1) * F(1) + F(1) * C(1, 2) * F(5) + F(1) * C(1, 1) * F(1) + S(1);
+      answer(1, 1) = F(5) * C(2, 2) * F(5) + F(5) * C(2, 1) * F(1) + F(1) * C(1, 2) * F(5) + F(1) * C(1, 1) * F(1) + mS(1);
       answer(1, 2) = F(5) * C(2, 2) * F(0) + F(5) * C(2, 1) * F(2) + F(1) * C(1, 2) * F(0) + F(1) * C(1, 1) * F(2) + 0.0;
       answer(1, 3) = F(5) * C(2, 2) * F(4) + F(5) * C(2, 1) * F(3) + F(1) * C(1, 2) * F(4) + F(1) * C(1, 1) * F(3) + 0.0;
       answer(1, 4) = F(5) * C(2, 0) * F(4) + F(5) * C(2, 2) * F(3) + F(1) * C(1, 0) * F(4) + F(1) * C(1, 2) * F(3) + 0.0;
-      answer(1, 5) = F(5) * C(2, 0) * F(5) + F(5) * C(2, 2) * F(1) + F(1) * C(1, 0) * F(5) + F(1) * C(1, 2) * F(1) + S(2);
+      answer(1, 5) = F(5) * C(2, 0) * F(5) + F(5) * C(2, 2) * F(1) + F(1) * C(1, 0) * F(5) + F(1) * C(1, 2) * F(1) + mS(2);
       
-      answer(2, 0) = F(0) * C(2, 0) * F(0) + F(0) * C(2, 2) * F(2) + F(2) * C(1, 0) * F(0) + F(2) * C(1, 2) * F(2) + S(2);
+      answer(2, 0) = F(0) * C(2, 0) * F(0) + F(0) * C(2, 2) * F(2) + F(2) * C(1, 0) * F(0) + F(2) * C(1, 2) * F(2) + mS(2);
       answer(2, 1) = F(0) * C(2, 2) * F(5) + F(0) * C(2, 1) * F(1) + F(2) * C(1, 2) * F(5) + F(2) * C(1, 1) * F(1) + 0.0;
-      answer(2, 2) = F(0) * C(2, 2) * F(0) + F(0) * C(2, 1) * F(2) + F(2) * C(1, 2) * F(0) + F(2) * C(1, 1) * F(2) + S(1);
+      answer(2, 2) = F(0) * C(2, 2) * F(0) + F(0) * C(2, 1) * F(2) + F(2) * C(1, 2) * F(0) + F(2) * C(1, 1) * F(2) + mS(1);
       answer(2, 3) = F(0) * C(2, 2) * F(4) + F(0) * C(2, 1) * F(3) + F(2) * C(1, 2) * F(4) + F(2) * C(1, 1) * F(3) + 0.0;
       answer(2, 4) = F(0) * C(2, 0) * F(4) + F(0) * C(2, 2) * F(3) + F(2) * C(1, 0) * F(4) + F(2) * C(1, 2) * F(3) + 0.0;
       answer(2, 5) = F(0) * C(2, 0) * F(5) + F(0) * C(2, 2) * F(1) + F(2) * C(1, 0) * F(5) + F(2) * C(1, 2) * F(1) + 0.0;
@@ -806,26 +875,28 @@ StructuralMaterial :: convert_dSdE_2_dPdF(FloatMatrix &answer, const FloatMatrix
       answer(3, 0) = F(4) * C(2, 0) * F(0) + F(4) * C(2, 2) * F(2) + F(3) * C(1, 0) * F(0) + F(3) * C(1, 2) * F(2) + 0.0;
       answer(3, 1) = F(4) * C(2, 2) * F(5) + F(4) * C(2, 1) * F(1) + F(3) * C(1, 2) * F(5) + F(3) * C(1, 1) * F(1) + 0.0;
       answer(3, 2) = F(4) * C(2, 2) * F(0) + F(4) * C(2, 1) * F(2) + F(3) * C(1, 2) * F(0) + F(3) * C(1, 1) * F(2) + 0.0;
-      answer(3, 3) = F(4) * C(2, 2) * F(4) + F(4) * C(2, 1) * F(3) + F(3) * C(1, 2) * F(4) + F(3) * C(1, 1) * F(3) + S(1);
-      answer(3, 4) = F(4) * C(2, 0) * F(4) + F(4) * C(2, 2) * F(3) + F(3) * C(1, 0) * F(4) + F(3) * C(1, 2) * F(3) + S(2);
+      answer(3, 3) = F(4) * C(2, 2) * F(4) + F(4) * C(2, 1) * F(3) + F(3) * C(1, 2) * F(4) + F(3) * C(1, 1) * F(3) + mS(1);
+      answer(3, 4) = F(4) * C(2, 0) * F(4) + F(4) * C(2, 2) * F(3) + F(3) * C(1, 0) * F(4) + F(3) * C(1, 2) * F(3) + mS(2);
       answer(3, 5) = F(4) * C(2, 0) * F(5) + F(4) * C(2, 2) * F(1) + F(3) * C(1, 0) * F(5) + F(3) * C(1, 2) * F(1) + 0.0;
       
       answer(4, 0) = F(4) * C(0, 0) * F(0) + F(4) * C(0, 2) * F(2) + F(3) * C(2, 0) * F(0) + F(3) * C(2, 2) * F(2) + 0.0;
       answer(4, 1) = F(4) * C(0, 2) * F(5) + F(4) * C(0, 1) * F(1) + F(3) * C(2, 2) * F(5) + F(3) * C(2, 1) * F(1) + 0.0;
       answer(4, 2) = F(4) * C(0, 2) * F(0) + F(4) * C(0, 1) * F(2) + F(3) * C(2, 2) * F(0) + F(3) * C(2, 1) * F(2) + 0.0;
-      answer(4, 3) = F(4) * C(0, 2) * F(4) + F(4) * C(0, 1) * F(3) + F(3) * C(2, 2) * F(4) + F(3) * C(2, 1) * F(3) + S(2);
-      answer(4, 4) = F(4) * C(0, 0) * F(4) + F(4) * C(0, 2) * F(3) + F(3) * C(2, 0) * F(4) + F(3) * C(2, 2) * F(3) + S(0);
+      answer(4, 3) = F(4) * C(0, 2) * F(4) + F(4) * C(0, 1) * F(3) + F(3) * C(2, 2) * F(4) + F(3) * C(2, 1) * F(3) + mS(2);
+      answer(4, 4) = F(4) * C(0, 0) * F(4) + F(4) * C(0, 2) * F(3) + F(3) * C(2, 0) * F(4) + F(3) * C(2, 2) * F(3) + mS(0);
       answer(4, 5) = F(4) * C(0, 0) * F(5) + F(4) * C(0, 2) * F(1) + F(3) * C(2, 0) * F(5) + F(3) * C(2, 2) * F(1) + 0.0;
 
       answer(5, 0) = F(5) * C(0, 0) * F(0) + F(5) * C(0, 2) * F(2) + F(1) * C(2, 0) * F(0) + F(1) * C(2, 2) * F(2) + 0.0;
-      answer(5, 1) = F(5) * C(0, 2) * F(5) + F(5) * C(0, 1) * F(1) + F(1) * C(2, 2) * F(5) + F(1) * C(2, 1) * F(1) + S(2);
+      answer(5, 1) = F(5) * C(0, 2) * F(5) + F(5) * C(0, 1) * F(1) + F(1) * C(2, 2) * F(5) + F(1) * C(2, 1) * F(1) + mS(2);
       answer(5, 2) = F(5) * C(0, 2) * F(0) + F(5) * C(0, 1) * F(2) + F(1) * C(2, 2) * F(0) + F(1) * C(2, 1) * F(2) + 0.0;
       answer(5, 3) = F(5) * C(0, 2) * F(4) + F(5) * C(0, 1) * F(3) + F(1) * C(2, 2) * F(4) + F(1) * C(2, 1) * F(3) + 0.0;
       answer(5, 4) = F(5) * C(0, 0) * F(4) + F(5) * C(0, 2) * F(3) + F(1) * C(2, 0) * F(4) + F(1) * C(2, 2) * F(3) + 0.0;
-      answer(5, 5) = F(5) * C(0, 0) * F(5) + F(5) * C(0, 2) * F(1) + F(1) * C(2, 0) * F(5) + F(1) * C(2, 2) * F(1) + S(0);
+      answer(5, 5) = F(5) * C(0, 0) * F(5) + F(5) * C(0, 2) * F(1) + F(1) * C(2, 0) * F(5) + F(1) * C(2, 2) * F(1) + mS(0);
 
       
     }
+
+    int huhu = 1;
 }
 
 void
@@ -998,6 +1069,8 @@ StructuralMaterial :: give1dStressStiffMtrx_dPdF(FloatMatrix &answer,
     this->give1dStressStiffMtrx(dSdE, mode, gp, tStep);
     this->give_dPdF_from(dSdE, answer, gp, _1dMat);
 }
+
+
 
 
 void

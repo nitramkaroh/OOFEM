@@ -54,7 +54,7 @@
 #define _IFT_CamClayMat_pcTol "pctol"
 #define _IFT_CamClayMat_maxIter "maxiter"
 
-#define _IFT_CamClayMat_e "e"
+#define _IFT_CamClayMat_e "voidratio"
 #define _IFT_CamClayMat_consolidationIndex "lambda"
 #define _IFT_CamClayMat_swellingIndex "kappa"
 

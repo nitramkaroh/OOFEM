@@ -161,14 +161,31 @@ QuadMembrane :: computeDeformationGradientVector(FloatArray &answer, GaussPoint 
     }
 
     // Displacement gradient H = du/dX
+    FloatArray rF, n, a, b;
     FloatMatrix B;
+    
     this->computeBHmatrixAt(gp, B, tStep, 0);
-    answer.beProductOf(B, u);
-
-    answer.at(1) += 1.0;
-    answer.at(2) += 1.0;
+    rF.beProductOf(B, u);
+    this->surfaceEvalDeformedNormalAt(n, a, b, 1, gp, tStep);
+    if(n.at(3) < 0) {
+      n.times(-1.0);
+    }
+    
+    n.normalize();
+    answer.resize(9);
+    
+    answer.at(1) = rF.at(1) + 1.0;
+    answer.at(2) = rF.at(2) + 1.0;
+    answer.at(3) = n.at(3);
+    answer.at(4) = n.at(2);
+    answer.at(5) = n.at(1);
+    answer.at(6) = rF.at(3);
+    answer.at(7) = rF.at(4);
+    answer.at(8) = rF.at(5);
+    answer.at(9) = rF.at(6);
     
 }
+
 
 
 

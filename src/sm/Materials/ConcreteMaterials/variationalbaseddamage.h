@@ -52,7 +52,7 @@ namespace oofem {
  * Variationally-based Gradient Isotropic Damage models,
  * Should it be inherited form IDM1?
  */
-class VarBasedDamageMaterial : public IsotropicDamageMaterial1, GradientDamageMaterialExtensionInterface
+class VarBasedDamageMaterial : public IsotropicDamageMaterial1, public GradientDamageMaterialExtensionInterface
 {
 protected:
   double initialDamage;

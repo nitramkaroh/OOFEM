@@ -197,6 +197,11 @@ void StokesFlow :: updateComponent(TimeStep *tStep, NumericalCmpn cmpn, Domain *
         this->assemble(*stiffnessMatrix, tStep, TangentAssembler(TangentStiffness),
                        EModelDefaultEquationNumbering(), d);
         return;
+    } else if ( cmpn == InitialGuess ) {
+      this->stiffnessMatrix->zero();
+      this->assemble(*stiffnessMatrix, tStep, TangentAssembler(TangentStiffness),
+		     EModelDefaultEquationNumbering(), d);
+      return;
     } else {
         OOFEM_ERROR("Unknown component");
     }
