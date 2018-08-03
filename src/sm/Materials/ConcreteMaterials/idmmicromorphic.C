@@ -113,20 +113,21 @@ IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_dd_l(Fl
 
 
 void
-IsotropicDamageMaterialMicromorphic :: giveNonlocalInternalForces_N_factor(double &answer, double micromorphicDamage, GaussPoint *gp, TimeStep *tStep)
+IsotropicDamageMaterialMicromorphic :: giveNonlocalInternalForces_N_factor(double &answer, double micromorphicDamageDrivingVariable, GaussPoint *gp, TimeStep *tStep)
 {
 
   IsotropicDamageMaterialMicromorphicStatus *status = static_cast< IsotropicDamageMaterialMicromorphicStatus * >( this->giveStatus(gp) );
 
-  double damage = status->giveTempDamage();
-  answer = k1 * ( micromorphicDamage - damage);
+  double damageDrivingVariable = status->giveTempLocalDamageDrivingVariable();
+
+  answer = k1 * ( micromorphicDamageDrivingVariable - damageDrivingVariable);
  
 }
 
 void
-IsotropicDamageMaterialMicromorphic :: giveNonlocalInternalForces_B_factor(FloatArray &answer, const FloatArray &micromorphicDamageGrad, GaussPoint *gp, TimeStep *tStep)
+IsotropicDamageMaterialMicromorphic :: giveNonlocalInternalForces_B_factor(FloatArray &answer, const FloatArray &micromorphicDamageDrivingVariableGrad, GaussPoint *gp, TimeStep *tStep)
 {
-  answer = micromorphicDamageGrad;
+  answer = micromorphicDamageDrivingVariableGrad;
   answer.times(k2);
 }
 
@@ -134,7 +135,7 @@ IsotropicDamageMaterialMicromorphic :: giveNonlocalInternalForces_B_factor(Float
   
   
 void
-IsotropicDamageMaterialMicromorphic :: giveRealStressVectorGradientDamage(FloatArray &stress, double &tempDamage, GaussPoint *gp, const FloatArray &totalStrain, double micromorphicDamage, TimeStep *tStep)
+IsotropicDamageMaterialMicromorphic :: giveRealStressVectorGradientDamage(FloatArray &stress, double &tempDamageDrivingVariable, GaussPoint *gp, const FloatArray &totalStrain, double micromorphicDamageDrivingVariable, TimeStep *tStep)
 //
 // returns real stress vector in 3d stress space of receiver according to
 // previous level of stress and current
@@ -146,7 +147,7 @@ IsotropicDamageMaterialMicromorphic :: giveRealStressVectorGradientDamage(FloatA
     FloatArray strain;
     
     FloatMatrix de;
-    double damage, f, dDiss;
+    double damage, dDamage, f, dDiss, damageDrivingVariable,tempDamage;
     //    this->initTempStatus(gp);
     
     // subtract stress independent part
@@ -157,25 +158,41 @@ IsotropicDamageMaterialMicromorphic :: giveRealStressVectorGradientDamage(FloatA
     lmat->giveStiffnessMatrix(de, SecantStiffness, gp, tStep);
     stress.beProductOf(de, strain);
     // compute equivalent strain
+    damageDrivingVariable = status->giveLocalDamageDrivingVariable();
+    // compute damage and micromorphic damage
+    this->computeDamage(damage, damageDrivingVariable, gp);    
+    // compute equivalent strain
+    // compute equivalent strain
     double epsEq, E, storedEnergy;
     E = linearElasticMaterial->give('E', gp);
     this->computeEquivalentStrain(epsEq, strain, gp, tStep);
-    storedEnergy = 0.5*E*epsEq*epsEq;
-    damage = status->giveDamage();
+    storedEnergy = 0.5*E*epsEq*epsEq;    
+    //damage = status->giveDamage();
+    this->computeDamagePrime(dDamage, damageDrivingVariable, gp);
     this->computeDissipationFunctionPrime(dDiss, damage, gp);
-    f = storedEnergy + k1 * ( micromorphicDamage - damage) - dDiss;
+    /*damage based version*/
+    //    f = storedEnergy + k1 * ( micromorphicDamage - damage) - dDiss;
+    this->computeEquivalentStrain(epsEq, strain, gp, tStep);
+    storedEnergy = 0.5*E*epsEq*epsEq;    
+    f = storedEnergy*dDamage + k1 * ( micromorphicDamageDrivingVariable - damageDrivingVariable) - dDiss*dDamage;
     if(f <= 0) {
+      tempDamageDrivingVariable = damageDrivingVariable;
       tempDamage = damage;
     } else {
       // compute damage from the nonlocal field
-      this->computeDamage(tempDamage, damage, micromorphicDamage, storedEnergy, gp);
+      //      this->computeDamage(tempDamage, damage, micromorphicDamage, storedEnergy, gp);
+      this->computeDamageDrivingVariable(tempDamageDrivingVariable, damageDrivingVariable, micromorphicDamageDrivingVariable, storedEnergy, gp);
+      this->computeDamage(tempDamage, tempDamageDrivingVariable, gp);    
+
     }
     
     stress.times(1-tempDamage);
     // update gp
     status->letTempStressVectorBe(stress);
+    status->setTempLocalDamageDrivingVariable(tempDamageDrivingVariable);
+    status->setTempNonlocalDamageDrivingVariable(micromorphicDamageDrivingVariable);
     status->setTempDamage(tempDamage);
-    status->setTempMicromorphicDamage(micromorphicDamage);
+    //    status->setTempMicromorphicDamage(micromorphicDamage);
 
 #ifdef keep_track_of_dissipated_energy
     status->computeWork(gp);
@@ -184,7 +201,7 @@ IsotropicDamageMaterialMicromorphic :: giveRealStressVectorGradientDamage(FloatA
 }
 
 
-
+  /*
 void
 IsotropicDamageMaterialMicromorphic :: computeDamage(double &answer, double damage_n, double micromorphicDamage, double storedEnergy, GaussPoint *gp)
 {
@@ -215,6 +232,40 @@ IsotropicDamageMaterialMicromorphic :: computeDamage(double &answer, double dama
   }
   
 }
+  */
+
+void
+IsotropicDamageMaterialMicromorphic :: computeDamageDrivingVariable(double &answer, double localDamageDrivingVariable_n, double micromorphicDamageDrivingVariable, double storedEnergy, GaussPoint *gp)
+{
+
+  int index  = 0;
+  double f, df, dDiss, ddDiss, dDamage, ddDamage, damage;
+  answer = localDamageDrivingVariable_n;
+  this->computeDamage(damage, answer, gp);    
+  
+  while(true) {
+    index++;
+    this->computeDissipationFunctionPrime(dDiss,damage, gp);
+    this->computeDissipationFunctionPrime2(ddDiss,damage, gp);
+    this->computeDamagePrime(dDamage, answer, gp);
+    this->computeDamagePrime2(ddDamage, answer, gp);
+    f = dDamage * storedEnergy + k1 * ( micromorphicDamageDrivingVariable - answer) - dDamage * dDiss;  
+    df = storedEnergy * ddDamage - ddDiss * dDamage * dDamage - dDiss * ddDamage -k1;
+    answer -= f/df;
+    this->computeDamage(damage, answer, gp);    
+
+    
+    if(fabs(f) < 1.e-8*k1) {     
+      break;
+    }
+    if(index > 1000) {
+      OOFEM_ERROR("Error in compute damage function");
+    }
+
+  }
+  
+}
+  
 
   
 
@@ -228,7 +279,6 @@ IsotropicDamageMaterialMicromorphic :: CreateStatus(GaussPoint *gp) const
 
   IsotropicDamageMaterialMicromorphicStatus :: IsotropicDamageMaterialMicromorphicStatus(int n, Domain *d, GaussPoint *g) : VarBasedDamageMaterialStatus(n, d, g, 0)
 {
-  micromorphicDamage = tempMicromorphicDamage = 0;
 
 }
 
@@ -247,7 +297,6 @@ IsotropicDamageMaterialMicromorphicStatus :: initTempStatus()
 //
 {
     VarBasedDamageMaterialStatus :: initTempStatus();
-    this->tempMicromorphicDamage = this->micromorphicDamage;
 }
 
   
@@ -260,7 +309,6 @@ IsotropicDamageMaterialMicromorphicStatus :: updateYourself(TimeStep *tStep)
 //
 {
     VarBasedDamageMaterialStatus :: updateYourself(tStep);
-    this->micromorphicDamage = this->tempMicromorphicDamage;
 }
  
 

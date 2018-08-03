@@ -203,12 +203,16 @@ BaseMicromorphicElement :: giveStandardInternalForcesVector(FloatArray &answer, 
 	if(this->giveElement()->giveGeometryMode() == 0) {
 	  vStress = static_cast< MicromorphicMaterialStatus * >( gp->giveMaterialStatus() )->giveTempStressVector();
 	} else {
-	  vStress = static_cast< MicromorphicMaterialStatus * >( gp->giveMaterialStatus() )->giveTempPVector();
-	}	
-      } else {
-	this->computeGeneralizedStressVectors(vStress, s, M, gp, tStep);      
+	  FloatArray fullP;
+	  fullP = static_cast< MicromorphicMaterialStatus * >( gp->giveMaterialStatus() )->giveTempPVector();
+	  if ( fullP.giveSize() == 9 ) {
+	    StructuralMaterial :: giveReducedVectorForm( vStress, fullP, gp->giveMaterialMode() );
+	  } else {
+	    this->computeGeneralizedStressVectors(vStress, s, M, gp, tStep);      
+	  }
+	}
       }
-    
+	
       MicromorphicMaterialExtensionInterface *micromorphicMat = dynamic_cast< MicromorphicMaterialExtensionInterface * >(cs->giveMaterialInterface(MicromorphicMaterialExtensionInterfaceType, gp) );
       if ( !micromorphicMat ) {
 	OOFEM_ERROR("Material doesn't implement the required Micromorphic interface!");

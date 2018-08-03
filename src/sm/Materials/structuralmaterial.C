@@ -1054,7 +1054,7 @@ StructuralMaterial :: givePlaneStrainStiffMtrx_dPdF(FloatMatrix &answer,
 
     answer.at(5, 1) = m3d.at(9, 1);
     answer.at(5, 2) = m3d.at(9, 2);
-    answer.at(5, 5) = m3d.at(9, 9);
+    answer.at(5, 4) = m3d.at(9, 6);
     answer.at(5, 5) = m3d.at(9, 9);
     
 }

@@ -51,6 +51,12 @@
 
 namespace oofem {
 
+  class GradientPolyconvexMaterialStatus : public MicromorphicMaterialStatus
+ {
+ public:
+   GradientPolyconvexMaterialStatus(int n, Domain *d, GaussPoint *g, bool sym);  
+   ~GradientPolyconvexMaterialStatus(){;}
+ };
 
 /**
  * MicromorphicLinearElasticMaterial
@@ -88,17 +94,22 @@ public:
 
 virtual void giveGeneralizedStressVectors (FloatArray &sigma, FloatArray &s, FloatArray &S, GaussPoint *gp, const FloatArray &totalStrain, const FloatArray &micromorphicVar, const FloatArray micromorphicVarGrad, TimeStep *tStep){;}
     virtual void giveFiniteStrainGeneralizedStressVectors (FloatArray &sigma, FloatArray &s, FloatArray &M, GaussPoint *gp, const FloatArray &displacementGradient, const FloatArray &micromorphicVar, const FloatArray micromorphicVarGrad, TimeStep *tStep);
+    virtual void giveFiniteStrainGeneralizedStressVectors_3d (FloatArray &sigma, FloatArray &s, FloatArray &M, GaussPoint *gp, const FloatArray &displacementGradient, const FloatArray &micromorphicVar, const FloatArray micromorphicVarGrad, TimeStep *tStep);
+    virtual void giveFiniteStrainGeneralizedStressVectors_PlaneStrain (FloatArray &sigma, FloatArray &s, FloatArray &M, GaussPoint *gp, const FloatArray &displacementGradient, const FloatArray &micromorphicVar, const FloatArray micromorphicVarGrad, TimeStep *tStep);
     
 
     void compute_dC_dF(FloatMatrix &dCdF,const FloatArray &vF);
     virtual int giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType type, TimeStep *tStep);
 
 protected:
-  virtual MaterialStatus *CreateStatus(GaussPoint *gp) const { return new MicromorphicMaterialStatus(1, domain, gp); }
+    virtual MaterialStatus *CreateStatus(GaussPoint *gp) const { return new GradientPolyconvexMaterialStatus(1, domain, gp, true); }
 
                                                                      
 };
 
+
+ 
+ 
 
 } // end namespace oofem
 #endif

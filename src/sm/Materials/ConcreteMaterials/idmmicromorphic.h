@@ -82,7 +82,8 @@ public:
     virtual void giveNonlocalInternalForces_B_factor(FloatArray &answer, const FloatArray &nlddv, GaussPoint *gp, TimeStep *tStep);
     
     
-    virtual void computeDamage(double &answer, double micromorphicDamage, double damage, double storedEnergy, GaussPoint *gp);
+    //    virtual void computeDamage(double &answer, double micromorphicDamage, double damage, double storedEnergy, GaussPoint *gp);
+    void computeDamageDrivingVariable(double &answer, double localDamageDrivingVariable_n, double micromorphicDamageDrivingVariable, double storedEnergy, GaussPoint *gp);
 
     //    int giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType type, TimeStep *tStep);
 
@@ -97,8 +98,6 @@ public:
 class IsotropicDamageMaterialMicromorphicStatus : public VarBasedDamageMaterialStatus
 {
  protected:
-    double tempMicromorphicDamage;
-    double micromorphicDamage;
 
 
  public:
@@ -107,9 +106,7 @@ class IsotropicDamageMaterialMicromorphicStatus : public VarBasedDamageMaterialS
 
     virtual const char *giveClassName() const { return "IsotropicDamageMaterialMicromorphicStatus"; }
      
-    void setTempMicromorphicDamage(double md) {tempMicromorphicDamage = md;}
-    double giveTempMicromorphicDamage(){return tempMicromorphicDamage;}
-    double giveMicromorphicDamage(){return micromorphicDamage;}
+    
 
     virtual void initTempStatus();
     virtual void updateYourself(TimeStep *);

@@ -68,44 +68,112 @@ GradientPolyconvexMaterial :: giveStiffnessMatrix(FloatMatrix &answer, MatRespon
 void
 GradientPolyconvexMaterial :: giveMicromorphicMatrix_dSigdUgrad(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
 {
-    FloatMatrix De;
-    MaterialMode matMode = gp->giveMaterialMode();
-    if (matMode == _PlaneStrain) {
-      IsotropicLinearElasticMaterial :: givePlaneStrainStiffMtrx(De, mode, gp, tStep); 
-    } else { //@todo check that all other modes are threated as 3d modes
-      IsotropicLinearElasticMaterial :: give3dMaterialStiffnessMatrix(De, mode, gp, tStep);
-    }
-    MicromorphicMaterialStatus *status = static_cast< MicromorphicMaterialStatus * >( this->giveStatus(gp) );
-    
+    GradientPolyconvexMaterialStatus *status = static_cast< GradientPolyconvexMaterialStatus * >( this->giveStatus(gp) );
+
+    answer.resize(9,9);
+    answer.zero();
     //deformation gradient, its inverse, cofactor, and determinant
-    FloatArray vCofF, vInvF;
-    FloatMatrix F, invF, cofF;
+    double normC_tC1, normC_tC2;
+    FloatArray vF, vCofF, vInvF, vB, delta, vC_tC1, vC_tC2;
+    FloatMatrix F, invF, cofF, B, C, C_tC1, C_tC2, dCdF;
+    delta = {1, 1, 1, 0, 0, 0, 0, 0, 0};
     F.beMatrixForm(status->giveTempFVector());
+    B.beProductTOf(F,F);
+    vB.beVectorForm(B);
     invF.beInverseOf(F);
     double J = F.giveDeterminant();
     cofF.beTranspositionOf(invF);
     cofF.times(J);
+    vF.beVectorForm(F);
     vCofF.beVectorForm(cofF);
     vInvF.beVectorForm(invF);
-    // relative stress for cofactor
-    FloatArray sCof, mvCof, micromorphicVar;
-    micromorphicVar = status->giveTempMicromorphicVar();
-    mvCof.beSubArrayOf(micromorphicVar, {2,3,4,5,6,7,8,9,10});
-    sCof = vCofF;
-    sCof.subtract(mvCof);
-    sCof.times(-Hk);
-    // relative stress for determinatn
-    double sDet = -Hk * (J - micromorphicVar.at(1));
 
-    double gamma = 1;
+    ///////////
+    C.beTProductOf(F,F);
+
+    C_tC1 = C;
+    C_tC1.subtract(tC1);
+
+    C_tC2 = C;
+    C_tC2.subtract(tC2);
     
+
+    normC_tC1 = C_tC1.computeFrobeniusNorm();
+    normC_tC2 = C_tC2.computeFrobeniusNorm();
+
+    vC_tC1.beVectorForm(C_tC1);
+    vC_tC2.beVectorForm(C_tC2);
+    this->compute_dC_dF(dCdF,vF);
+    
+
+    
+    // relative stress for cofactor
+    FloatArray s, micromorphicVar, mvCof;
+    mvCof = status->giveTempMicromorphicVar();
+    s = vCofF;
+    s.subtract(mvCof);
+    s.times(-Hk);
+   
+
+    FloatArray vC_tC1_dCdF, vC_tC2_dCdF;
+    vC_tC1_dCdF.beTProductOf(dCdF, vC_tC1);
+    vC_tC2_dCdF.beTProductOf(dCdF, vC_tC2);
+
+    
+    for (int i = 1; i <= 3; i++) {
+      for (int j = 1; j <= 3; j++) {
+	for (int p = 1; p <= 3; p++) {
+	  for (int q = 1; q <= 3; q++) {
+	    // double well material stiffness
+	    answer.at(giveVI(i,j),giveVI(p,q)) += 4. * ( vB.at(giveVI(i,p)) * delta.at(giveVI(j,q)) + vF.at(giveVI(i,q)) *  vF.at(giveVI(p,j))) * (normC_tC1*normC_tC1 + normC_tC2 * normC_tC2) + 4. * vC_tC1.at(giveVI(j,q)) * delta.at(giveVI(i,p)) * (normC_tC2 * normC_tC2) + 4. * vC_tC2.at(giveVI(j,q)) * delta.at(giveVI(i,p)) * (normC_tC1 * normC_tC1) + 4.*vC_tC1_dCdF.at(giveVI(i,j))*vC_tC2_dCdF.at(giveVI(p,q)) + 4.*vC_tC2_dCdF.at(giveVI(i,j))*vC_tC1_dCdF.at(giveVI(p,q));
+	  }
+	}
+      }
+    }
+
+
+
+
+    FloatMatrix answer1(9,9), answer2(9,9), answer3(9,9), answer4(9,9), answer5(9,9), answer6(9,9), CFCF(9,9);
+
+
+    for (int i = 1; i <= 3; i++) {
+      for (int j = 1; j <= 3; j++) {
+	for (int p = 1; p <= 3; p++) {
+	  for (int q = 1; q <= 3; q++) {
+	    // double well material stiffness
+	    CFCF.at(giveVI(i,j),giveVI(p,q)) += 2. * (vB.at(giveVI(i,p))*delta.at(giveVI(j,q)) + vF.at(giveVI(i,q)) *  vF.at(giveVI(p,j)));
+	    answer1.at(giveVI(i,j),giveVI(p,q)) += 4. * (vB.at(giveVI(i,p))*delta.at(giveVI(j,q)) + vF.at(giveVI(i,q)) *  vF.at(giveVI(p,j))) * (normC_tC1*normC_tC1);
+	    answer2.at(giveVI(i,j),giveVI(p,q)) += 4. * (vB.at(giveVI(i,p))*delta.at(giveVI(j,q)) + vF.at(giveVI(i,q)) *  vF.at(giveVI(p,j))) * (normC_tC2 * normC_tC2);
+	    answer3.at(giveVI(i,j),giveVI(p,q)) += 4. * vC_tC1.at(giveVI(j,q)) * delta.at(giveVI(i,p)) * (normC_tC2 * normC_tC2);
+	    answer4.at(giveVI(i,j),giveVI(p,q)) += 4. * vC_tC2.at(giveVI(j,q)) * delta.at(giveVI(i,p)) * (normC_tC1 * normC_tC1);
+	    answer5.at(giveVI(i,j),giveVI(p,q)) += 4. * vC_tC1_dCdF.at(giveVI(i,j))*vC_tC2_dCdF.at(giveVI(p,q));
+	    answer6.at(giveVI(i,j),giveVI(p,q)) += 4. * vC_tC2_dCdF.at(giveVI(i,j))*vC_tC1_dCdF.at(giveVI(p,q));
+	  }
+	}
+      }
+    }
+
+ 
+
+
+
+
+
+
+
+
+
+    
+    
+    // micromorphic terms
     for (int i = 1; i <= 3; i++) {
       for (int j = 1; j <= 3; j++) {
 	for (int o = 1; o <= 3; o++) {
 	  for (int p = 1; p <= 3; p++) {
 	    for (int m = 1; m <= 3; m++) {
-	      for (int n = 1; n <= 3; n++) {
-		answer.at(giveVI(i,j),giveVI(o,p)) += gamma/J * (vInvF.at(giveVI(p,o))*vInvF.at(giveVI(j,i))-vInvF.at(giveVI(j,o))*vInvF.at(giveVI(p,o)))- J*sCof.at(giveVI(m,n))*(vInvF.at(giveVI(j,i))*vInvF.at(giveVI(n,m))-vInvF.at(giveVI(n,i))*vInvF.at(giveVI(j,m)))*vInvF.at(giveVI(p,o))+Hk*J*J*(vInvF.at(giveVI(j,i))*vInvF.at(giveVI(n,m))-vInvF.at(giveVI(n,i))*vInvF.at(giveVI(j,m)))*(vInvF.at(giveVI(p,o))*vInvF.at(giveVI(n,m))-vInvF.at(giveVI(n,o))*vInvF.at(giveVI(p,m)))-J*sCof.at(giveVI(m,n))*(-vInvF.at(giveVI(j,o))*vInvF.at(giveVI(p,i))*vInvF.at(giveVI(n,m))-vInvF.at(giveVI(j,i))*vInvF.at(giveVI(n,o))*vInvF.at(giveVI(p,m))+vInvF.at(giveVI(n,o))*vInvF.at(giveVI(p,i))*vInvF.at(giveVI(j,m))+vInvF.at(giveVI(n,i))*vInvF.at(giveVI(j,o))*vInvF.at(giveVI(p,m)))+(-J*sDet*+Hk*J*J)*vInvF.at(giveVI(j,i))*vInvF.at(giveVI(p,o))-J*sDet*+Hk*J*J*vInvF.at(giveVI(j,o))*vInvF.at(giveVI(p,i));
+	      for (int n = 1; n <= 3; n++) {		  
+		answer.at(giveVI(i,j),giveVI(o,p)) += - J*s.at(giveVI(m,n))*(vInvF.at(giveVI(j,i))*vInvF.at(giveVI(n,m))-vInvF.at(giveVI(n,i))*vInvF.at(giveVI(j,m)))*vInvF.at(giveVI(p,o))+Hk*J*J*(vInvF.at(giveVI(j,i))*vInvF.at(giveVI(n,m))-vInvF.at(giveVI(n,i))*vInvF.at(giveVI(j,m)))*(vInvF.at(giveVI(p,o))*vInvF.at(giveVI(n,m))-vInvF.at(giveVI(n,o))*vInvF.at(giveVI(p,m)))-J*s.at(giveVI(m,n))*(-vInvF.at(giveVI(j,o))*vInvF.at(giveVI(p,i))*vInvF.at(giveVI(n,m))-vInvF.at(giveVI(j,i))*vInvF.at(giveVI(n,o))*vInvF.at(giveVI(p,m))+vInvF.at(giveVI(n,o))*vInvF.at(giveVI(p,i))*vInvF.at(giveVI(j,m))+vInvF.at(giveVI(n,i))*vInvF.at(giveVI(j,o))*vInvF.at(giveVI(p,m)));
 	      }
 	    }
 	  }
@@ -113,7 +181,139 @@ GradientPolyconvexMaterial :: giveMicromorphicMatrix_dSigdUgrad(FloatMatrix &ans
       }
     }
 
+    if(gp->giveMaterialMode() == _PlaneStrain) {
+      FloatMatrix m3d = answer;
+      answer.resize(5,5);
+      answer.zero();
+      answer.at(1, 1) = m3d.at(1, 1);
+      answer.at(1, 2) = m3d.at(1, 2);
+      answer.at(1, 4) = m3d.at(1, 6);
+      answer.at(1, 5) = m3d.at(1, 9);
+      
+      answer.at(2, 1) = m3d.at(2, 1);
+      answer.at(2, 2) = m3d.at(2, 2);
+      answer.at(2, 4) = m3d.at(2, 6);
+      answer.at(2, 5) = m3d.at(2, 9);
+      
+      answer.at(3, 1) = m3d.at(3, 1);
+      answer.at(3, 2) = m3d.at(3, 2);
+      answer.at(3, 4) = m3d.at(3, 6);
+      answer.at(3, 5) = m3d.at(3, 9);
+      
+      answer.at(4, 1) = m3d.at(6, 1);
+      answer.at(4, 2) = m3d.at(6, 2);
+      answer.at(4, 4) = m3d.at(6, 6);
+      answer.at(4, 5) = m3d.at(6, 9);
+      
+      answer.at(5, 1) = m3d.at(9, 1);
+      answer.at(5, 2) = m3d.at(9, 2);
+      answer.at(5, 4) = m3d.at(9, 6);
+      answer.at(5, 5) = m3d.at(9, 9);
+    }
 
+    FloatMatrix testA(9,9);
+    FloatArray vP, pvP, M, pertF, reducedvF, reducedMicromorphicVar(9), micromorphicVarGrad(1);
+    FloatArray col;
+    double e = 1.e-6;
+    reducedvF.beVectorForm(F);
+    this->giveFiniteStrainGeneralizedStressVectors_3d(vP, s, M, gp, reducedvF, reducedMicromorphicVar, micromorphicVarGrad, tStep);
+    pertF = reducedvF;
+    pertF.at(1) += e;
+    this->giveFiniteStrainGeneralizedStressVectors_3d(pvP, s, M, gp, pertF, reducedMicromorphicVar, micromorphicVarGrad, tStep);
+    col = pvP;
+    col.subtract(vP);
+    col.times(1./e);
+    testA.setColumn(col, 1);
+    pertF = reducedvF;
+    pertF.at(2) += e;
+    this->giveFiniteStrainGeneralizedStressVectors_3d(pvP, s, M, gp, pertF, reducedMicromorphicVar, micromorphicVarGrad, tStep);
+    col = pvP;
+    col.subtract(vP);
+    col.times(1./e);
+    testA.setColumn(col, 2);
+    pertF = reducedvF;
+    pertF.at(3) += e;
+    this->giveFiniteStrainGeneralizedStressVectors_3d(pvP, s, M, gp, pertF, reducedMicromorphicVar, micromorphicVarGrad, tStep);
+    col = pvP;
+    col.subtract(vP);
+    col.times(1./e);
+    testA.setColumn(col, 3);
+    pertF = reducedvF;
+    pertF.at(4) += e;
+    this->giveFiniteStrainGeneralizedStressVectors_3d(pvP, s, M, gp, pertF, reducedMicromorphicVar, micromorphicVarGrad, tStep);
+    col = pvP;
+    col.subtract(vP);
+    col.times(1./e);
+    testA.setColumn(col, 4);
+    pertF = reducedvF;
+    pertF.at(5) += e;
+    this->giveFiniteStrainGeneralizedStressVectors_3d(pvP, s, M, gp, pertF, reducedMicromorphicVar, micromorphicVarGrad, tStep);
+    col = pvP;
+    col.subtract(vP);
+    col.times(1./e);
+    testA.setColumn(col, 5);
+    pertF = reducedvF;
+    pertF.at(6) += e;
+    this->giveFiniteStrainGeneralizedStressVectors_3d(pvP, s, M, gp, pertF, reducedMicromorphicVar, micromorphicVarGrad, tStep);
+    col = pvP;
+    col.subtract(vP);
+    col.times(1./e);
+    testA.setColumn(col, 6);
+    pertF = reducedvF;
+    pertF.at(7) += e;
+    this->giveFiniteStrainGeneralizedStressVectors_3d(pvP, s, M, gp, pertF, reducedMicromorphicVar, micromorphicVarGrad, tStep);
+    col = pvP;
+    col.subtract(vP);
+    col.times(1./e);
+    testA.setColumn(col, 7);
+    pertF = reducedvF;
+    pertF.at(8) += e;
+    this->giveFiniteStrainGeneralizedStressVectors_3d(pvP, s, M, gp, pertF, reducedMicromorphicVar, micromorphicVarGrad, tStep);
+    col = pvP;
+    col.subtract(vP);
+    col.times(1./e);
+    testA.setColumn(col, 8);
+    pertF = reducedvF;
+    pertF.at(9) += e;
+    this->giveFiniteStrainGeneralizedStressVectors_3d(pvP, s, M, gp, pertF, reducedMicromorphicVar, micromorphicVarGrad, tStep);
+    col = pvP;
+    col.subtract(vP);
+    col.times(1./e);
+    testA.setColumn(col, 9);
+    pertF = reducedvF;    
+    this->giveFiniteStrainGeneralizedStressVectors_3d(pvP, s, M, gp, reducedvF, reducedMicromorphicVar, micromorphicVarGrad, tStep);
+
+
+    FloatMatrix m3d = testA;
+    testA.resize(5,5);
+    
+    testA.zero();
+    testA.at(1, 1) = m3d.at(1, 1);
+    testA.at(1, 2) = m3d.at(1, 2);
+    testA.at(1, 4) = m3d.at(1, 6);
+    testA.at(1, 5) = m3d.at(1, 9);
+    
+    testA.at(2, 1) = m3d.at(2, 1);
+    testA.at(2, 2) = m3d.at(2, 2);
+    testA.at(2, 4) = m3d.at(2, 6);
+    testA.at(2, 5) = m3d.at(2, 9);
+    
+    testA.at(3, 1) = m3d.at(3, 1);
+    testA.at(3, 2) = m3d.at(3, 2);
+    testA.at(3, 4) = m3d.at(3, 6);
+    testA.at(3, 5) = m3d.at(3, 9);
+    
+    testA.at(4, 1) = m3d.at(6, 1);
+    testA.at(4, 2) = m3d.at(6, 2);
+    testA.at(4, 4) = m3d.at(6, 6);
+    testA.at(4, 5) = m3d.at(6, 9);
+    
+    testA.at(5, 1) = m3d.at(9, 1);
+    testA.at(5, 2) = m3d.at(9, 2);
+    testA.at(5, 4) = m3d.at(9, 6);
+    testA.at(5, 5) = m3d.at(9, 9);
+    
+    
   
 }
 
@@ -122,7 +322,7 @@ GradientPolyconvexMaterial :: giveMicromorphicMatrix_dSigdPhi(FloatMatrix &answe
 {
 
 
-   MicromorphicMaterialStatus *status = static_cast< MicromorphicMaterialStatus * >( this->giveStatus(gp) );
+   GradientPolyconvexMaterialStatus *status = static_cast< GradientPolyconvexMaterialStatus* >( this->giveStatus(gp) );
 
    FloatArray vInvF;
    FloatMatrix F, invF;
@@ -131,19 +331,47 @@ GradientPolyconvexMaterial :: giveMicromorphicMatrix_dSigdPhi(FloatMatrix &answe
    double J = F.giveDeterminant();
    vInvF.beVectorForm(invF);
 
-   answer.resize(9,10);
+   answer.resize(9,9);
    answer.setColumn(vInvF, 1);
    for (int i = 1; i <= 3; i++) {
       for (int j = 1; j <= 3; j++) {
 	for (int o = 1; o <= 3; o++) {
 	  for (int p = 1; p <= 3; p++) {
-	    answer.at(giveVI(i,j),giveVI(o,p)+1) = (vInvF.at(giveVI(j,i))*vInvF.at(giveVI(p,o))-vInvF.at(giveVI(p,i))*vInvF.at(giveVI(j,o)));
+	    answer.at(giveVI(i,j),giveVI(o,p)) = (vInvF.at(giveVI(j,i))*vInvF.at(giveVI(p,o))-vInvF.at(giveVI(p,i))*vInvF.at(giveVI(j,o)));
 	  }
 	}
       }
     }
    answer.times(-J*Hk);   
-
+ if(gp->giveMaterialMode() == _PlaneStrain) {
+      FloatMatrix m3d = answer;
+      answer.resize(5,5);
+      answer.zero();
+      answer.at(1, 1) = m3d.at(1, 1);
+      answer.at(1, 2) = m3d.at(1, 2);
+      answer.at(1, 4) = m3d.at(1, 6);
+      answer.at(1, 5) = m3d.at(1, 9);
+      
+      answer.at(2, 1) = m3d.at(2, 1);
+      answer.at(2, 2) = m3d.at(2, 2);
+      answer.at(2, 4) = m3d.at(2, 6);
+      answer.at(2, 5) = m3d.at(2, 9);
+      
+      answer.at(3, 1) = m3d.at(3, 1);
+      answer.at(3, 2) = m3d.at(3, 2);
+      answer.at(3, 4) = m3d.at(3, 6);
+      answer.at(3, 5) = m3d.at(3, 9);
+      
+      answer.at(4, 1) = m3d.at(6, 1);
+      answer.at(4, 2) = m3d.at(6, 2);
+      answer.at(4, 4) = m3d.at(6, 6);
+      answer.at(4, 5) = m3d.at(6, 9);
+      
+      answer.at(5, 1) = m3d.at(9, 1);
+      answer.at(5, 2) = m3d.at(9, 2);
+      answer.at(5, 5) = m3d.at(9, 9);
+      answer.at(5, 5) = m3d.at(9, 9);
+    }
   
 }
 
@@ -151,7 +379,7 @@ GradientPolyconvexMaterial :: giveMicromorphicMatrix_dSigdPhi(FloatMatrix &answe
 void
 GradientPolyconvexMaterial :: giveMicromorphicMatrix_dSdUgrad(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
 {
-    MicromorphicMaterialStatus *status = static_cast< MicromorphicMaterialStatus * >( this->giveStatus(gp) );
+    GradientPolyconvexMaterialStatus *status = static_cast< GradientPolyconvexMaterialStatus* >( this->giveStatus(gp) );
   
     FloatArray vInvF;
     FloatMatrix F, invF;
@@ -160,19 +388,47 @@ GradientPolyconvexMaterial :: giveMicromorphicMatrix_dSdUgrad(FloatMatrix &answe
     double J = F.giveDeterminant();
     vInvF.beVectorForm(invF);
     
-    answer.resize(9,10);
+    answer.resize(9,9);
     answer.setColumn(vInvF, 1);
     for (int i = 1; i <= 3; i++) {
       for (int j = 1; j <= 3; j++) {
 	for (int o = 1; o <= 3; o++) {
 	  for (int p = 1; p <= 3; p++) {
-	    answer.at(giveVI(i,j),giveVI(o,p)+1) = (vInvF.at(giveVI(j,i))*vInvF.at(giveVI(p,o))-vInvF.at(giveVI(p,i))*vInvF.at(giveVI(j,o)));
+	    answer.at(giveVI(i,j),giveVI(o,p)) = (vInvF.at(giveVI(j,i))*vInvF.at(giveVI(p,o))-vInvF.at(giveVI(p,i))*vInvF.at(giveVI(j,o)));
 	  }
 	}
       }
     }
     answer.times(-J*Hk);   
-    
+     if(gp->giveMaterialMode() == _PlaneStrain) {
+      FloatMatrix m3d = answer;
+      answer.resize(5,5);
+      answer.zero();
+      answer.at(1, 1) = m3d.at(1, 1);
+      answer.at(1, 2) = m3d.at(1, 2);
+      answer.at(1, 4) = m3d.at(1, 6);
+      answer.at(1, 5) = m3d.at(1, 9);
+      
+      answer.at(2, 1) = m3d.at(2, 1);
+      answer.at(2, 2) = m3d.at(2, 2);
+      answer.at(2, 4) = m3d.at(2, 6);
+      answer.at(2, 5) = m3d.at(2, 9);
+      
+      answer.at(3, 1) = m3d.at(3, 1);
+      answer.at(3, 2) = m3d.at(3, 2);
+      answer.at(3, 4) = m3d.at(3, 6);
+      answer.at(3, 5) = m3d.at(3, 9);
+      
+      answer.at(4, 1) = m3d.at(6, 1);
+      answer.at(4, 2) = m3d.at(6, 2);
+      answer.at(4, 4) = m3d.at(6, 6);
+      answer.at(4, 5) = m3d.at(6, 9);
+      
+      answer.at(5, 1) = m3d.at(9, 1);
+      answer.at(5, 2) = m3d.at(9, 2);
+      answer.at(5, 5) = m3d.at(9, 9);
+      answer.at(5, 5) = m3d.at(9, 9);
+    }
     
 }
 
@@ -182,7 +438,7 @@ void
 GradientPolyconvexMaterial :: giveMicromorphicMatrix_dSdPhi(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
 {
 
-    answer.resize(3,3);
+    answer.resize(5,5);
     answer.beUnitMatrix();
     answer.times(Hk);
 
@@ -194,9 +450,9 @@ GradientPolyconvexMaterial :: giveMicromorphicMatrix_dMdPhiGrad(FloatMatrix &ans
 {
   MaterialMode matMode = gp->giveMaterialMode();
   if (matMode == _PlaneStrain) {
-    answer.resize(6,6);
-  } else {
     answer.resize(10,10);
+  } else {
+    answer.resize(18,18);
   } 
   answer.beUnitMatrix();
   answer.times(Ak);
@@ -205,15 +461,31 @@ GradientPolyconvexMaterial :: giveMicromorphicMatrix_dMdPhiGrad(FloatMatrix &ans
 
 
 
-
 void
 GradientPolyconvexMaterial :: giveFiniteStrainGeneralizedStressVectors(FloatArray &vP, FloatArray &s, FloatArray &M, GaussPoint *gp, const FloatArray &vF, const FloatArray &micromorphicVar, const FloatArray micromorphicVarGrad, TimeStep *tStep)
 {
+    ///@todo Move this to StructuralCrossSection ?
+    MaterialMode mode = gp->giveMaterialMode();
+    if ( mode == _3dMat ) {
+      this->giveFiniteStrainGeneralizedStressVectors_3d(vP, s, M, gp, vF, micromorphicVar, micromorphicVarGrad, tStep);
+    } else if ( mode == _PlaneStrain ) {
+      this->giveFiniteStrainGeneralizedStressVectors_PlaneStrain(vP, s, M, gp, vF, micromorphicVar, micromorphicVarGrad, tStep);
+    } else {
+      OOFEM_ERROR("Unknown material mode for the gradient polyconvex formulation");
+    }
+}
   
-    MicromorphicMaterialStatus *status = static_cast< MicromorphicMaterialStatus * >( this->giveStatus(gp) );
+
+
+void
+GradientPolyconvexMaterial :: giveFiniteStrainGeneralizedStressVectors_3d(FloatArray &vP, FloatArray &s, FloatArray &M, GaussPoint *gp, const FloatArray &vF, const FloatArray &micromorphicVar, const FloatArray micromorphicVarGrad, TimeStep *tStep)
+{
+  
+    GradientPolyconvexMaterialStatus *status = static_cast< GradientPolyconvexMaterialStatus* >( this->giveStatus(gp) );
     //deformation gradient, its inverse, cofactor, and determinant
     FloatArray vCofF, vInvF;
     FloatMatrix F, invF, cofF;
+    
     F.beMatrixForm(vF);
     invF.beInverseOf(F);
     double J = F.giveDeterminant();
@@ -222,24 +494,15 @@ GradientPolyconvexMaterial :: giveFiniteStrainGeneralizedStressVectors(FloatArra
     vCofF.beVectorForm(cofF);
     vInvF.beVectorForm(invF);
     // relative stress for cofactor
-    FloatArray sCof, mvCof;
-    mvCof.beSubArrayOf(micromorphicVar, {2,3,4,5,6,7,8,9,10});
-    sCof = vCofF;
-    sCof.subtract(mvCof);
-    sCof.times(-Hk);
-    // relative stress for determinatn
-    double sDet = -Hk * (J - micromorphicVar.at(1));
-    // total relative stress
-    s.resize(10);
-    s.at(1) = sDet;
-    s.addSubVector(sCof, 2);
+    s = vCofF;
+    s.subtract(micromorphicVar);
+    s.times(-Hk);
     // higher order stress
     M = micromorphicVarGrad;
-    M.times(Ak);
-    
+    M.times(Ak);   
 
     // first PK stress
-    FloatArray c1, c2(9), c3;
+    FloatArray vPm(9);
     // double well material model    
     double normC_tC1, normC_tC2;
     FloatArray arb1, arb2, vC_tC1, vC_tC2;
@@ -257,45 +520,33 @@ GradientPolyconvexMaterial :: giveFiniteStrainGeneralizedStressVectors(FloatArra
     normC_tC1 = C_tC1.computeFrobeniusNorm();
     normC_tC2 = C_tC2.computeFrobeniusNorm();
 
-    vC_tC1.beSymVectorFormOfStrain(C_tC1);
-    vC_tC2.beSymVectorFormOfStrain(C_tC2);   
+    vC_tC1.beVectorForm(C_tC1);
+    vC_tC2.beVectorForm(C_tC2);   
 
 
-    arb1.beProductOf(dCdF, vC_tC1);
+    arb1.beTProductOf(dCdF, vC_tC1);
     arb1.times(2. * normC_tC2 * normC_tC2);
       
-    arb2.beProductOf(dCdF, vC_tC2);
+    arb2.beTProductOf(dCdF, vC_tC2);
     arb2.times(2. * normC_tC1 * normC_tC1);
 
     
     vP = arb1;
     vP.add(arb2);
     
-    // micromorphic contributions  
-    c1 = vCofF;
-    double gamma = 1;
-    c1.times(-gamma / J / J);
-
-    c3 = vCofF;
-    c3.times(-sDet);
-
+    // micromorphic contribution
     for (int i = 1; i <= 3; i++) {
       for (int j = 1; j <= 3; j++) {
 	for (int m = 1; m <=3; m++) {
 	  for (int n = 1; n<=3; n++) {
-	    c2.at(giveVI(i,j)) = (vInvF.at(giveVI(j,i))*vInvF.at(giveVI(n,m))-vInvF.at(giveVI(n,i))*vInvF.at(giveVI(j,m))) * J * sCof.at(giveVI(m,n));
+	    vPm.at(giveVI(i,j)) += (vInvF.at(giveVI(j,i))*vInvF.at(giveVI(n,m))-vInvF.at(giveVI(n,i))*vInvF.at(giveVI(j,m))) * J * s.at(giveVI(m,n));
 	  }
 	}
       }
     }
     
-    vP.add(c1);
-    vP.add(c2);
-    vP.add(c3);
+    vP.subtract(vPm);
     
-
-
-    //    status->letTempStrainVectorBe(displacementGradient);
     status->letTempMicromorphicVarBe(micromorphicVar);
     status->letTempMicromorphicVarGradBe(micromorphicVarGrad);
 
@@ -306,12 +557,28 @@ GradientPolyconvexMaterial :: giveFiniteStrainGeneralizedStressVectors(FloatArra
       
 }
 
+
+void
+GradientPolyconvexMaterial :: giveFiniteStrainGeneralizedStressVectors_PlaneStrain(FloatArray &vP, FloatArray &s, FloatArray &M, GaussPoint *gp, const FloatArray &reducedvF, const FloatArray &reducedMicromorphicVar, const FloatArray micromorphicVarGrad, TimeStep *tStep)
+{
+
+  FloatArray vF, vMV, fullvP, fullS;
+  StructuralMaterial :: giveFullVectorFormF(vF, reducedvF, _PlaneStrain);
+  StructuralMaterial :: giveFullVectorFormF(vMV, reducedMicromorphicVar, _PlaneStrain);
+  this->giveFiniteStrainGeneralizedStressVectors_3d(fullvP, fullS, M, gp, vF, vMV, micromorphicVarGrad, tStep) ;
+  StructuralMaterial :: giveReducedVectorForm(vP, fullvP, _PlaneStrain);
+  StructuralMaterial :: giveReducedVectorForm(s, fullS, _PlaneStrain);
+
+      
+}
+  
+
 void
 GradientPolyconvexMaterial :: compute_dC_dF(FloatMatrix &dCdF,const FloatArray &vF)
 {
 
-  dCdF.resize(6,6);
-  FloatArray delta = {1, 1, 1, 0, 0, 0};
+  dCdF.resize(9,9);
+  FloatArray delta = {1, 1, 1, 0, 0, 0, 0, 0, 0};
   for (int i = 1; i <= 3; i++) {
     for (int j = 1; j <= 3; j++) {
       for (int m = 1; m <=3; m++) {
@@ -323,6 +590,10 @@ GradientPolyconvexMaterial :: compute_dC_dF(FloatMatrix &dCdF,const FloatArray &
   }
   
 }
+
+
+
+  
   
 
 IRResultType
@@ -336,9 +607,15 @@ GradientPolyconvexMaterial :: initializeFrom(InputRecord *ir)
 
     IR_GIVE_FIELD(ir, eps, _IFT_GradientPolyconvexMaterial_eps);
 
-    tC1 = {{(1. + eps) * (1. + eps), 0, 0},{0, 1. / (1. + eps) / (1. + eps), 0}, {0, 0, 1}};
+    /*    tC1 = {{(1. + eps) * (1. + eps), 0, 0},{0, 1. / (1. + eps) / (1. + eps), 0}, {0, 0, 1}};
     tC2 = {{1. / (1. + eps) / (1. + eps), 0, 0},{0, (1. + eps)*(1. + eps), 0}, {0, 0, 1}};
+    */
 
+    tC1 = {{ 1.0, eps, 0},{eps, 1.+eps*eps, 0}, {0, 0, 1}};
+    tC2 = {{1.0, -eps, 0},{-eps, 1.+eps*eps, 0}, {0, 0, 1}};
+
+    
+    
     return IRRT_OK;
 }
 
@@ -346,7 +623,7 @@ int
 GradientPolyconvexMaterial :: giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType type, TimeStep *tStep)
 {
 
-    MicromorphicMaterialStatus *status = static_cast< MicromorphicMaterialStatus * >( this->giveStatus(gp) );
+    GradientPolyconvexMaterialStatus *status = static_cast< GradientPolyconvexMaterialStatus * >( this->giveStatus(gp) );
     
 
     if( type == IST_MicromorphicStress) {
@@ -383,6 +660,20 @@ GradientPolyconvexMaterial :: giveIPValue(FloatArray &answer, GaussPoint *gp, In
 }
     
 
+  GradientPolyconvexMaterialStatus :: GradientPolyconvexMaterialStatus(int n, Domain *d, GaussPoint *g, bool sym) : MicromorphicMaterialStatus(n, d, g, sym)
+{
+    micromorphicVar.resize(9);
+    micromorphicVar.at(1) = micromorphicVar.at(2) = micromorphicVar.at(3) = 1.;
+    micromorphicStress.resize(9);
+    micromorphicVarGrad.resize(18);
+    micromorphicStressGrad.resize(18);
+
+
+    tempMicromorphicVar = micromorphicVar;
+    tempMicromorphicVarGrad = micromorphicVarGrad;
+    tempMicromorphicStress = micromorphicStress;
+    tempMicromorphicStressGrad = micromorphicStressGrad;
+}
 
 
 } // end namespace oofem

@@ -73,36 +73,34 @@ PlaneStrainGradPolyconvex :: computeMicromorphicBMatrixAt(GaussPoint *gp, FloatM
     FloatMatrix dNdx; 
     interp->evaldNdx( dNdx, gp->giveNaturalCoordinates(), FEIElementGeometryWrapper(this) );
 
-    answer.resize(10, this->giveNumberOfMicromorphicDofs()*2);
+    answer.resize(10, this->giveNumberOfMicromorphicDofs());
     answer.zero();
 
-    for ( int i = 1; i <= this->giveNumberOfMicromorphicDofs(); i++ ) {
+    for ( int i = 1; i <= dNdx.giveNumberOfRows(); i++ ) {
 
-        answer.at(1, i * 6 - 5) = dNdx.at(i, 1);
-        answer.at(2, i * 6 - 5) = dNdx.at(i, 2);
+        answer.at(1, i * 5 - 4) = dNdx.at(i, 1);
+        answer.at(2, i * 5 - 4) = dNdx.at(i, 2);
 
-      
-	answer.at(3, i * 6 - 4) = dNdx.at(i, 1);
-        answer.at(4, i * 6 - 4) = dNdx.at(i, 2);
+     	answer.at(3, i * 5 - 3) = dNdx.at(i, 1);
+        answer.at(4, i * 5 - 3) = dNdx.at(i, 2);
 
-        answer.at(5, i * 6 - 3) = dNdx.at(i, 1);
-        answer.at(6, i * 6 - 3) = dNdx.at(i, 2);
+        answer.at(5, i * 5 - 2) = dNdx.at(i, 1);
+        answer.at(6, i * 5 - 2) = dNdx.at(i, 2);
 
-        answer.at(7, i * 6 - 1) = dNdx.at(i, 1);
-        answer.at(8, i * 6 - 1) = dNdx.at(i, 2);
+        answer.at(7, i * 5 - 1) = dNdx.at(i, 1);
+        answer.at(8, i * 5 - 1) = dNdx.at(i, 2);
 	
         answer.at(9, i * 5 - 0) = dNdx.at(i, 1);
         answer.at(10, i * 5 - 0) = dNdx.at(i, 2);
     }
     
-    answer.beTranspositionOf(dNdx);
 }
 
 
 void
 PlaneStrainGradPolyconvex :: giveDofManDofIDMask(int inode, IntArray &answer) const
 {
-  answer = {D_u, D_v, M_D, M_X11, M_X22, M_X33, M_X12, M_X21};
+  answer = {D_u, D_v, M_X11, M_X22, M_X33, M_X12, M_X21};
 }
 
 
@@ -116,7 +114,7 @@ PlaneStrainGradPolyconvex :: giveDofManDofIDMask_u(IntArray &answer)
 void
 PlaneStrainGradPolyconvex :: giveDofManDofIDMask_m(IntArray &answer)
 {
-  answer = {M_D, M_X11, M_X22, M_X33, M_X12, M_X21};
+  answer = {M_X11, M_X22, M_X33, M_X12, M_X21};
 }
 
 

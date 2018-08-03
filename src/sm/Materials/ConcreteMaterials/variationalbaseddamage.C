@@ -215,8 +215,8 @@ VarBasedDamageMaterial :: giveGradientDamageStiffnessMatrix_dd(FloatMatrix &answ
   double localDamageDrivingVariable, damageDrivingVariable, dDamage,ddDamage, dDiss, ddDiss, damage;
 
     VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
-    //  damageDrivingVariable = status->giveTempNonlocalDamageDrivingVariable();
-  damage = status->giveTempDamage();
+    damageDrivingVariable = status->giveTempNonlocalDamageDrivingVariable();
+    damage = status->giveTempDamage();
 
   // stored elastic energy
   this-> computeLocalDamageDrivingVariable(localDamageDrivingVariable, gp, tStep);
