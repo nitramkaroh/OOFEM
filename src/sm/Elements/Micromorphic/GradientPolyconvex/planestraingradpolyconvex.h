@@ -70,12 +70,16 @@ public:
     virtual void computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode mode, TimeStep *tStep){BaseMicromorphicElement :: computeStiffnessMatrix(answer, mode, tStep);}
     virtual void giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord){BaseMicromorphicElement :: giveInternalForcesVector(answer, tStep, useUpdatedGpRecord);}
 
+    
 
     virtual int giveNumberOfMicromorphicDofs(){return 20;}
     virtual int giveNumberOfDisplacementDofs(){return 8;}
     virtual int giveNumberOfDofs(){return 28;}
 
     virtual void postInitialize();
+ protected:
+    virtual void computeMicromorphicVars(FloatArray &micromorphVar, FloatArray &micromorphVarGrad, IntArray IdMask_m, GaussPoint *gp, TimeStep *tStep);   
+
 };
 } // end namespace oofem
 #endif // planestraingradpolyconvex_h

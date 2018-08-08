@@ -98,6 +98,25 @@ PlaneStrainGradPolyconvex :: computeMicromorphicBMatrixAt(GaussPoint *gp, FloatM
 
 
 void
+PlaneStrainGradPolyconvex :: computeMicromorphicVars(FloatArray &micromorphicVar,FloatArray &micromorphicVarGrad, IntArray IdMask_m, GaussPoint *gp, TimeStep *tStep)
+{
+  FloatMatrix N_m, B_m;
+  FloatArray u_m;
+ 
+    this->computeMicromorphicNMatrixAt(gp, N_m);
+    this->computeMicromorphicBMatrixAt(gp, B_m);
+    /// @todo generalization for general micromorphic continua -- should be parameter of this function
+    this->giveElement()->computeVectorOf(IdMask_m, VM_Total, tStep, u_m);
+    micromorphicVar.beProductOf(N_m, u_m);
+    micromorphicVar.at(1) += 1;
+    micromorphicVar.at(2) += 1;
+    micromorphicVar.at(3) += 1;
+    micromorphicVarGrad.beProductOf(B_m, u_m);
+}
+ 
+
+
+void
 PlaneStrainGradPolyconvex :: giveDofManDofIDMask(int inode, IntArray &answer) const
 {
   answer = {D_u, D_v, M_X11, M_X22, M_X33, M_X12, M_X21};
