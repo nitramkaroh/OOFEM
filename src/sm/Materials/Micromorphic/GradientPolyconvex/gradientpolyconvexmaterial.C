@@ -47,6 +47,7 @@ namespace oofem {
 GradientPolyconvexMaterial :: GradientPolyconvexMaterial(int n, Domain *d) :IsotropicLinearElasticMaterial(n, d), MicromorphicMaterialExtensionInterface(d)
 {
   Hk = Ak = 0.;
+  alpha = 1.e6;
 }
 
 GradientPolyconvexMaterial :: ~GradientPolyconvexMaterial()
@@ -131,7 +132,7 @@ GradientPolyconvexMaterial :: giveMicromorphicMatrix_dSigdUgrad(FloatMatrix &ans
       }
     }
 
-
+    answer.times(alpha);
 
 
     FloatMatrix answer1(9,9), answer2(9,9), answer3(9,9), answer4(9,9), answer5(9,9), answer6(9,9), CFCF(9,9);
@@ -513,10 +514,10 @@ GradientPolyconvexMaterial :: giveMicromorphicMatrix_dSigdPhi(FloatMatrix &answe
    testA.at(5, 2) = m3d.at(9, 2);
    testA.at(5, 4) = m3d.at(9, 6);
    testA.at(5, 5) = m3d.at(9, 9);
-
-
-   answer.zero();
    */
+
+   //   answer.zero();
+   
   
 }
 
@@ -605,7 +606,7 @@ GradientPolyconvexMaterial :: giveMicromorphicMatrix_dSdUgrad(FloatMatrix &answe
       answer.at(5, 5) = m3d.at(9, 9);
       */
     }
-     //  answer.zero();
+     //     answer.zero();
     
 }
 
@@ -711,6 +712,7 @@ GradientPolyconvexMaterial :: giveFiniteStrainGeneralizedStressVectors_3d(FloatA
     
     vP = arb1;
     vP.add(arb2);
+    vP.times(alpha);
     
     // micromorphic contribution
     for (int i = 1; i <= 3; i++) {
@@ -786,7 +788,7 @@ GradientPolyconvexMaterial :: initializeFrom(InputRecord *ir)
     IR_GIVE_FIELD(ir, Ak, _IFT_MicromorphicMaterialExtensionInterface_Ak);
 
     IR_GIVE_FIELD(ir, eps, _IFT_GradientPolyconvexMaterial_eps);
-
+    IR_GIVE_OPTIONAL_FIELD(ir, alpha, _IFT_GradientPolyconvexMaterial_alpha )
     /*    tC1 = {{(1. + eps) * (1. + eps), 0, 0},{0, 1. / (1. + eps) / (1. + eps), 0}, {0, 0, 1}};
     tC2 = {{1. / (1. + eps) / (1. + eps), 0, 0},{0, (1. + eps)*(1. + eps), 0}, {0, 0, 1}};
     */

@@ -97,12 +97,14 @@ protected:
     double omega_crit;
     double a;
 
+    double yieldTol;
     
 public:
     MisesMat(int n, Domain * d);
     virtual ~MisesMat();
 
     void performPlasticityReturn(GaussPoint *gp, const FloatArray &totalStrain);
+    void performPlasticityReturn_PlaneStress(GaussPoint *gp, const FloatArray &totalStrain);
     double computeDamage(GaussPoint *gp, TimeStep *tStep);
     double computeDamageParam(double tempKappa);
     double computeDamageParamPrime(double tempKappa);
@@ -125,10 +127,14 @@ public:
                                                MatResponseMode mode,
                                                GaussPoint *gp,
                                                TimeStep *tStep);
+    virtual void givePlaneStressStiffMtrx(FloatMatrix &answer,
+                                          MatResponseMode mmode, GaussPoint *gp,
+                                          TimeStep *tStep);
 
     virtual void give1dStressStiffMtrx(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep); 
 
     virtual void giveRealStressVector_3d(FloatArray &answer, GaussPoint *gp, const FloatArray &reducedE, TimeStep *tStep);
+    virtual void giveRealStressVector_PlaneStress(FloatArray &answer, GaussPoint *gp, const FloatArray &reducedE, TimeStep *tStep);
     virtual void giveRealStressVector_1d(FloatArray &answer, GaussPoint *gp, const FloatArray &reducedE, TimeStep *tStep);
 
     double computeYieldStress(double kappa);
@@ -173,6 +179,7 @@ protected:
     double tempDamage, damage;
     /******************************/
 
+    double dGamma;
 
 
 public:
@@ -208,6 +215,9 @@ public:
 
     void setTrialStressVol(double value) { trialStressV = value; }
 
+    void setDGamma(double dg) {dGamma = dg;}
+    double giveDGamma() { return dGamma;}
+    
     void setTempCumulativePlasticStrain(double value) { tempKappa = value; }
     /****************************************/
     void setTempDamage(double value) { tempDamage = value; }
