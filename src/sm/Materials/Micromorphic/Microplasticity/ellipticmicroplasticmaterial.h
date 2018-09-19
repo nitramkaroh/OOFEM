@@ -32,9 +32,9 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef MisesMatMicroplastic_h
+#ifndef EllipticMicroplasticMaterial_h
 
-#include "../sm/Materials/misesmat.h"
+#include "../sm/Materials/ellipticplasticmaterial.h"
 #include "../sm/Materials/Micromorphic/micromorphicmaterialextensioninterface.h"
 #include "../sm/Materials/Micromorphic/micromorphicms.h"
 #include "../sm/Materials/linearelasticmaterial.h"
@@ -43,14 +43,14 @@
 
 ///@name Input fields for MisesMatMicroplastic
 //@{
-#define _IFT_MisesMatMicroplastic_Name "misesmatmicroplastic"
+#define _IFT_EllipticMicroplasticMaterial_Name "ellipticmicroplasticmat"
 //@}
 
 namespace oofem {
 /**
- * Gradient Mises material.
+ * Gradient Elliptic plastic Material.
  */
-class MisesMatMicroplastic : public MisesMat, MicromorphicMaterialExtensionInterface
+class EllipticMicroplasticMaterial : public EllipticPlasticMaterial, MicromorphicMaterialExtensionInterface
 {
 protected:
  /// Reference to the basic elastic material.
@@ -58,12 +58,12 @@ protected:
 
 
 public:
-    MisesMatMicroplastic(int n, Domain * d);
-    virtual ~MisesMatMicroplastic();
+    EllipticMicroplasticMaterial(int n, Domain * d);
+    virtual ~EllipticMicroplasticMaterial();
 
     // definition
-    virtual const char *giveInputRecordName() const { return _IFT_MisesMatMicroplastic_Name; }
-    virtual const char *giveClassName() const { return "MisesMatMicroplastic"; }
+    virtual const char *giveInputRecordName() const { return _IFT_EllipticMicroplasticMaterial_Name; }
+    virtual const char *giveClassName() const { return "EllipticMicroplasticMaterial"; }
 
     virtual IRResultType initializeFrom(InputRecord *ir);
     // virtual int hasMaterialModeCapability(MaterialMode mode);
@@ -88,7 +88,11 @@ public:
     virtual void giveGeneralizedStressVectors (FloatArray &sigma, FloatArray &s, FloatArray &S, GaussPoint *gp, const FloatArray &totalStrain, const FloatArray &micromorphicVar, const FloatArray micromorphicVarGrad, TimeStep *tStep);
     virtual void giveFiniteStrainGeneralizedStressVectors (FloatArray &sigma, FloatArray &s, FloatArray &M, GaussPoint *gp, const FloatArray &displacementGradient, const FloatArray &micromorphicVar, const FloatArray micromorphicVarGrad, TimeStep *tStep){;}
     
-    void performPlasticityReturn(GaussPoint *gp, const FloatArray &totalStrain, const FloatArray &micromorphicVar, const FloatArray &micromorphicVarGrad);
+  
+    void performPlasticityReturn(GaussPoint *gp, const FloatArray &totalStrain, const FloatArray &micromorphicVar, const FloatArray &micromorphicVarGrad, TimeStep *tStep);
+    double evaluateCurrentYieldStress(const double kappa,const double microkappa);
+    double evaluateCurrentPlasticModulus(const double kappa);
+   
 
     LinearElasticMaterial *giveLinearElasticMaterial() { return linearElasticMaterial; }
 
@@ -104,7 +108,7 @@ protected:
 /**
  * Gradient Mises maaterial status.
  */
- class MisesMatMicroplasticStatus : public MicromorphicMaterialStatus
+ class EllipticMicroplasticMaterialStatus : public MicromorphicMaterialStatus
 {
 
     /// Plastic strain (initial).
@@ -113,8 +117,6 @@ protected:
     /// Plastic strain (final).
     FloatArray tempPlasticStrain;
 
-    /// Deviatoric trial stress - needed for tangent stiffness.
-    FloatArray trialStressDev;
 
     /// Cumulative plastic strain (initial).
     double kappa;
@@ -125,13 +127,11 @@ protected:
     double dKappa;
 
 public:
-    MisesMatMicroplasticStatus(int n, Domain * d, GaussPoint * g);
-    virtual ~MisesMatMicroplasticStatus();
+    EllipticMicroplasticMaterialStatus(int n, Domain * d, GaussPoint * g);
+    virtual ~EllipticMicroplasticMaterialStatus();
 
 
-    void letTrialStressDevBe(const FloatArray &values) { trialStressDev = values; }
-    const FloatArray &giveTrialStressDev() { return trialStressDev; }
-
+    
 
     void setTempCumulativePlasticStrain(double value) { tempKappa = value; }
     void setDKappa(double dk){dKappa = dk;}
@@ -151,7 +151,7 @@ public:
 
     //   virtual void printOutputAt(FILE *file, TimeStep *tStep);
 
-    virtual const char *giveClassName() const { return "MisesMatMicroplasticStatus"; }
+    virtual const char *giveClassName() const { return "EllipticPlasticMaterialStatus"; }
 
 
 };

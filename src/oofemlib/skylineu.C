@@ -97,7 +97,15 @@ SkylineUnsym  :: initializeFromFloatMatrix(FloatMatrix &answer)
     IntArray loc;
     int first;
     int neq = answer.giveNumberOfColumns();
-
+    if ( size ) {
+      int i = size;
+      RowColumn **p = rowColumns;
+      while ( i-- ) {
+	delete *p++;
+      }
+      
+      delete [] rowColumns;
+    }
 
     size         = 0;//fM.giveNumberOfRows();
     rowColumns   = NULL;

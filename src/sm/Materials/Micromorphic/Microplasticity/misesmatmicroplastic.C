@@ -48,13 +48,16 @@ namespace oofem {
 
   MisesMatMicroplastic :: MisesMatMicroplastic(int n, Domain *d) : MisesMat(n, d),MicromorphicMaterialExtensionInterface(d)//,IsotropicLinearElasticMaterial(n, d)
 {
-  linearElasticMaterial = new IsotropicLinearElasticMaterial(n, d);
+  //linearElasticMaterial = new IsotropicLinearElasticMaterial(n, d);
 
   Hk = Ak = 0.;
 }
 
 MisesMatMicroplastic :: ~MisesMatMicroplastic()
-{ }
+{
+  //delete linearElasticMaterial;
+  
+}
 
 // creates a new material status  corresponding to this class
 MaterialStatus *
@@ -134,7 +137,8 @@ MisesMatMicroplastic :: giveMicromorphicMatrix_dSigdUgrad(FloatMatrix &answer, M
     double tempKappa = status->giveTempCumulativePlasticStrain();
     // increment of cumulative plastic strain as an indicator of plastic loading
     double dKappa = tempKappa - kappa;
-    if ( dKappa <= 0.0 ) { // elastic loading - elastic stiffness plays the role of tangent stiffness
+    //    dKappa = status->giveDKappa();
+    if ( dKappa <= 1.e-18 ) { // elastic loading - elastic stiffness plays the role of tangent stiffness
       if(gp->giveMaterialMode() == _PlaneStrain) {
 	FloatMatrix plS;
 	plS.resize(4, 4);
@@ -177,7 +181,7 @@ MisesMatMicroplastic :: giveMicromorphicMatrix_dSigdUgrad(FloatMatrix &answer, M
     double trialS = computeStressNorm(trialStressDev);
 
     /////////////////////////////////////////////
-    double perturbation = 1.e-8;
+    double perturbation = 1.e-18;
     FloatArray uGrad, mV, mVG, oldS;
     mV = status->giveTempMicromorphicVar();
     mVG = status->giveTempMicromorphicVarGrad();
@@ -192,33 +196,54 @@ MisesMatMicroplastic :: giveMicromorphicMatrix_dSigdUgrad(FloatMatrix &answer, M
     uGradp.at(1) += (perturbation);
     this-> giveGeneralizedStressVectors(sigmaP, s, Sp, gp, uGradp, mV, mVG, tStep);
     for(int i =1; i <=4; i++) {
-      stiff.at(i,1) = sigmaP.at(i) - sigma.at(1);    
+      stiff.at(i,1) = sigmaP.at(i) - sigma.at(i);    
     }
     uGradp = uGrad;
     uGradp.at(2) += (perturbation);
     this-> giveGeneralizedStressVectors(sigmaP, s, Sp, gp, uGradp, mV, mVG, tStep);
     for(int i =1; i <=4; i++) {
-      stiff.at(i,2) = sigmaP.at(i) - sigma.at(1);    
+      stiff.at(i,2) = sigmaP.at(i) - sigma.at(i);    
     }
     
     uGradp = uGrad;
     uGradp.at(3) += (perturbation);
     this-> giveGeneralizedStressVectors(sigmaP, s, Sp, gp, uGradp, mV, mVG, tStep);
     for(int i =1; i <=4; i++) {
-      stiff.at(i,3) = sigmaP.at(i) - sigma.at(1);    
+      stiff.at(i,3) = sigmaP.at(i) - sigma.at(i);    
     }
 
     uGradp = uGrad;
     uGradp.at(4) += (perturbation);
     this-> giveGeneralizedStressVectors(sigmaP, s, Sp, gp, uGradp, mV, mVG, tStep);
     for(int i =1; i <=4; i++) {
-      stiff.at(i,4) = sigmaP.at(i) - sigma.at(1);    
+      stiff.at(i,4) = sigmaP.at(i) - sigma.at(i);    
     }
-   
+    this-> giveGeneralizedStressVectors(sigmaP, s, Sp, gp, uGrad, mV, mVG, tStep);
     stiff.times(1./perturbation);
     /////////////////////////////////////////////
 
 
+    // first correction term
+    double f1 = 2. * sqrt(6.) * G * G * dKappa / trialS;
+    double f2 = 6. * G * G  / ( 3. * G  + H + Hk ) ;
+    FloatArray n(trialStressDev);
+    n.times(1./trialS);
+  
+    FloatMatrix sc1, nn;
+    nn.beDyadicProductOf(n,n);
+    FloatMatrix sc2(nn);
+    sc1.bePinvID();
+    sc1.subtract(nn);
+    sc1.times(f1);
+
+    sc2.times(f2);
+
+
+    FloatMatrix test(answer);
+    test.subtract(sc1);
+    test.subtract(sc2);
+
+    
 
     // one correction term
     FloatMatrix stiffnessCorrection;
@@ -311,12 +336,16 @@ MisesMatMicroplastic :: giveMicromorphicMatrix_dSigdPhi(FloatMatrix &answer, Mat
     stiff = sigma;
     stiff.subtract(oldSigma);        
     stiff.times(1./perturbation);
+    this-> giveGeneralizedStressVectors(sigma, s, S, gp, uGrad, mV, mVG, tStep);
   
 
     FloatArray reducedStress;
     FloatArray fullStress = status->giveTrialStressDev();    
     double stressNorm = computeStressNorm(fullStress);
     StructuralMaterial :: giveReducedSymVectorForm(reducedStress, fullStress, _PlaneStrain);
+    FloatMatrix P;
+    
+
     answer = reducedStress;
     answer.times(1./stressNorm);
     answer.times(-sqrt(6)*G*Hk/(3.*G+Hk+H));
@@ -405,9 +434,10 @@ MisesMatMicroplastic :: giveMicromorphicMatrix_dSdUgrad(FloatMatrix &answer, Mat
     this-> giveGeneralizedStressVectors(sigma, s, S, gp, uGradp, mV, mVG, tStep);
     stiff.at(1,4) = s.at(1) - oldS.at(1);    
     stiff.times(1./perturbation);
+    this-> giveGeneralizedStressVectors(sigma, s, S, gp, uGrad, mV, mVG, tStep);
     
 
-
+    
 
 
    
@@ -453,7 +483,8 @@ MisesMatMicroplastic :: giveMicromorphicMatrix_dSdPhi(FloatMatrix &answer, MatRe
   stiff.zero();
   mVp.at(1) += (perturbation);
   this-> giveGeneralizedStressVectors(sigma, s, S, gp, uGrad, mVp, mVG, tStep);
-  stiff.at(1,1) = s.at(1) - oldS.at(1);    
+  stiff.at(1,1) = s.at(1) - oldS.at(1);
+  this-> giveGeneralizedStressVectors(sigma, s, S, gp, uGrad, mV, mVG, tStep);
   
   stiff.times(1./perturbation);
   
@@ -524,7 +555,7 @@ MisesMatMicroplastic :: performPlasticityReturn(GaussPoint *gp, const FloatArray
     /// micromorphic stresses
     double Str = Hk * (micromorphicVar.at(1) - kappa);
     FloatArray S(1), M(1);
-
+    double dKappa = 0;
     // === radial return algorithm ===
     if ( totalStrain.giveSize() == 1 ) {
         LinearElasticMaterial *lmat = this->giveLinearElasticMaterial();
@@ -538,7 +569,7 @@ MisesMatMicroplastic :: performPlasticityReturn(GaussPoint *gp, const FloatArray
         double yieldValue = trialS - (sig0 + H * kappa) + Str;
         // === radial return algorithm ===
         if ( yieldValue > 0 ) {
-            double dKappa = yieldValue / ( H + Hk +  E );
+	    dKappa = yieldValue / ( H + Hk +  E );
             kappa += dKappa;
             plStrain.at(1) += dKappa * signum( fullStress.at(1) );
             plStrain.at(2) -= 0.5 * dKappa * signum( fullStress.at(1) );
@@ -574,7 +605,7 @@ MisesMatMicroplastic :: performPlasticityReturn(GaussPoint *gp, const FloatArray
         double yieldValue = sqrt(3./2.) * trialS - (sig0 + H * kappa) + Str;
         if ( yieldValue > 0. ) {
             // increment of cumulative plastic strain
-            double dKappa = yieldValue / ( H + Hk + 3. * G );
+	    dKappa = yieldValue / ( H + Hk + 3. * G );
             kappa += dKappa;
             FloatArray dPlStrain;
             // the following line is equivalent to multiplication by scaling matrix P
@@ -607,6 +638,7 @@ MisesMatMicroplastic :: performPlasticityReturn(GaussPoint *gp, const FloatArray
     // store the plastic strain and cumulative plastic strain
     status->letTempPlasticStrainBe(plStrain);
     status->setTempCumulativePlasticStrain(kappa);
+    status->setDKappa(dKappa);
     // store stresses into the status
     status->letTempStressVectorBe(answer);
     status->letTempMicromorphicStressBe(S);
@@ -614,7 +646,18 @@ MisesMatMicroplastic :: performPlasticityReturn(GaussPoint *gp, const FloatArray
     
 }
 
-
+int
+MisesMatMicroplastic :: giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType type, TimeStep *tStep)
+{
+    MisesMatMicroplasticStatus *status = static_cast< MisesMatMicroplasticStatus * >( this->giveStatus(gp) );
+    if  ( type == IST_MaxEquivalentStrainLevel ) {
+        answer.resize(1);
+        answer.at(1) = status->giveCumulativePlasticStrain();
+        return 1;
+    } else {
+        return StructuralMaterial :: giveIPValue(answer, gp, type, tStep);
+    }
+}
 
 IRResultType
 MisesMatMicroplastic :: initializeFrom(InputRecord *ir)
@@ -678,6 +721,7 @@ MisesMatMicroplasticStatus :: MisesMatMicroplasticStatus(int n, Domain *d, Gauss
     stressVector.resize(6);
     strainVector.resize(6);
     kappa = tempKappa = 0.;
+    dKappa = 0.;
    
 }
 

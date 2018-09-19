@@ -274,6 +274,7 @@ HyperReduction :: buildReducedDomain2(TimeStep *tStep, const FloatMatrix &reduce
     if(i <= selectedElements.giveSize()) {
       if(selectedElements.at(i) == 1) {
 	numberOfReducedDomainElements++;
+	this->domain->giveElement(i)->activateYourself();
 	if(igaModeFlag) {
 	  IGAElement *element = dynamic_cast<IGAElement*> (domain->giveElement(i));
 	  if(element) {	  	  

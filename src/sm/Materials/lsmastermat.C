@@ -129,6 +129,64 @@ LargeStrainMasterMaterial :: giveFirstPKStressVector_3d(FloatArray &answer, Gaus
 
 }
 
+
+
+
+
+void
+LargeStrainMasterMaterial :: giveFirstPKStressVector_PlaneStress(FloatArray &answer, GaussPoint *gp, const FloatArray &redvF, TimeStep *tStep)
+{
+    LargeStrainMasterMaterialStatus *status = static_cast< LargeStrainMasterMaterialStatus * >( this->giveStatus(gp) );
+    this->initTempStatus(gp);
+
+    StructuralMaterial *sMat = static_cast< StructuralMaterial * >( domain->giveMaterial(slaveMat) );
+
+    FloatArray vF, eVals, vSethHillStrain, redvSethHillStrain, vSethHillStress, redvSethHillStress, lambda, eps(3);
+    FloatMatrix F, C, eVecs, SethHillStrain, SethHillStress, PP, TL;
+
+    //store of deformation gradient into 3x3 matrix
+    StructuralMaterial :: giveFullVectorFormF(vF, redvF, _PlaneStress);
+    F.beMatrixForm(vF);
+    //compute right Cauchy-Green tensor(C)
+    C.beTProductOf(F, F);
+    // compute eigen values and eigen vectors of C
+    C.jaco_(eVals, eVecs, 15);
+    // compute Seth - Hill's strain measure, it depends on parameter m
+    lambda = eVals;
+    if ( m == 0 ) {
+      eps.at(1) = 1. / 2. * log(lambda.at(1));
+      eps.at(2) = 1. / 2. * log(lambda.at(2));
+      eps.at(3) = 1. / 2. * log(lambda.at(3));
+    } else {
+      eps.at(1) = 1. /  m  * ( pow(lambda.at(1), m / 2. ) - 1. );
+      eps.at(2) = 1. /  m  * ( pow(lambda.at(2), m / 2. ) - 1. );
+      eps.at(3) = 1. /  m  * ( pow(lambda.at(3), m / 2. ) - 1. );
+    }
+
+    SethHillStrain.resize(3, 3);
+    for ( int i = 1; i < 4; i++ ) {
+        for ( int j = 1; j < 4; j++ ) {
+	  SethHillStrain.at(i, j) = eps.at(1) * eVecs.at(i, 1) * eVecs.at(j, 1) + eps.at(2) *eVecs.at(i, 2) * eVecs.at(j, 2) + eps.at(3) *eVecs.at(i, 3) * eVecs.at(j, 3);  
+        }
+    }
+
+    vSethHillStrain.beSymVectorFormOfStrain(SethHillStrain);
+    StructuralMaterial :: giveReducedSymVectorForm(redvSethHillStrain, vSethHillStrain, _PlaneStress);
+    GaussPoint *slaveGp = status->giveSlaveGp();
+    sMat->giveRealStressVector_PlaneStress(redvSethHillStress, slaveGp, redvSethHillStrain, tStep);
+    SethHillStress = {{redvSethHillStress.at(1), redvSethHillStress.at(3)}, {redvSethHillStress.at(3), redvSethHillStress.at(2)} };
+    // transformation matrices
+    this->giveTransformationMatrices_PlaneStress(PP,TL, F, SethHillStress, eVals, eVecs);
+    answer.beTProductOf(PP, vSethHillStress);
+
+    status->letTempStressVectorBe(redvSethHillStress);
+    status->letTempFVectorBe(vF);
+    status->letTempPVectorBe(answer);
+
+}
+
+
+  
  
 
 
@@ -229,6 +287,52 @@ LargeStrainMasterMaterial :: give3dMaterialStiffnessMatrix_dPdF(FloatMatrix &ans
     answer.add(delta_S);  
 
 }
+
+
+
+
+
+void
+LargeStrainMasterMaterial :: givePlaneStressStiffMtrx_dPdF(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
+{
+    LargeStrainMasterMaterialStatus *status = static_cast< LargeStrainMasterMaterialStatus * >( this->giveStatus(gp) );
+    StructuralMaterial *sMat = static_cast< StructuralMaterial * >( domain->giveMaterial(slaveMat) );
+    FloatArray eVals;
+    FloatMatrix stiffness, F, C, P, eVecs, SethHillStress, PP, TL;
+
+    //store of deformation gradient into 3x3 matrix
+    F.beMatrixForm(status->giveTempFVector());
+    //compute right Cauchy-Green tensor(C), its eigenvalues and eigenvectors
+    C.beTProductOf(F, F);
+    // compute eigen values and eigen vectors of C
+    C.jaco_(eVals, eVecs, 15);
+    
+
+    FloatArray vSethHillStress, vP(status->giveTempPVector());
+
+    vSethHillStress =  status->giveTempStressVector();
+    P.beMatrixForm(vP);    
+    SethHillStress.beMatrixForm(vSethHillStress);
+    FloatMatrix invF, S, EP, delta_S;;
+    // compute 2-PK stress
+    invF.beInverseOf(F);
+    S.beProductOf(invF, P);
+
+    this->giveTransformationMatrices_PlaneStress(PP,TL, F, SethHillStress, eVals, eVecs);
+    this->giveDeltaS_Product_PlaneStress(delta_S, S);
+
+
+    GaussPoint *slaveGp = status->giveSlaveGp();
+    sMat->givePlaneStressStiffMtrx(stiffness, mode, slaveGp, tStep);
+    EP.beProductOf(stiffness, PP);
+
+    answer.beTProductOf(PP, EP);
+    answer.add(TL);   
+    answer.add(delta_S);  
+
+}
+
+  
 
 
 void
@@ -380,10 +484,52 @@ LargeStrainMasterMaterial :: giveDeltaS_Product(FloatMatrix &answer, const Float
     answer.at(9, 9) = S.at(1,1);
 }
 
+void
+LargeStrainMasterMaterial :: giveDeltaS_Product_PlaneStress(FloatMatrix &answer, const FloatMatrix &S)
+{   
 
+    answer.resize(9,9);
+  
+    answer.at(1,1) = S.at(1,1);
+    answer.at(1,5) = S.at(1,3);
+    answer.at(1,6) = S.at(1,2);
+    
+    answer.at(2,2) = S.at(2,2);
+    answer.at(2,4) = S.at(2,3);
+    answer.at(2,9) = S.at(1,2);
+    
+    answer.at(3,3) = S.at(3,3);
+    answer.at(3,7) = S.at(2,3);
+    answer.at(3,8) = S.at(2,3);
+    
+    
+    answer.at(4, 2) = S.at(3,2);
+    answer.at(4, 4) = S.at(3,3);
+    answer.at(4, 9) = S.at(3,1);
+    
+    answer.at(5, 1) = S.at(3,1);
+    answer.at(5, 5) = S.at(3,3);
+    answer.at(5, 6) = S.at(3,2);
+    
+    answer.at(6, 1) = S.at(2,1);
+    answer.at(6, 5) = S.at(2,3);
+    answer.at(6, 6) = S.at(2,2);
+    
+    answer.at(7, 3) = S.at(2,3);
+    answer.at(7, 7) = S.at(2,2);
+    answer.at(7, 8) = S.at(2,1);
+    
+    answer.at(8, 3) = S.at(1,3);
+    answer.at(8, 7) = S.at(1,2);
+    answer.at(8, 8) = S.at(1,1);
+    
+    answer.at(9, 2) = S.at(1,2);
+    answer.at(9, 4) = S.at(1,3);
+    answer.at(9, 9) = S.at(1,1);
+}
 
 void
-LargeStrainMasterMaterial :: giveTransformationMatrices(FloatMatrix &PP,FloatMatrix &TL, const FloatMatrix &F, const FloatMatrix &SetHillStress, const FloatArray &lam, const FloatMatrix &N)
+LargeStrainMasterMaterial :: giveTransformationMatrices(FloatMatrix &PP,FloatMatrix &TL, const FloatMatrix &F, const FloatMatrix &SethHillStress, const FloatArray &lam, const FloatMatrix &N)
 {   
 
     FloatMatrix n;
@@ -420,7 +566,7 @@ LargeStrainMasterMaterial :: giveTransformationMatrices(FloatMatrix &PP,FloatMat
     double eta = 0.;
     FloatMatrix TN, dzeta(3,3), ksi(3,3), theta(3,3);
 
-    TN.beProductOf(SetHillStress,N);
+    TN.beProductOf(SethHillStress,N);
     dzeta.beTProductOf(N, TN);
     
 
@@ -566,6 +712,126 @@ LargeStrainMasterMaterial :: giveTransformationMatrices(FloatMatrix &PP,FloatMat
 
 }
 
+
+
+
+
+void
+LargeStrainMasterMaterial :: giveTransformationMatrices_PlaneStress(FloatMatrix &PP,FloatMatrix &TL, const FloatMatrix &F, const FloatMatrix &SethHillStress, const FloatArray &lam, const FloatMatrix &N)
+{   
+
+    FloatMatrix n;
+    n.beProductOf(F,N);
+    
+    FloatArray  d(2),f(2), eps(2);
+    if(this->m == 0) { // log strain formulation (m = 0) has a special treatment
+      d.at(1)= 1. / lam.at(1);
+      d.at(2)= 1. / lam.at(2);
+      
+      f.at(1) = -2. / lam.at(1) / lam.at(1);
+      f.at(2) = -2. / lam.at(2) / lam.at(2);
+
+      eps.at(1) = 0.5 * log( lam.at(1) );
+      eps.at(2) = 0.5 * log( lam.at(2) );
+    } else {  // all other strain measures (m != 0)
+      d.at(1)= pow( lam.at(1), m / 2. - 1 );
+      d.at(2)= pow( lam.at(2), m / 2. - 1 );
+      
+      f.at(1) = 2. * ( m / 2. - 1 ) * pow( lam.at(1), m / 2. - 2. );
+      f.at(2) = 2. * ( m / 2. - 1 ) * pow( lam.at(2), m / 2. - 2. );
+      
+      eps.at(1) = 1. / m * ( pow( lam.at(1), m / 2. ) - 1. );
+      eps.at(2) = 1. / m * ( pow( lam.at(2), m / 2. ) - 1. );
+    }
+
+    double eta = 0.;
+    FloatArray vSethHillStress(6);
+    vSethHillStress.beVectorForm(SethHillStress);
+    FloatMatrix TN, dzeta(3,3), ksi(3,3), theta(3,3);
+    // check dzeta
+    TN.beProductOf(SethHillStress,N);
+    dzeta.beTProductOf(N, TN);
+    
+    double beta;
+    FloatArray gamma(2), kappa(2);
+    // compute auxiliary variables 
+    // the computation differes depends on if the eigenvalues of C are equal or not
+    if(lam.at(1) != lam.at(2)) {
+      // all eigenvalues are different
+      beta = 2. * ( eps.at(1) - eps.at(2) ) / ( lam.at(1) - lam.at(2) );
+      gamma.at(1) = d.at(1) - beta;
+      gamma.at(2) = d.at(2) - beta;
+      kappa.at(1) = 2. * gamma.at(1) / ( lam.at(1) - lam.at(2) );
+      kappa.at(2) = 2. * gamma.at(2) / ( lam.at(1) - lam.at(2) );
+      
+    } else { //l1 == l2
+      beta = d.at(1);
+      gamma.at(1) = d.at(1) - beta;
+      gamma.at(2) = d.at(2) - beta;
+      kappa.at(1) = ( 1.5 - 1. ) * f.at(1);
+      kappa.at(2) = ( 1.5 - 2. ) * f.at(1);
+
+
+    }
+
+
+    FloatMatrix I(4,4);
+    FloatMatrix M(4,4);
+    FloatArray delta(3);
+    delta.zero();
+    delta.at(1) = 1;
+    delta.at(2) = 1;
+    for (int k = 1; k <= 2; k++) {
+      for (int l = 1; l <= 2; l++) {
+	for (int o = 1; o <= 2; o++) {
+	  for (int p = 1; p <= 2; p++) {
+	    I.at(giveVI(k,l),giveVI(o,p)) = ( delta.at(giveVI(k,p)) * F.at(o,l) + delta.at(giveVI(l,p)) * F.at(o,k));
+	    M.at(giveVI(k,l),giveVI(o,p)) = n.at(o,k)*N.at(p,l) + n.at(o,l)*N.at(p,k);
+
+	  }
+	}
+      }
+    }
+	    
+    
+
+    
+  PP.resize(3,4), TL.resize(4,4);
+  for (int k = 1; k <= 2; k++) {
+    for (int l = 1; l <= 2; l++) {
+      for (int m = 1; m <=2; m++) {
+	for (int n = 1; n<=2; n++) {
+	  for (int i = 1; i <= 2; i++) {
+	    PP.at(giveVI(k,l),giveVI(m,n)) += beta * I.at(giveVI(k,l),giveVI(m,n));
+	    // first  T:L term
+	    TL.at(giveVI(k,l),giveVI(m,n)) += f.at(i)*dzeta.at(i,i)*M.at(giveVI(i,i),giveVI(k,l))*M.at(giveVI(i,i),giveVI(m,n));
+	    // end of first  T:L term
+	    // second  T:L term
+	    TL.at(giveVI(k,l),giveVI(m,n)) += pow( -1, i+1 ) * kappa.at(i) * ( dzeta.at(i,i) * I.at(giveVI(k,l),giveVI(m,n)) + vSethHillStress.at(giveVI(k,l)) * M.at(giveVI(i,i),giveVI(m,n)) +  M.at(giveVI(i,i),giveVI(k,l)) * vSethHillStress.at(giveVI(m,n) ) );
+	    
+	    //end of second T:L term
+	    for (int j  = 1; j <= 3; j++) {
+	      if(j != i) {
+		PP.at(giveVI(k,l),giveVI(m,n)) += gamma.at(i)*N.at(k,i)*N.at(l,j)*M.at(giveVI(i,j),giveVI(m,n));
+	      }
+	      // third T:L term
+	      TL.at(giveVI(k,l),giveVI(m,n)) += pow( -1, j+1 ) * kappa.at(i) * ( dzeta.at(j,j) * M.at(giveVI(i,i),giveVI(k,l))*M.at(giveVI(i,i),giveVI(m,n))  + dzeta.at(i,i) *  M.at(giveVI(i,i),giveVI(k,l))*M.at( giveVI(j,j),giveVI(m,n) ) + dzeta.at(i,i) *  M.at(giveVI(j,j),giveVI(k,l) ) * M.at(giveVI(i,i),giveVI(m,n) ) );
+	    
+	  }
+	}
+      }
+    }
+  }	    
+}
+
+
+
+
+}
+
+
+
+  
 
 int
 LargeStrainMasterMaterial :: giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType type, TimeStep *tStep)

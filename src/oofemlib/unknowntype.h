@@ -52,6 +52,7 @@ namespace oofem {
     ENUM_ITEM_WITH_VALUE(GradientDamageUnknown, 17) \
     ENUM_ITEM_WITH_VALUE(MicromorphicStrainNorm, 18)	  \
     ENUM_ITEM_WITH_VALUE(CosseratRotationVector, 19)	  \
+    ENUM_ITEM_WITH_VALUE(CumulatedMicroplasticStrain, 20)	  \
 /**
  * Type representing particular unknown (its physical meaning).
  */

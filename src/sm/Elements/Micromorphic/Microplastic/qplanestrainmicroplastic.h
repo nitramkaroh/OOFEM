@@ -76,6 +76,7 @@ public:
     virtual int giveNumberOfDisplacementDofs(){return 16;}
     virtual int giveNumberOfDofs(){return 24;}
     virtual void postInitialize();
+    virtual void updateInternalState(TimeStep *tStep){BaseMicromorphicElement :: updateInternalState(tStep);}
 
 
 };

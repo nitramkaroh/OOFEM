@@ -72,15 +72,26 @@ ReducedState :: subspaceExpansion(FloatArray &FEM_vars, double weight)
    FloatArray residuum;
    residuum = FEM_vars;
    int nVectors = reducedBasisMatrix.giveNumberOfColumns();
+   if(nVectors != 0) {
+     if(reducedBasisMatrix.computeNorm('1') == 0) {
+       reducedBasisMatrix.resize(0,0);
+       nVectors = 0;
+     }
+   }
+     
    //orthogonalize FEM_var against columns of reducedBasisMatrix   
    this->orthogonalize(residuum, reducedBasisMatrix);   
    // if projection error, normalize projection residual and add it to base
    //@todo check the norms and define eps
-   
    if ( fabs(residuum.at(residuum.giveIndexMaxAbsElem())) > 1.e-6*fabs(FEM_vars.at(FEM_vars.giveIndexMaxAbsElem())) ) {
      residuum.times(1./norm(residuum));
      reducedBasisMatrix.resizeWithData(FEM_vars.giveSize(),nVectors+1);
      reducedBasisMatrix.setColumn(residuum,nVectors+1);
+   }
+
+   // treat the case of zero results
+   if(reducedBasisMatrix.giveNumberOfColumns() == 0) {
+     reducedBasisMatrix = residuum;
    }
 
    // add related reduced variables to rbCoords, a = A'*FEM_var

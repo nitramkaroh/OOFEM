@@ -536,6 +536,8 @@ MisesMat :: give3dMaterialStiffnessMatrix(FloatMatrix &answer,
     answer.add(stiffnessCorrection);
 
     //answer = sc;
+    
+    
 
     
 }

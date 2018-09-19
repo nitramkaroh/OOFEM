@@ -285,8 +285,12 @@ public:
     void beOnesMatrix();
     /// Sets receiver to the inverse of scaling matrix P multiplied by the deviatoric projector ID.
     void bePinvID();
+    /// Sets receiver to the scaling matrix P multiplied by the deviatoric projector ID.
+    void bePID();
     /// Sets receiver to the deviatoric projector ID.
     void beID();
+    /// Sets receiver to the volumetric projector ID.
+    void beIvol();
     
     /**
      * Assigns to the receiver the transposition of parameter.

@@ -87,6 +87,11 @@ public:
 
     virtual MaterialStatus *CreateStatus(GaussPoint *gp) const;
 
+   virtual void givePlaneStressStiffMtrx_dPdF(FloatMatrix &answer,
+                                               MatResponseMode mmode, GaussPoint *gp,
+                                               TimeStep *tStep);
+
+    
     virtual void give3dMaterialStiffnessMatrix_dPdF(FloatMatrix & answer,
                                                     MatResponseMode,
                                                     GaussPoint * gp,
@@ -103,12 +108,18 @@ public:
     virtual void giveRealStressVector_3d(FloatArray &answer, GaussPoint *, const FloatArray &, TimeStep *)
     { OOFEM_ERROR("not implemented, this material is designed for large strains only"); }
     virtual void giveFirstPKStressVector_3d(FloatArray &answer, GaussPoint *gp, const FloatArray &vF, TimeStep *tStep);
+    void giveFirstPKStressVector_PlaneStress(FloatArray &answer, GaussPoint *gp, const FloatArray &redvF, TimeStep *tStep);
+
+    
     virtual void giveCauchyStressVector_3d(FloatArray &answer, GaussPoint *gp, const FloatArray &vF, TimeStep *tStep);
     void giveSecondPKStressVector_3d(FloatArray &answer, GaussPoint *gp, const FloatArray &vF, TimeStep *tStep);
 
     /// transformation matrices
     void giveTransformationMatrices(FloatMatrix &PP,FloatMatrix &TL, const FloatMatrix &F, const FloatMatrix &logStress, const FloatArray &lam, const FloatMatrix &N);
+    void giveTransformationMatrices_PlaneStress(FloatMatrix &PP,FloatMatrix &TL, const FloatMatrix &F, const FloatMatrix &SetHillStress, const FloatArray &lam, const FloatMatrix &N);
+    
     void giveDeltaS_Product(FloatMatrix &answer, const FloatMatrix &S);
+    void giveDeltaS_Product_PlaneStress(FloatMatrix &answer, const FloatMatrix &S);
 
     virtual int giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType type, TimeStep *tStep);
 };

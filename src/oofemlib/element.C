@@ -74,6 +74,7 @@ Element :: Element(int n, Domain *aDomain) :
     material           = 0;
     numberOfDofMans    = 0;
     activityTimeFunction = 0;
+    isActivatedFlag = true;
 }
 
 

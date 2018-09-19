@@ -55,6 +55,7 @@
 #include "mathfem.h"
 #include "dofmanager.h"
 #include "dof.h"
+#include "crosssection.h"
 
 #include "util.h"
 
@@ -104,7 +105,7 @@ POD :: ~POD()
     delete[] dofGroupArray;
   }
   if(dofGroupIDs) {
-    delete dofGroupIDs; 
+    delete[] dofGroupIDs; 
   }
   if(reducedState_dofs) {
     delete[] reducedState_dofs;
@@ -350,6 +351,8 @@ POD :: solveYourselfAt(TimeStep *tStep)
     } else {
       proceedStep(1, tStep);
     }
+  } else {
+    internalVarUpdateStamp = tStep->giveSolutionStateCounter();
   }
 
   
@@ -946,6 +949,7 @@ POD :: updateComponent(TimeStep *tStep, NumericalCmpn cmpn, Domain *d)
 {
     switch ( cmpn ) {
     case NonLinearLhs:
+    case InitialGuess:
       {
 	if ( stiffMode == nls_tangentStiffness ) {
 	  stiffnessMatrix->zero(); // zero stiffness matrix
@@ -995,7 +999,7 @@ POD :: updateComponent(TimeStep *tStep, NumericalCmpn cmpn, Domain *d)
 
 
 	srStiffnessMatrix =  std::unique_ptr<SkylineUnsym>(static_cast<SkylineUnsym*> (stiffnessMatrix.release()));
-
+	stiffnessMatrix.reset();
 	
 	srStiffnessMatrix->times(hrReducedBasisMatrix, KA);
 
@@ -1014,10 +1018,12 @@ POD :: updateComponent(TimeStep *tStep, NumericalCmpn cmpn, Domain *d)
 	//transform to skyline and to unique_pntr
 	srStiffnessMatrix->initializeFromFloatMatrix(ATKA);
 	stiffnessMatrix =  std::unique_ptr<SparseMtrx>(static_cast<SparseMtrx*> (srStiffnessMatrix.release()));
+	srStiffnessMatrix.reset();
 
 
       }
       break;
+      
     case InternalRhs:
       {
 #ifdef VERBOSE
@@ -1380,8 +1386,10 @@ POD :: takeSnapshot_stress(FloatArray &answer, TimeStep *tStep, Domain *domain, 
 
 
     for( GaussPoint *gp: *element->giveDefaultIntegrationRulePtr()) {
-      
-      Material *m = gp->giveMaterial();
+      //@todo: solve this issue, working only if material is assignet to cross-section
+      Material *m;// = gp->giveMaterial();
+      m = element->giveCrossSection()->giveMaterial(gp);
+
       MaterialStatus *ms = m->giveStatus(gp);
       //->giveMaterialStatus();
       

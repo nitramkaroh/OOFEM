@@ -224,7 +224,8 @@ MatlabExportModule :: doOutput(TimeStep *tStep, bool forcedOutput)
     fprintf( FID, "%% Output for time %f\n", tStep->giveTargetTime() );
 
 
-    fprintf( FID, "function [mesh area data specials ReactionForces IntegrationPointFields]=%s\n\n", functionname.c_str() );
+    //    fprintf( FID, "function [mesh area data specials ReactionForces IntegrationPointFields]=%s\n\n", functionname.c_str() );
+    fprintf( FID, "function [mesh area data ReactionForces IntegrationPointFields]=%s\n\n", functionname.c_str() );
 
     if ( exportMesh ) {
         doOutputMesh(tStep, FID);
@@ -420,6 +421,8 @@ MatlabExportModule :: doOutputSpecials(TimeStep *tStep,    FILE *FID)
     }
 
     */
+
+   
 
     // Output weak periodic boundary conditions
     unsigned int wpbccount = 1, sbsfcount = 1, mcount = 1;

@@ -1379,6 +1379,15 @@ void FloatMatrix :: bePinvID()
 }
 
 
+  void FloatMatrix :: bePID()
+// this matrix is the product of the 6x6 deviatoric projection matrix ID
+// and the  scaling matrix P
+{
+    this->resize(6, 6);
+    values [ 0 ] = values [ 7 ] = values [ 14 ] = 2. / 3.;
+    values [ 1 ] = values [ 2 ] = values [ 6 ] = values [ 8 ] = values [ 12 ] = values [ 13 ] = -1. / 3.;
+    values [ 21 ] = values [ 28 ] = values [ 35 ] = 2.0;
+}
 
 void FloatMatrix :: beID()
 // this matrix is the 6x6 deviatoric projection matrix ID
@@ -1387,6 +1396,17 @@ void FloatMatrix :: beID()
     values [ 0 ] = values [ 7 ] = values [ 14 ] = 2. / 3.;
     values [ 1 ] = values [ 2 ] = values [ 6 ] = values [ 8 ] = values [ 12 ] = values [ 13 ] = -1. / 3.;
     values [ 21 ] = values [ 28 ] = values [ 35 ] = 1.;
+}
+
+
+  void FloatMatrix :: beIvol()
+// this matrix is the 6x6 deviatoric projection matrix ID
+{
+    this->resize(6, 6);
+    values [  0 ] = values [  1 ] = values [ 2 ] = 1.;
+    values [  6 ] = values [  7 ] = values [ 8 ] = 1.;
+    values [ 12 ] = values [ 13 ] = values [ 14 ] = 1.;
+
 }
   
 

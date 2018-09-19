@@ -739,7 +739,7 @@ VTKXMLExportModule :: setupVTKPiece(VTKPiece &vtkPiece, TimeStep *tStep, int reg
 
             // Skip elements that:
             // are inactivated or of composite type ( these are exported individually later)
-            if ( this->isElementComposite(elem) || !elem->isActivated(tStep) ) {
+            if ( this->isElementComposite(elem) || !elem->isActivated(tStep) || !elem->isActivated() ) {
                 continue;
             }
 
@@ -941,7 +941,7 @@ VTKXMLExportModule :: giveDataHeaders(std :: string &pointHeader, std :: string 
         if ( type == DisplacementVector || type == EigenVector || type == VelocityVector || type == DirectorField ) {
             vectors += __UnknownTypeToString(type);
             vectors.append(" ");
-        } else if ( type == FluxVector || type == PressureVector || type == Temperature || type == Humidity || type == DeplanationFunction || type == GradientDamageUnknown) {
+        } else if ( type == FluxVector || type == PressureVector || type == Temperature || type == Humidity || type == DeplanationFunction || type == GradientDamageUnknown || CumulatedMicroplasticStrain) {
             scalars += __UnknownTypeToString(type);
             scalars.append(" ");
         } else {
@@ -1389,8 +1389,7 @@ VTKXMLExportModule :: initRegionNodeNumbering(IntArray &regionG2LNodalNumbers,
         if ( this->isElementComposite(element) ) {
             continue;                                    // composite cells exported individually
         }
-
-        if ( !element->isActivated(tStep) ) {                    //skip inactivated elements
+        if ( !element->isActivated(tStep) ||!element->isActivated()) {                    //skip inactivated elements
             continue;
         }
 
@@ -1541,6 +1540,10 @@ VTKXMLExportModule :: getNodalVariableFromPrimaryField(FloatArray &answer, DofMa
     } else if ( type == GradientDamageUnknown) {
         dofIDMask.followedBy(G_0);
         iState = IST_DamageScalar;
+        answer.resize(1);
+    } else if(type == CumulatedMicroplasticStrain) {
+        dofIDMask.followedBy(M_MP);
+	iState = IST_MicromorphicCumulatedPlasticStrain;
         answer.resize(1);
     } else if ( type == PressureVector ) {
         dofIDMask.followedBy(P_f);

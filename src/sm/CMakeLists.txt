@@ -281,6 +281,7 @@ set (sm_material
     Materials/ConcreteMaterials/mplasticdamagematerial2.C
     Materials/simpleplasticgradientdamagematerial.C
     Materials/plasticgradientdamagematerials.C
+    Materials/ellipticplasticmaterial.C
     #Mixed pressure material interface
     Materials/MixedPressure/mixedpressurematerialextensioninterface.C
     #Micromorphic materials
@@ -290,6 +291,7 @@ set (sm_material
     Materials/Micromorphic/Micropolar/micropolarmaterial_elastic.C
     Materials/Micromorphic/Micromorphic/micromorphicmaterial_elastic.C
     Materials/Micromorphic/Microplasticity/misesmatmicroplastic.C
+    Materials/Micromorphic/Microplasticity/ellipticmicroplasticmaterial.C
     Materials/Micromorphic/GradientPolyconvex/gradientpolyconvexmaterial.C
     # Second-gradient materials
     Materials/Micromorphic/secondgradientms.C
