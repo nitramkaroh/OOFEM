@@ -1060,6 +1060,7 @@ CylindricalALM :: computeDeltaLambda(double &deltaLambda, const FloatArray &dX, 
         double discr = a2 * a2 - 4.0 * a1 * a3;
         if ( discr < 0.0 ) {
 	  OOFEM_WARNING("discriminant is negative, restarting the step");
+	  return 0;
 	  //OOFEM_ERROR("discriminant is negative, solution failed");
         }
 

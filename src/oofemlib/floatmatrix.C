@@ -1431,6 +1431,41 @@ void FloatMatrix :: beSymProjectionMatrix()
     this->at(4,4) = this-> at(5,5) = this->at(6,6) = 0.5;
 }
 
+  void FloatMatrix :: beIsotropicMatrix(double a, double b, double c)
+// this matrix is the 9x9 isotropic matrix
+{
+    this->resize(9, 9);
+    
+    this->at(1, 1) =  a + b + c;
+    this->at(2, 2) =  a + b + c;
+    this->at(3, 3) =  a + b + c;
+
+    this->at(1, 2) =  a;
+    this->at(1, 3) =  a;
+    this->at(2, 1) =  a;
+    this->at(2, 3) =  a;
+    this->at(3, 1) =  a;
+    this->at(3, 2) =  a;
+    
+    this->at(4, 4) = b;
+    this->at(5, 5) = b;
+    this->at(6, 6) = b;
+    this->at(7, 7) = b;
+    this->at(8, 8) = b;
+    this->at(9, 9) = b;
+    
+
+    this->at(4, 7) = c;
+    this->at(7, 4) = c;
+    this->at(5, 8) = c;
+    this->at(8, 5) = c;    
+    this->at(6, 9) = c;
+    this->at(9, 6) = c;
+    
+    
+}
+  
+
 void FloatMatrix :: resize(int rows, int columns)
 //
 // resizes receiver, all data will be lost

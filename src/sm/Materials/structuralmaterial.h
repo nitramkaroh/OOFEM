@@ -123,7 +123,16 @@ public:
     static std::vector< std::vector<int> > svIndex;
 
     static int giveSymVI(int ind1, int ind2) { return svIndex[ind1-1][ind2-1]; }
-    static int giveVI(int ind1, int ind2) { return vIindex[ind1-1][ind2-1]; }    
+    static int giveVI(int ind1, int ind2) { return vIindex[ind1-1][ind2-1]; }
+
+
+    /// Symmetric Voigt index map
+    static std::vector< std::vector<int> > huhu1;
+        /// Symmetric Voigt index map
+    static std::vector< std::vector<int> > huhu2;
+    
+    static int giveSymVIPS(int ind1, int ind2) { return huhu1[ind1-1][ind2-1]; }    
+    static int giveVIPS(int ind1, int ind2) { return huhu2[ind1-1][ind2-1]; }    
 
     /**
      * Constructor. Creates material with given number, belonging to given domain.
@@ -220,7 +229,7 @@ public:
     virtual void giveFirstPKStressVector_PlaneStrain(FloatArray &answer, GaussPoint *gp, const FloatArray &reducedF, TimeStep *tStep);
     /// Default implementation relies on giveFirstPKStressVector_3d
     virtual void giveFirstPKStressVector_PlaneStress(FloatArray &answer, GaussPoint *gp, const FloatArray &reducedF, TimeStep *tStep);
-    virtual void giveFirstPKStressVector_Membrane2d(FloatArray &answer, GaussPoint *gp, FloatArray &reducedF, TimeStep *tStep);
+    virtual void giveFirstPKStressVector_Membrane2d(FloatArray &answer,  GaussPoint *gp, const FloatArray &reducedF, TimeStep *tStep);
     /// Default implementation relies on giveFirstPKStressVector_3d
     virtual void giveFirstPKStressVector_1d(FloatArray &answer, GaussPoint *gp, const FloatArray &reducedF, TimeStep *tStep);
     //@}

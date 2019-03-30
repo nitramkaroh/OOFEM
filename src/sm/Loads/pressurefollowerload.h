@@ -84,7 +84,7 @@ public:
 
     virtual const char *giveClassName() const { return "PressureFollowerLoad"; }
     virtual const char *giveInputRecordName() const { return _IFT_PressureFollowerLoad_Name; }
-    virtual int giveApproxOrder() { return 0; }
+    virtual int giveApproxOrder() { return 2; }
     void computeVolumeLoadVectorFromElement(FloatArray &answer, Element *e, int iSurf, TimeStep *tStep){;}
     
 
@@ -98,7 +98,7 @@ protected:
      */
     void computeTangentFromElement(FloatMatrix &answer, Element *e, int side, TimeStep *tStep);
 
-    void giveSurfacedNdxi_dDdDMatrces(FloatMatrix &dNk_dD, FloatMatrix &dNe_dD, const FloatMatrix &dNdxi, int nNodes);
+    void giveSurface_dNdKsi_dNdEta(FloatMatrix &dNksi, FloatMatrix &dNeta, const FloatMatrix &dN, int nNodes);
 };
 } // end namespace oofem
 #endif // pressurefollowerload_h

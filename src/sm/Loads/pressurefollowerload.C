@@ -59,6 +59,9 @@
 #include <list>
 #include <memory>
 
+
+#include "../sm/Elements/Axisymmetry/l4axisymm.h"
+
 namespace oofem {
 REGISTER_BoundaryCondition(PressureFollowerLoad);
 
@@ -112,8 +115,11 @@ void PressureFollowerLoad :: assemble(SparseMtrx &answer, TimeStep *tStep,
     for ( int pos = 1; pos <= boundaries.giveSize() / 2; ++pos ) {
         Element *e = this->giveDomain()->giveElement( boundaries.at(pos * 2 - 1) );
         int boundary = boundaries.at(pos * 2);
-
-        e->giveInterpolation()->boundarySurfaceGiveNodes(bNodes, boundary);
+	if(e->giveSpatialDimension() == 2) {
+	  e->giveInterpolation()->boundaryEdgeGiveNodes(bNodes, boundary);
+	} else {
+	  e->giveInterpolation()->boundarySurfaceGiveNodes(bNodes, boundary);
+	}
 
         e->giveBoundaryLocationArray(r_loc, bNodes, this->dofs, r_s);
         e->giveBoundaryLocationArray(c_loc, bNodes, this->dofs, c_s);
@@ -135,13 +141,14 @@ void PressureFollowerLoad :: assembleVector(FloatArray &answer, TimeStep *tStep,
 
     Set *set = this->giveDomain()->giveSet(this->set);
     const IntArray &boundaries = set->giveBoundaryList();
-
     for ( int pos = 1; pos <= boundaries.giveSize() / 2; ++pos ) {
         Element *e = this->giveDomain()->giveElement( boundaries.at(pos * 2 - 1) );
         int boundary = boundaries.at(pos * 2);
-
-        e->giveInterpolation()->boundarySurfaceGiveNodes(bNodes, boundary);
-
+	if(e->giveSpatialDimension() == 2) {
+	  e->giveInterpolation()->boundaryEdgeGiveNodes(bNodes, boundary);
+	} else {
+	  e->giveInterpolation()->boundarySurfaceGiveNodes(bNodes, boundary);
+	}
         e->giveBoundaryLocationArray(loc, bNodes, this->dofs, s, & masterdofids);
         this->computeLoadVectorFromElement(fe, e, boundary, tStep);
         answer.assemble(fe, loc);
@@ -168,13 +175,15 @@ void PressureFollowerLoad :: computeTangentFromElement(FloatMatrix &answer, Elem
     IntegrationRule *iRule = pfli->surfaceGiveIntegrationRule(this->giveApproxOrder(), iSurf);
 
     IntArray bNodes;
-    e->giveBoundarySurfaceNodes (bNodes, iSurf);
     double nNodes = bNodes.giveSize();
-
-    for ( GaussPoint *gp : *iRule) {
-        FloatMatrix dNdxi, dNk, dNe;    
-        pfli->surfaceEvaldNdxi(dNdxi, iSurf, gp);
-	this->giveSurfacedNdxi_dDdDMatrces(dNk, dNe, dNdxi, nNodes);
+    FloatMatrix K;
+    FloatMatrix testAnswer(4,4);
+    if( e->giveSpatialDimension() == 3) {
+      e->giveBoundarySurfaceNodes (bNodes, iSurf);
+      for ( GaussPoint *gp : *iRule) {
+        FloatMatrix dN, dNksi, dNeta;    
+        pfli->surfaceEvaldNdxi(dN, iSurf, gp);
+	this->giveSurface_dNdKsi_dNdEta(dNksi, dNeta, dN, nNodes);
 	// compute normal vector
         FloatArray n, dxdk,dxde;
 	pfli->surfaceEvalDeformedNormalAt(n, dxdk, dxde, iSurf, gp, tStep);
@@ -184,41 +193,79 @@ void PressureFollowerLoad :: computeTangentFromElement(FloatMatrix &answer, Elem
 	FloatMatrix dXdk, dXde, dXedNk, dXkdNe;
 	dXdk.giveMatrixOfAxialVector(dxdk);
 	dXde.giveMatrixOfAxialVector(dxde);
-
-	dXedNk.beProductOf(dXde,dNk);
-	dXkdNe.beProductOf(dXdk,dNe);
 	
-	dXedNk.subtract(dXkdNe);
+	dXedNk.beProductOf(dXde,dNksi);
+	dXkdNe.beProductOf(dXdk,dNeta);
 	
-
+	dXkdNe.subtract(dXedNk);
+	
+	
 	double w = gp->giveWeight();	
-	answer.plusProductUnsym(N, dXedNk, w);
+	answer.plusProductUnsym(N, dXkdNe, w);
+	
 
+	//pfli->surfaceEvalNumericalStiffMatrixAt(K, dxde, dxdk, 1, gp, tStep);
+	//answer.add(K);
+      }
+    } else if ( e->giveSpatialDimension() == 2) {
+	e->giveBoundaryEdgeNodes (bNodes, iSurf);
 
+      for ( GaussPoint *gp : *iRule) { 
+	// compute surface/edge N matirx
+	FloatMatrix N, dndu;
+	pfli->surfaceEvalNmatrixAt(N, iSurf, gp);
+	pfli->surfaceEvalNormalDerivative(dndu, iSurf, gp, tStep);
+	double w = gp->giveWeight();	
+	answer.plusProductUnsym(N, dndu, w);
+      }
     }
-    answer.times(pressure);
+    //answer = testAnswer;
+    double factor = this->giveTimeFunction()->evaluate(tStep, VM_Total);
+    answer.times(pressure*factor);
 
+    /*L4Axisymm *le = dynamic_cast<L4Axisymm* > (e);
+    e->giveInterpolation()->boundaryEdgeGiveNodes(bNodes, iSurf);
+    FloatArray(vU);
+    FloatMatrix test(4,4);
+    le->computeBoundaryVectorOf(bNodes, {D_u, D_v}, VM_Total, tStep, vU); // solution vector    
+    double b11 = 2./3.;
+    double b12 = 1./3.;
+    double b21 = 1./3.;
+    double b22 = 2./3.;
+    double r1 =  le->giveCellGeometryWrapper(tStep)->giveVertexCoordinates(bNodes.at(1))->at(1) + vU.at(1);
+    double r2 =  le->giveCellGeometryWrapper(tStep)->giveVertexCoordinates(bNodes.at(2))->at(1) + vU.at(3);
+    double z1 =  le->giveCellGeometryWrapper(tStep)->giveVertexCoordinates(bNodes.at(1))->at(2) + vU.at(2);
+    double z2 =  le->giveCellGeometryWrapper(tStep)->giveVertexCoordinates(bNodes.at(2))->at(2) + vU.at(4);
+
+    double a1 = b11*r1+b12*r2;
+    double a2 = b21*r1+b22*r2;
+
+    
+    test = {{b11*(z2-z1), -b11*(r2-r1) - a1, b12*(z2-z1), -b12*(r2-r1)-a2},{a1, 0, a2, 0},{b12*(z2-z1),-b12*(r2-r1)+a1, b22*(z2-z1),-b22*(r2-r1)+a2},{-a1, 0, -a2, 0}};
+    test.times(-0.5*pressure);
+
+    */
 
 }
 
 
 
 void
-PressureFollowerLoad :: giveSurfacedNdxi_dDdDMatrces(FloatMatrix &dNk_dD, FloatMatrix &dNe_dD, const FloatMatrix &dNdxi, int nNodes)
+PressureFollowerLoad :: giveSurface_dNdKsi_dNdEta(FloatMatrix &dNdksi, FloatMatrix &dNdeta, const FloatMatrix &dN, int nNodes)
 {
 
   //@todo nNodes*3 should be replaced by nDofs
-  dNk_dD.resize(3,3*nNodes);
-  dNe_dD.resize(3,3*nNodes);
+  dNdksi.resize(3,3*nNodes);
+  dNdeta.resize(3,3*nNodes);
 
   for( int i = 1; i <= nNodes; i++) {    
-    dNk_dD.at(1,3*(i-1)+1) = dNdxi.at(i,1);
-    dNk_dD.at(2,3*(i-1)+2) = dNdxi.at(i,1);
-    dNk_dD.at(3,3*(i-1)+3) = dNdxi.at(i,1);
+    dNdksi.at(1,3*(i-1)+1) = dN.at(i,1);
+    dNdksi.at(2,3*(i-1)+2) = dN.at(i,1);
+    dNdksi.at(3,3*(i-1)+3) = dN.at(i,1);
 
-    dNe_dD.at(1,3*(i-1)+1) = dNdxi.at(i,2);
-    dNe_dD.at(2,3*(i-1)+2) = dNdxi.at(i,2);
-    dNe_dD.at(3,3*(i-1)+3) = dNdxi.at(i,2);
+    dNdeta.at(1,3*(i-1)+1) = dN.at(i,2);
+    dNdeta.at(2,3*(i-1)+2) = dN.at(i,2);
+    dNdeta.at(3,3*(i-1)+3) = dN.at(i,2);
   }
     
 
@@ -242,7 +289,8 @@ void PressureFollowerLoad :: computeLoadVectorFromElement(FloatArray &answer, El
     }
 
     answer.clear();
-    IntegrationRule *iRule = pfli->surfaceGiveIntegrationRule(this->giveApproxOrder(), iSurf);
+    int order = 2;
+    IntegrationRule *iRule = pfli->surfaceGiveIntegrationRule(order, iSurf);
     double a = 0;
     for ( GaussPoint *gp : *iRule) {
 	// compute normal vector
@@ -252,18 +300,48 @@ void PressureFollowerLoad :: computeLoadVectorFromElement(FloatArray &answer, El
 	FloatMatrix N;
 	pfli->surfaceEvalNmatrixAt(N, iSurf, gp);
 	// compute pressure follower load matrix
-	double dV = pfli->surfaceEvalVolumeAround(gp, iSurf);
-	//double w = gp->giveWeight();
-	answer.plusProduct(N, n, dV);
-	a += dV*n.computeNorm();
+	//double dV = pfli->surfaceEvalVolumeAround(gp, iSurf);
+	// @todo parametrization [-1 1] => factor 2 ???
+	double w = gp->giveWeight();
+	answer.plusProduct(N, n, w);
+	a += n.computeNorm();
 	
 	
     }
     // ask time distribution
     double factor = this->giveTimeFunction()->evaluate(tStep, VM_Total);
-    answer.times(pressure*factor);
+    answer.times(-pressure*factor);
+
+
+    /*
+    L4Axisymm *le = dynamic_cast<L4Axisymm* > (e);
+
+    FloatArray(vU);
+    FloatArray test(4);
+
+    IntArray bNodes;
+    
+    e->giveInterpolation()->boundaryEdgeGiveNodes(bNodes, iSurf);
+
 
     
+    le->computeBoundaryVectorOf(bNodes, {D_u, D_v}, VM_Total, tStep, vU); // solution vector    
+    double b11 = 2./3.;
+    double b12 = 1./3.;
+    double b21 = 1./3.;
+    double b22 = 2./3.;
+    double r1 =  le->giveCellGeometryWrapper(tStep)->giveVertexCoordinates(bNodes.at(1))->at(1) + vU.at(1);
+    double r2 =  le->giveCellGeometryWrapper(tStep)->giveVertexCoordinates(bNodes.at(2))->at(1) + vU.at(3);
+    double z1 =  le->giveCellGeometryWrapper(tStep)->giveVertexCoordinates(bNodes.at(1))->at(2) + vU.at(2);
+    double z2 =  le->giveCellGeometryWrapper(tStep)->giveVertexCoordinates(bNodes.at(2))->at(2) + vU.at(4);
+
+    double a1 = b11*r1+b12*r2;
+    double a2 = b21*r1+b22*r2;
+
+    
+    test = {a1*(z2-z1), -a1*(r2-r1), a2*(z2-z1), -a2*(r2-r1)};
+    test.times(-0.5*pressure);
+    */    
 }
 
 

@@ -47,6 +47,7 @@
 #define _IFT_LargeStrainMasterMaterial_Name "lsmastermat"
 #define _IFT_LargeStrainMasterMaterial_m "m"
 #define _IFT_LargeStrainMasterMaterial_slaveMat "slavemat"
+#define _IFT_LargeStrainMasterMaterial_InitialStrain "initstrain"
 //@}
 
 namespace oofem {
@@ -69,7 +70,8 @@ protected:
     int slaveMat;
     /// Specifies the strain tensor.
     double m;
-
+    /// Initial strain
+    FloatArray initialStrain;
 
 public:
     LargeStrainMasterMaterial(int n, Domain *d);
@@ -102,21 +104,39 @@ public:
 
 
     void giveMembrane2dStiffMtrx_dPdF(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep);
-    
+
+
+    virtual void givePlaneStressStiffMtrx(FloatMatrix &answer,
+                                          MatResponseMode, GaussPoint *gp,
+                                          TimeStep *tStep);
 
 
     virtual void giveRealStressVector_3d(FloatArray &answer, GaussPoint *, const FloatArray &, TimeStep *)
     { OOFEM_ERROR("not implemented, this material is designed for large strains only"); }
+    virtual void giveRealStressVector_PlaneStress(FloatArray &answer, GaussPoint *, const FloatArray &, TimeStep *);
+    
     virtual void giveFirstPKStressVector_3d(FloatArray &answer, GaussPoint *gp, const FloatArray &vF, TimeStep *tStep);
     void giveFirstPKStressVector_PlaneStress(FloatArray &answer, GaussPoint *gp, const FloatArray &redvF, TimeStep *tStep);
-
+    void giveFirstPKStressVector_Membrane2d(FloatArray &answer, GaussPoint *gp, const FloatArray &reducedF, TimeStep *tStep) override;
+    
     
     virtual void giveCauchyStressVector_3d(FloatArray &answer, GaussPoint *gp, const FloatArray &vF, TimeStep *tStep);
     void giveSecondPKStressVector_3d(FloatArray &answer, GaussPoint *gp, const FloatArray &vF, TimeStep *tStep);
 
     /// transformation matrices
     void giveTransformationMatrices(FloatMatrix &PP,FloatMatrix &TL, const FloatMatrix &F, const FloatMatrix &logStress, const FloatArray &lam, const FloatMatrix &N);
+    void giveTransformationMatrices_huhu(FloatMatrix &PP,FloatMatrix &TL, const FloatMatrix &F, const FloatMatrix &logStress, const FloatArray &lam, const FloatMatrix &N);
     void giveTransformationMatrices_PlaneStress(FloatMatrix &PP,FloatMatrix &TL, const FloatMatrix &F, const FloatMatrix &SetHillStress, const FloatArray &lam, const FloatMatrix &N);
+    void giveTransformationMatrices_PlaneStress2(FloatMatrix &PP,FloatMatrix &TL, const FloatMatrix &F, const FloatMatrix &SetHillStress, const FloatArray &lam, const FloatMatrix &N);
+    void giveTransformationMatrices_PlaneStress_dSdE(FloatMatrix &PP,FloatMatrix &TL, const FloatMatrix &SethHillStress, const FloatArray &lam, const FloatMatrix &N);
+    void giveTransformationMatrices_PlaneStress2_dSdE(FloatMatrix &PP,FloatMatrix &TL, const FloatMatrix &SethHillStress, const FloatArray &lam, const FloatMatrix &N);
+
+    void giveTransformationMatrices_PlaneStressAnalyticalM_2(FloatMatrix &PP,FloatMatrix &TL, const FloatMatrix &Fm, const FloatMatrix &SethHillStress, const FloatArray &lam, const FloatMatrix &N);
+    
+    void giveTransformationMatrices_PlaneStressAnalyticalM_2_dSdE(FloatMatrix &PP,FloatMatrix &TL, const FloatMatrix &Fm, const FloatMatrix &SethHillStress, const FloatArray &lam, const FloatMatrix &N);
+
+
+    
     
     void giveDeltaS_Product(FloatMatrix &answer, const FloatMatrix &S);
     void giveDeltaS_Product_PlaneStress(FloatMatrix &answer, const FloatMatrix &S);

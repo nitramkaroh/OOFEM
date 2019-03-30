@@ -1032,6 +1032,7 @@ StructuralElement :: giveCharacteristicVector(FloatArray &answer, CharType mtrx,
     } else {
         OOFEM_ERROR("Unknown Type of characteristic mtrx (%s)", __CharTypeToString(mtrx) );
     }
+
 }
 
 void

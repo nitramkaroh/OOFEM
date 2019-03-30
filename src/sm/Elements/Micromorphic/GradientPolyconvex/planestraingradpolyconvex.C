@@ -108,9 +108,10 @@ PlaneStrainGradPolyconvex :: computeMicromorphicVars(FloatArray &micromorphicVar
     /// @todo generalization for general micromorphic continua -- should be parameter of this function
     this->giveElement()->computeVectorOf(IdMask_m, VM_Total, tStep, u_m);
     micromorphicVar.beProductOf(N_m, u_m);
-    micromorphicVar.at(1) += 1;
+    /*  micromorphicVar.at(1) += 1;
     micromorphicVar.at(2) += 1;
     micromorphicVar.at(3) += 1;
+    */
     micromorphicVarGrad.beProductOf(B_m, u_m);
 }
  

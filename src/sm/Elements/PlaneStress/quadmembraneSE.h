@@ -46,7 +46,7 @@ class FEI2dQuadLin;
 /**
  * This class implements an isoparametric four-node quadrilateral plane-
  * stress membrane finite element. Each node has 3 degrees of freedom.
- */
+ */ 
  class QuadMembraneSE : public PlaneStress2d, public PressureFollowerLoadElementInterface
 {
 protected:
@@ -75,6 +75,8 @@ public:
     virtual double surfaceEvalVolumeAround(GaussPoint *gp, int iSurf){
       return this->computeSurfaceVolumeAround(gp, iSurf);
     }
+
+    virtual void  surfaceEvalNumericalStiffMatrixAt(FloatMatrix &answer, FloatArray &dxdeta, FloatArray &dxdxi, int iSurf, GaussPoint *gp, TimeStep *tStep);
     virtual void surfaceEvalNmatrixAt(FloatMatrix &answer, int iSurf, GaussPoint *gp){this->computeNmatrixAt(gp->giveNaturalCoordinates(),answer);}
     virtual void surfaceEvaldNdxi(FloatMatrix &answer, int iSurf, GaussPoint *gp);
     virtual void surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &dxdksi,FloatArray &dxdeta, int iSurf, GaussPoint *gp, TimeStep *tStep);

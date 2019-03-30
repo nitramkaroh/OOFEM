@@ -106,7 +106,7 @@ BaseMixedPressureElement :: computeStressVector(FloatArray &stress,GaussPoint *g
 
     double pressure;
     
-    if(elem->giveGeometryMode() == 0) {
+    if( elem->giveGeometryMode() == 0) {
       FloatArray strain;
       this->computeStrainVector(strain, gp, tStep);
       this->computePressure(pressure,gp, tStep);   
@@ -118,6 +118,7 @@ BaseMixedPressureElement :: computeStressVector(FloatArray &stress,GaussPoint *g
       this->computePressure(pressure,IdMask_p, gp, tStep);   
       mixedPressureMat->giveFiniteStrainStressVectors(stress, gp, devF, pressure, tStep);
       */
+      OOFEM_ERROR("Large-strain formulaton is not available yet")
     }
     
 }
@@ -197,7 +198,7 @@ BaseMixedPressureElement :: giveInternalForcesVector_p(FloatArray &answer, TimeS
     
       MixedPressureMaterialExtensionInterface *mixedPressureMat = dynamic_cast< MixedPressureMaterialExtensionInterface* >(cs->giveMaterialInterface(MixedPressureMaterialExtensionInterfaceType, gp) );
       if ( !mixedPressureMat ) {
-	OOFEM_ERROR("Material doesn't implement the required Micromorphic interface!");
+	OOFEM_ERROR("Material doesn't implement the required Mixed pressure interface!");
       }
       // Compute nodal internal forces at nodes as f = B^T*Stress dV
       double dV  = elem->computeVolumeAround(gp);
@@ -209,9 +210,7 @@ BaseMixedPressureElement :: giveInternalForcesVector_p(FloatArray &answer, TimeS
 
       double eps_V = Bvol.dotProduct(d_u);
       mixedPressureMat->giveInverseOfBulkModulus(kappa, TangentStiffness, gp, tStep);
-      factor = eps_V + pressure*kappa;
-
-      
+      factor = eps_V + pressure*kappa;      
       answer.times(dV*factor);
     }
 }

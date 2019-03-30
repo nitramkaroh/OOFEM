@@ -291,6 +291,15 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
             ddX = rhs;
         } else {
 	  linSolver->solve(k, rhs, ddX);
+	  if(nite == 1) {
+	    // If desired by the user, the solution is (slightly) perturbed, so that various symmetries can be broken.
+	    // This is useful e.g. to trigger localization in a homogeneous material under uniform stress without
+	    // the need to introduce material imperfections. The problem itself remains symmetric but the iterative
+	    // solution is brought to a nonsymmetric state and it gets a chance to converge to a nonsymmetric solution.
+	    // Parameters of the perturbation technique are specified by the user and by default no perturbation is done. 
+	    // Milan Jirasek
+	    SparseNonLinearSystemNM :: applyPerturbation(&ddX);
+	  }
         }
 
         //
@@ -312,7 +321,7 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
 	
 	
 	if((engngModel->isAnalysisCrashed()) || (converged == false && nite == nsmax ) || errorOutOfRangeFlag ) {
-	  if(nReductions > 10) {
+	  if(nReductions > 25) {
 	    OOFEM_ERROR("Too many time step reductions");
 	  }
 	  nReductions++;

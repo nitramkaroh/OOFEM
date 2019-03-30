@@ -586,6 +586,7 @@ public:
     void giveMatrixOfAxialVector(const FloatArray &aArray);
     void beSkewProjectionMatrix();
     void beSymProjectionMatrix();
+    void beIsotropicMatrix(double a, double b, double c);
     
     /**
      * Swaps the indices in the 6x6 matrix such that it converts between OOFEM's

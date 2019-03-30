@@ -92,6 +92,7 @@ VariableCrossSection :: initializeFrom(InputRecord *ir)
     if ( ir->hasField(_IFT_SimpleCrossSection_drillStiffness) ) {
         IR_GIVE_OPTIONAL_FIELD(ir, drillingStiffnessExpr, _IFT_SimpleCrossSection_drillStiffness);
     }
+   
 
     IR_GIVE_OPTIONAL_FIELD(ir, this->materialNumber, _IFT_SimpleCrossSection_MaterialNumber);
 

@@ -36,6 +36,7 @@
 
 #include "domain.h"
 #include "micromorphicmaterialextensioninterface.h"
+#include "floatmatrix.h"
 
 #include <list>
 
@@ -47,5 +48,40 @@ MicromorphicMaterialExtensionInterface :: MicromorphicMaterialExtensionInterface
 {
     dom = d;
 }
+
+void
+MicromorphicMaterialExtensionInterface :: giveMicromorphicMatrix_dSigdPhiGrad(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
+{
+
+  answer.resize(0,0);
+
+}
+
+
+  
+void
+MicromorphicMaterialExtensionInterface :: giveMicromorphicMatrix_dSdPhiGrad(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
+{
+
+  answer.resize(0,0);
+}
+
+void
+MicromorphicMaterialExtensionInterface :: giveMicromorphicMatrix_dMdUgrad(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
+{
+
+  answer.resize(0,0);
+
+}
+
+void
+MicromorphicMaterialExtensionInterface :: giveMicromorphicMatrix_dMdPhi(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
+{
+
+  answer.resize(0,0);
+  
+}    
+
+  
 
 } // end namespace oofem

@@ -109,7 +109,7 @@ LSpace :: postInitialize()
 {
     // Element must be created before giveNumberOfNodes can be called
     StructuralElement :: postInitialize();
-    MeanDilatationalMethodElementExtensionInterface :: postInitialize(this);
+    //    MeanDilatationalMethodElementExtensionInterface :: postInitialize(this);
 
 }
 

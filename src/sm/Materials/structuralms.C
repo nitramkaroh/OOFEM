@@ -44,9 +44,11 @@ StructuralMaterialStatus :: StructuralMaterialStatus(int n, Domain *d, GaussPoin
     tempStressVector(), tempStrainVector(), FVector(), tempFVector()
 {
     int rsize = StructuralMaterial :: giveSizeOfVoigtSymVector( gp->giveMaterialMode() );
-    strainVector.resize(rsize);
+    /*    strainVector.resize(rsize);
     stressVector.resize(rsize);
-
+    */
+    strainVector.resize(6);
+    stressVector.resize(6);
     // reset temp vars.
     tempStressVector = stressVector;
     tempStrainVector = strainVector;

@@ -65,7 +65,7 @@ public:
     ConstantEdgeLoad(int i, Domain * d) : EdgeLoad(i, d) { }
 
     virtual void computeValueAt(FloatArray &answer, TimeStep *tStep, const FloatArray &coords, ValueModeType mode);
-    virtual int giveApproxOrder() { return 0; }
+    virtual int giveApproxOrder() { return 2; }
     virtual IRResultType initializeFrom(InputRecord *ir);
     virtual bcGeomType giveBCGeoType() const { return EdgeLoadBGT; }
 

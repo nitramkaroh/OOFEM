@@ -486,6 +486,8 @@ NonLinearStatic :: proceedStep(int di, TimeStep *tStep)
         totalDisplacement.zero();
         incrementOfDisplacement.resize(neq);
         incrementOfDisplacement.zero();
+	TimeStep *icStep = this->giveSolutionStepWhenIcApply();
+	this->applyIC(icStep);
     }
 
     //
@@ -519,6 +521,41 @@ NonLinearStatic :: proceedStep(int di, TimeStep *tStep)
     prevStepLength =  currentStepLength;
 }
 
+
+
+
+
+
+void
+NonLinearStatic :: applyIC(TimeStep *stepWhenIcApply)
+{
+    Domain *domain = this->giveDomain(1);
+    double val;
+
+#ifdef VERBOSE
+    OOFEM_LOG_INFO("Applying initial conditions\n");
+#endif
+    for ( auto &node : domain->giveDofManagers() ) {
+
+        for ( Dof *dof: *node ) {
+            // ask for initial values obtained from
+            // bc (boundary conditions) and ic (initial conditions)
+            if ( !dof->isPrimaryDof() ) {
+                continue;
+            }
+
+            int jj = dof->__giveEquationNumber();
+            if ( jj ) {
+	        val = dof->giveUnknown(VM_Total, stepWhenIcApply);
+                totalDisplacement.at(jj) = val;
+            }
+        }
+    }
+
+} 
+
+
+  
 void
 NonLinearStatic :: updateComponent(TimeStep *tStep, NumericalCmpn cmpn, Domain *d)
 //
@@ -610,15 +647,17 @@ NonLinearStatic :: giveInitialGuess(int di, TimeStep *tStep)
       OOFEM_LOG_RELEVANT("solving for increment\n");
       linSolver->solve(*stiffnessMatrix, extrapolatedForces, incrementOfDisplacement);
       OOFEM_LOG_RELEVANT("initial guess found\n");
-      totalDisplacement.add(incrementOfDisplacement);     
+      totalDisplacement.add(incrementOfDisplacement);
+      tStep->incrementSubStepNumber();
+      currentIterations++;
     } else if ( this->initialGuessType != IG_None ) {
         OOFEM_ERROR("Initial guess type: %d not supported", initialGuessType);
     } else {
-        this->updateComponent( tStep->givePreviousStep(), NonLinearLhs, this->giveDomain(di) );
+        //this->updateComponent( tStep->givePreviousStep(), NonLinearLhs, this->giveDomain(di) );
+	this->updateComponent( tStep, NonLinearLhs, this->giveDomain(di) );
 	incrementOfDisplacement.zero();
     }
-    tStep->incrementSubStepNumber();
-    currentIterations++;
+
 
 }
 

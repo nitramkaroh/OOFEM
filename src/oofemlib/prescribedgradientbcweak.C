@@ -52,7 +52,7 @@
 
 #include "xfem/XFEMDebugTools.h"
 
-#include <cmath>
+//#include <cmath>
 #include <string>
 #include <sstream>
 

@@ -48,6 +48,7 @@ GradientPolyconvexMaterial :: GradientPolyconvexMaterial(int n, Domain *d) :Isot
 {
   Hk = Ak = 0.;
   alpha = 1.e6;
+  gamma = 1.e3;
 }
 
 GradientPolyconvexMaterial :: ~GradientPolyconvexMaterial()
@@ -126,13 +127,25 @@ GradientPolyconvexMaterial :: giveMicromorphicMatrix_dSigdUgrad(FloatMatrix &ans
 	for (int p = 1; p <= 3; p++) {
 	  for (int q = 1; q <= 3; q++) {
 	    // double well material stiffness
-	    answer.at(giveVI(i,j),giveVI(p,q)) += 4. * ( vB.at(giveVI(i,p)) * delta.at(giveVI(j,q)) + vF.at(giveVI(i,q)) *  vF.at(giveVI(p,j))) * (normC_tC1*normC_tC1 + normC_tC2 * normC_tC2) + 4. * vC_tC1.at(giveVI(j,q)) * delta.at(giveVI(i,p)) * (normC_tC2 * normC_tC2) + 4. * vC_tC2.at(giveVI(j,q)) * delta.at(giveVI(i,p)) * (normC_tC1 * normC_tC1) + 4.*vC_tC1_dCdF.at(giveVI(i,j))*vC_tC2_dCdF.at(giveVI(p,q)) + 4.*vC_tC2_dCdF.at(giveVI(i,j))*vC_tC1_dCdF.at(giveVI(p,q));
+	    answer.at(giveVI(i,j),giveVI(p,q)) += alpha * (4. * ( vB.at(giveVI(i,p)) * delta.at(giveVI(j,q)) + vF.at(giveVI(i,q)) *  vF.at(giveVI(p,j))) * (normC_tC1*normC_tC1 + normC_tC2 * normC_tC2) + 4. * vC_tC1.at(giveVI(j,q)) * delta.at(giveVI(i,p)) * (normC_tC2 * normC_tC2) + 4. * vC_tC2.at(giveVI(j,q)) * delta.at(giveVI(i,p)) * (normC_tC1 * normC_tC1) + 4.*vC_tC1_dCdF.at(giveVI(i,j))*vC_tC2_dCdF.at(giveVI(p,q)) + 4.*vC_tC2_dCdF.at(giveVI(i,j))*vC_tC1_dCdF.at(giveVI(p,q)) );
+	    /// part with J^-1
+	    answer.at(giveVI(i,j),giveVI(p,q)) += gamma/J * ( vInvF.at(giveVI(j,i)) *  vInvF.at(giveVI(q,p)) + vInvF.at(giveVI(j,p)) *  vInvF.at(giveVI(q,i)) ) ;
+
+
+	    /// penalty on negative volume
+	    /*	    if(J < 0) {
+	      double penalty = 1.e15;
+	      answer.at(giveVI(i,j),giveVI(p,q)) += penalty * (J*J * (1 + J) * vInvF.at(giveVI(j,i)) *  vInvF.at(giveVI(q,p))  + J*J * vInvF.at(giveVI(j,p)) *  vInvF.at(giveVI(q,i)));
+	      }*/
+
+
+	    
 	  }
 	}
       }
     }
 
-    answer.times(alpha);
+
 
 
     FloatMatrix answer1(9,9), answer2(9,9), answer3(9,9), answer4(9,9), answer5(9,9), answer6(9,9), CFCF(9,9);
@@ -156,8 +169,8 @@ GradientPolyconvexMaterial :: giveMicromorphicMatrix_dSigdUgrad(FloatMatrix &ans
     }
 
  
-
-
+    
+    
 
 
 
@@ -193,31 +206,36 @@ GradientPolyconvexMaterial :: giveMicromorphicMatrix_dSigdUgrad(FloatMatrix &ans
       answer.zero();
       answer.at(1, 1) = m3d.at(1, 1);
       answer.at(1, 2) = m3d.at(1, 2);
+      answer.at(1, 3) = m3d.at(1, 3);
       answer.at(1, 4) = m3d.at(1, 6);
       answer.at(1, 5) = m3d.at(1, 9);
       
       answer.at(2, 1) = m3d.at(2, 1);
       answer.at(2, 2) = m3d.at(2, 2);
+      answer.at(2, 3) = m3d.at(2, 3);
       answer.at(2, 4) = m3d.at(2, 6);
       answer.at(2, 5) = m3d.at(2, 9);
       
       answer.at(3, 1) = m3d.at(3, 1);
       answer.at(3, 2) = m3d.at(3, 2);
+      answer.at(3, 3) = m3d.at(3, 3);
       answer.at(3, 4) = m3d.at(3, 6);
       answer.at(3, 5) = m3d.at(3, 9);
       
       answer.at(4, 1) = m3d.at(6, 1);
       answer.at(4, 2) = m3d.at(6, 2);
+      answer.at(4, 3) = m3d.at(6, 3);
       answer.at(4, 4) = m3d.at(6, 6);
       answer.at(4, 5) = m3d.at(6, 9);
       
       answer.at(5, 1) = m3d.at(9, 1);
       answer.at(5, 2) = m3d.at(9, 2);
+      answer.at(5, 3) = m3d.at(9, 3);
       answer.at(5, 4) = m3d.at(9, 6);
       answer.at(5, 5) = m3d.at(9, 9);
     }
 
-    /*    FloatMatrix testA(9,9);
+    /*  FloatMatrix testA(9,9);
     FloatArray vP, pvP, M, pertF, ps, reducedvF, reducedMicromorphicVar(9), micromorphicVarGrad(1);
     FloatArray col;
     double e = 1.e-6;
@@ -289,7 +307,7 @@ GradientPolyconvexMaterial :: giveMicromorphicMatrix_dSigdUgrad(FloatMatrix &ans
     testA.setColumn(col, 9);
     pertF = reducedvF;    
     this->giveFiniteStrainGeneralizedStressVectors_3d(pvP, s, M, gp, reducedvF, reducedMicromorphicVar, micromorphicVarGrad, tStep);
-
+    
 
     FloatMatrix m3d = testA;
     testA.resize(5,5);
@@ -297,26 +315,31 @@ GradientPolyconvexMaterial :: giveMicromorphicMatrix_dSigdUgrad(FloatMatrix &ans
     testA.zero();
     testA.at(1, 1) = m3d.at(1, 1);
     testA.at(1, 2) = m3d.at(1, 2);
+    testA.at(1, 3) = m3d.at(1, 3);
     testA.at(1, 4) = m3d.at(1, 6);
     testA.at(1, 5) = m3d.at(1, 9);
     
     testA.at(2, 1) = m3d.at(2, 1);
     testA.at(2, 2) = m3d.at(2, 2);
+    testA.at(2, 3) = m3d.at(2, 3);
     testA.at(2, 4) = m3d.at(2, 6);
     testA.at(2, 5) = m3d.at(2, 9);
     
     testA.at(3, 1) = m3d.at(3, 1);
     testA.at(3, 2) = m3d.at(3, 2);
+    testA.at(3, 3) = m3d.at(3, 3);
     testA.at(3, 4) = m3d.at(3, 6);
     testA.at(3, 5) = m3d.at(3, 9);
     
     testA.at(4, 1) = m3d.at(6, 1);
     testA.at(4, 2) = m3d.at(6, 2);
+    testA.at(4, 3) = m3d.at(6, 3);
     testA.at(4, 4) = m3d.at(6, 6);
     testA.at(4, 5) = m3d.at(6, 9);
     
     testA.at(5, 1) = m3d.at(9, 1);
     testA.at(5, 2) = m3d.at(9, 2);
+    testA.at(5, 3) = m3d.at(9, 3);
     testA.at(5, 4) = m3d.at(9, 6);
     testA.at(5, 5) = m3d.at(9, 9);
     */
@@ -616,10 +639,14 @@ void
 GradientPolyconvexMaterial :: giveMicromorphicMatrix_dSdPhi(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
 {
 
+  MaterialMode matMode = gp->giveMaterialMode();
+  if (matMode == _PlaneStrain) {
     answer.resize(5,5);
-    answer.beUnitMatrix();
-    //    answer.at(3,3) = 0;
-    answer.times(Hk);
+  } else {
+    answer.resize(9,9);
+  } 
+  answer.beUnitMatrix();
+  answer.times(Hk);
 
 }
 
@@ -631,7 +658,7 @@ GradientPolyconvexMaterial :: giveMicromorphicMatrix_dMdPhiGrad(FloatMatrix &ans
   if (matMode == _PlaneStrain) {
     answer.resize(10,10);
   } else {
-    answer.resize(18,18);
+    answer.resize(27,27);
   } 
   answer.beUnitMatrix();
   answer.times(Ak);
@@ -662,8 +689,8 @@ GradientPolyconvexMaterial :: giveFiniteStrainGeneralizedStressVectors_3d(FloatA
   
     GradientPolyconvexMaterialStatus *status = static_cast< GradientPolyconvexMaterialStatus* >( this->giveStatus(gp) );
     //deformation gradient, its inverse, cofactor, and determinant
-    FloatArray vCofF, vInvF;
-    FloatMatrix F, invF, cofF;
+    FloatArray vCofF, vInvF, vInvFt;
+    FloatMatrix F, invF, invFt, cofF;
     
     F.beMatrixForm(vF);
     invF.beInverseOf(F);
@@ -672,6 +699,10 @@ GradientPolyconvexMaterial :: giveFiniteStrainGeneralizedStressVectors_3d(FloatA
     cofF.times(J);
     vCofF.beVectorForm(cofF);
     vInvF.beVectorForm(invF);
+
+    invFt.beTranspositionOf(invF);
+    vInvFt.beVectorForm(invFt);
+    
     // relative stress for cofactor
     s = vCofF;
     s.subtract(micromorphicVar);
@@ -726,6 +757,21 @@ GradientPolyconvexMaterial :: giveFiniteStrainGeneralizedStressVectors_3d(FloatA
     }
     
     vP.add(vPm);
+
+    /// part with J^-1
+    FloatArray vPd(vInvFt);
+    vPd.times(gamma/J);    
+    vP.subtract(vPd);
+    
+
+    /// penalty on negative volume
+    /*    if(J < 0) {
+      FloatArray vPp(vInvFt);
+      double penalty = 1.e15;
+      vPp.times(J*J*penalty);
+      }*/
+
+    
     
     status->letTempMicromorphicVarBe(micromorphicVar);
     status->letTempMicromorphicVarGradBe(micromorphicVarGrad);
@@ -788,7 +834,10 @@ GradientPolyconvexMaterial :: initializeFrom(InputRecord *ir)
     IR_GIVE_FIELD(ir, Ak, _IFT_MicromorphicMaterialExtensionInterface_Ak);
 
     IR_GIVE_FIELD(ir, eps, _IFT_GradientPolyconvexMaterial_eps);
-    IR_GIVE_OPTIONAL_FIELD(ir, alpha, _IFT_GradientPolyconvexMaterial_alpha )
+    IR_GIVE_OPTIONAL_FIELD(ir, alpha, _IFT_GradientPolyconvexMaterial_alpha );
+    gamma = 1;
+    IR_GIVE_OPTIONAL_FIELD(ir, gamma, _IFT_GradientPolyconvexMaterial_gamma );
+    
     /*    tC1 = {{(1. + eps) * (1. + eps), 0, 0},{0, 1. / (1. + eps) / (1. + eps), 0}, {0, 0, 1}};
     tC2 = {{1. / (1. + eps) / (1. + eps), 0, 0},{0, (1. + eps)*(1. + eps), 0}, {0, 0, 1}};
     */
@@ -797,9 +846,9 @@ GradientPolyconvexMaterial :: initializeFrom(InputRecord *ir)
     tC2 = {{1.0, -eps, 0},{-eps, 1.+eps*eps, 0}, {0, 0, 1}};
     
 
-    /*    tC1 = {{ 1.0, eps, 0},{eps, 1., 0}, {0, 0, 1.}};
-    tC2 = {{1.0, -eps, 0},{-eps, 1., 0}, {0, 0, 1.}};
-    */
+    //tC1 = {{ 1.0, eps, 0},{eps, 1., 0}, {0, 0, 1.}};
+    //tC2 = {{1.0, -eps, 0},{-eps, 1., 0}, {0, 0, 1.}};
+    
     
     
     return IRRT_OK;
@@ -853,7 +902,7 @@ GradientPolyconvexMaterial :: giveIPValue(FloatArray &answer, GaussPoint *gp, In
       answer.resize(1);
       answer.at(1) = normC_tC1 * normC_tC1/(normC_tC1 * normC_tC1 + normC_tC2 * normC_tC2);
     } else {
-      OOFEM_ERROR("Unknown InternalStateType");
+      return StructuralMaterial :: giveIPValue(answer, gp, type, tStep);
     }
     return 1;
 }

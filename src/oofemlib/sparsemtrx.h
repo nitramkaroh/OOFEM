@@ -267,6 +267,9 @@ public:
     virtual void printStatistics() const {  OOFEM_LOG_INFO("Not implemented file %s, line %d\n", __FILE__, __LINE__); }
     /// Prints receiver to stdout. Works only for relatively small matrices.
     virtual void printYourself() const { OOFEM_LOG_INFO("Not implemented file %s, line %d\n", __FILE__, __LINE__); }
+    /// Prints receiver to stdout. Works only for relatively small matrices.
+    virtual void pY() const { OOFEM_LOG_INFO("Not implemented file %s, line %d\n", __FILE__, __LINE__); }
+    
     /// Helpful for debugging, writes the matrix to given file.
     virtual void writeToFile(const char *fname) const { OOFEM_LOG_INFO("Not implemented file %s, line %d\n", __FILE__, __LINE__); }
     /// Sparse matrix type identification

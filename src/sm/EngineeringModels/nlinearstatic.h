@@ -193,6 +193,10 @@ protected:
 
     virtual void packMigratingData(TimeStep *tStep);
     virtual void unpackMigratingData(TimeStep *tStep);
+    void applyIC(TimeStep *stepWhenIcApply);
+
+
+    
 };
 } // end namespace oofem
 #endif // nlinearstatic_h

@@ -249,6 +249,17 @@ FEI2dQuadLin :: edgeEvalN(FloatArray &answer, int iedge, const FloatArray &lcoor
     answer = { ( 1. - ksi ) * 0.5, ( 1. + ksi ) * 0.5 };
 }
 
+
+  void
+FEI2dQuadLin :: edgeEvaldNdxi(FloatArray &answer, int iedge, const FloatArray &lcoords,  const FEICellGeometry &cellgeo)
+{
+  
+    double ksi = lcoords.at(1);
+    answer = { - 0.5, 0.5 };
+}
+
+  
+
 double
 FEI2dQuadLin :: edgeEvalNormal(FloatArray &answer, int iedge, const FloatArray &lcoords, const FEICellGeometry &cellgeo)
 {

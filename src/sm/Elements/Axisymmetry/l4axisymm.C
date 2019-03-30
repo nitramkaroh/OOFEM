@@ -58,7 +58,7 @@ REGISTER_Element(L4Axisymm);
 FEI2dQuadLinAxi L4Axisymm :: interpolation(1, 2);
 
 L4Axisymm :: L4Axisymm(int n, Domain *aDomain) :
-    AxisymElement(n, aDomain), ZZNodalRecoveryModelInterface(this), SpatialLocalizerInterface(this)
+    AxisymElement(n, aDomain), ZZNodalRecoveryModelInterface(this), SpatialLocalizerInterface(this), PressureFollowerLoadElementInterface(this)
 {
     numberOfDofMans  = 4;
     numberOfGaussPoints = 4;
@@ -83,8 +83,10 @@ L4Axisymm :: giveInterface(InterfaceType interface)
         return static_cast< SPRNodalRecoveryModelInterface * >(this);
     } else if ( interface == SpatialLocalizerInterfaceType ) {
         return static_cast< SpatialLocalizerInterface * >(this);
+    } else if ( interface == PressureFollowerLoadElementInterfaceType) {
+        return static_cast< PressureFollowerLoadElementInterface* >(this);
     }
-
+    
     return NULL;
 }
 
@@ -156,6 +158,264 @@ L4Axisymm :: computeBmatrixAt(GaussPoint *gp, FloatMatrix &answer, TimeStep *tSt
         answer.at(6, 2 * i - 0) = dNdxRed.at(i, 1);
     }
 }
+
+
+
+
+  
+  
+  
+void
+L4Axisymm :: surfaceEvalNmatrixAt(FloatMatrix &answer, int iSurf, GaussPoint *gp)
+{
+  double ksi, n1, n2;
+  
+  ksi = gp->giveNaturalCoordinates().at(1);
+  n1  = ( 1. - ksi ) * 0.5;
+  n2  = ( 1. + ksi ) * 0.5;
+  
+  answer.resize(2, 4);
+  answer.zero();
+  answer.at(1, 1) = n1;
+  answer.at(1, 3) = n2;
+  answer.at(2, 2) = n1;
+  answer.at(2, 4) = n2;
+ 
+
+}
+
+void
+L4Axisymm :: surfaceEvaldNdxi(FloatMatrix &answer, int iSurf, GaussPoint *gp)
+{
+
+  double dn1, dn2;
+  
+  dn1  =  - 0.5;
+  dn2  =    0.5;
+  
+  answer.resize(2, 4);
+  answer.zero();
+  answer.at(1, 1) = dn1;
+  answer.at(1, 3) = dn2;
+  answer.at(2, 2) = dn1;
+  answer.at(2, 4) = dn2;
+  
+
+}
+  
+
+IntegrationRule*
+L4Axisymm :: surfaceGiveIntegrationRule(int order, int iSurf)
+{
+  return this->giveBoundaryEdgeIntegrationRule(order, iSurf);
+}
+
+void
+L4Axisymm :: surfaceEvalNormalDerivative(FloatMatrix &answer, int iSurf, GaussPoint *gp, TimeStep *tStep)
+{
+  double r = 0.0;
+  IntArray bNodes;
+  FloatArray vU, x, dx;
+  FloatMatrix e3, N, dNdxi;
+ 
+  e3 = {{0,-1},{1,0}};
+  this->giveBoundaryEdgeNodes (bNodes, iSurf);
+  double nNodes = bNodes.giveSize();
+  x.resize(2*nNodes);
+  this->surfaceEvalNmatrixAt(N, iSurf, gp);
+  this->surfaceEvaldNdxi(dNdxi, iSurf, gp);
+
+
+  if(this->domain->giveEngngModel()->giveFormulation() != AL) {
+    // compute actual node positions for Total Lagrangean formulation
+    this->computeBoundaryVectorOf(bNodes, {D_u, D_v}, VM_Total, tStep, vU); // solution vector    
+    for(int i = 1; i <= nNodes; i++) {
+      Node *node = this->giveNode(bNodes.at(i));
+      x.at(2*i-1) = node->giveCoordinate(1) + vU.at( (i-1) * 2 + 1);
+      x.at(2*i) = node->giveCoordinate(2) + vU.at( (i-1) * 2 + 2);
+      // Evaluate radius after deformation
+      r += x.at(2*i-1) * N.at(1, 2 * i - 1);
+    }
+  } else {
+    for(int i = 1; i <= nNodes; i++) {
+      Node *node = this->giveNode(bNodes.at(i));
+      x.at(2*i -1) = node->giveCoordinate(1);
+      x.at(2*i) = node->giveCoordinate(2);
+      // Evaluate radius after deformation
+      r += x.at(2*i-1) * N.at(1, 2 * i - 1);
+    }
+  }
+
+  
+  dx.beProductOf(dNdxi,x);
+  FloatArray I(2);
+  I.at(1) = 1.;
+
+  FloatArray NI;
+  FloatMatrix a1,a2, dxNI;
+
+  
+  
+  a1.beProductOf(e3, dNdxi);
+  a1.times(r);
+
+  NI.beTProductOf(N,I);
+  dxNI.beDyadicProductOf(dx,NI);
+  a2.beProductOf(e3,dxNI);
+
+  answer = a1;
+  //answer.subtract(a2);
+  answer.add(a2);
+  /*answer = a2;
+  answer.times(-1);
+  */
+}
+  
+
+  
+void
+L4Axisymm ::  surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &dxdeta, FloatArray &dxdxi, int iSurf, GaussPoint *gp, TimeStep *tStep)
+{
+
+  IntArray bNodes;
+  FloatArray vU, vdx, x, dx;
+  FloatMatrix e3, N, dNdxi;
+ 
+  e3 = {{0,-1},{1,0}};
+  this->giveBoundaryEdgeNodes (bNodes, iSurf);
+  double nNodes = bNodes.giveSize();
+  x.resize(2*nNodes);
+  this->surfaceEvalNmatrixAt(N, iSurf, gp);
+  this->surfaceEvaldNdxi(dNdxi, iSurf, gp);
+
+  double r = 0.0;
+
+  if(this->domain->giveEngngModel()->giveFormulation() != AL) {
+    // compute actual node positions for Total Lagrangean formulation
+    this->computeBoundaryVectorOf(bNodes, {D_u, D_v}, VM_Total, tStep, vU); // solution vector    
+    for(int i = 1; i <= nNodes; i++) {
+      Node *node = this->giveNode(bNodes.at(i));
+      x.at(2*i-1) = node->giveCoordinate(1) + vU.at( (i-1) * 2 + 1);
+      x.at(2*i) = node->giveCoordinate(2) + vU.at( (i-1) * 2 + 2);
+      // Evaluate radius after deformation
+      r += x.at(2*i -1) * N.at(1, 2 * i - 1);
+    }
+  } else {
+    for(int i = 1; i <= nNodes; i++) {
+      Node *node = this->giveNode(bNodes.at(i));
+      x.at(2*i -1) = node->giveCoordinate(1);
+      x.at(2*i) = node->giveCoordinate(2);
+      // Evaluate radius after deformation
+      r += x.at(2*i -1) * N.at(1, 2 * i - 1);
+    }
+  }
+
+  
+  dx.beProductOf(dNdxi,x);
+  answer.beProductOf(e3, dx);
+  answer.times(r);
+  
+}
+  
+
+
+void
+L4Axisymm ::  surfaceEvalNumericalStiffMatrixAt(FloatMatrix &answer, FloatArray &dxdeta, FloatArray &dxdxi, int iSurf, GaussPoint *gp, TimeStep *tStep)
+{
+
+  double r;
+  IntArray bNodes;
+  FloatArray lcoords, vU, dx, x;  
+  FloatMatrix dNdxi, N, e3;
+
+  e3 = {{0,-1},{1,0}};
+  
+  lcoords = gp->giveNaturalCoordinates();
+  this->giveBoundaryEdgeNodes (bNodes, iSurf);
+  double nNodes = bNodes.giveSize();
+  x.resize(2*nNodes);
+  this->surfaceEvalNmatrixAt(N, iSurf, gp);
+  this->surfaceEvaldNdxi(dNdxi, iSurf, gp);
+  this->computeBoundaryVectorOf(bNodes, {D_u, D_v}, VM_Total, tStep, vU); // solution vector
+
+  if(this->domain->giveEngngModel()->giveFormulation() != AL) {
+    for(int i = 1; i <= 2; i++) {
+      Node *node = this->giveNode(bNodes.at(i));
+      x.at(2*i-1) = node->giveCoordinate(1) + vU.at( (i-1) * 2 + 1);
+      x.at(2*i) = node->giveCoordinate(2) + vU.at( (i-1) * 2 + 2);
+      // Evaluate radius after deformation
+      r += x.at(2*i -1) * N.at(1, 2 * i - 1);
+    }
+  } else {
+    for(int i = 1; i <= 2; i++) {
+      Node *node = this->giveNode(bNodes.at(i));
+      x.at(2*i -1) = node->giveCoordinate(1);
+      x.at(2*i) = node->giveCoordinate(2);
+      // Evaluate radius after deformation
+      r += x.at(2*i -1) * N.at(1, 2 * i - 1);
+    }
+  }
+
+  
+
+  
+
+  FloatArray n;
+  dx.beProductOf(dNdxi,x);
+  n.beProductOf(e3, dx);
+  n.times(r);
+
+  answer.resize(4,4);
+  double pert = 1.e-9;
+  FloatArray v, xp(x);
+  FloatMatrix Ki;
+
+
+  /*for (int i = 1; i<=4; i++) {
+    xp.at(i) += pert;      
+    dx.beProductOf(dNdxi,xp);
+    v.beProductOf(e3, dx);
+    v.times(r);
+    v.subtract(n);
+    v.times(1/pert);
+    Ki.beTProductOf(N, v);
+    for (int k = 1; k <= 4; k++) {
+      answer.at(k,i) = Ki.at(k,1);
+    }
+    xp = x;
+    }*/
+
+
+  for (int i = 1; i<=4; i++) {
+    dx.beProductOf(dNdxi,x);
+    v.beProductOf(e3, dx);
+    double rp = r+ pert;
+    v.times(rp);
+    v.subtract(n);
+    v.times(1/pert);
+    Ki.beTProductOf(N, v);
+    for (int k = 1; k <= 4; k++) {
+      answer.at(k,i) += Ki.at(k,1);
+    }
+    xp = x;
+  }
+
+
+
+  
+}
+  
+
+
+
+
+
+
+
+
+
+
+  
 
 void
 L4Axisymm :: SPRNodalRecoveryMI_giveSPRAssemblyPoints(IntArray &pap)

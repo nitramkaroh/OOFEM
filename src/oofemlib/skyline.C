@@ -654,6 +654,16 @@ void Skyline :: printYourself() const
 }
 
 
+void Skyline :: pY() const
+{
+    // Prints the receiver on screen.
+    FloatMatrix copy;
+
+    this->toFloatMatrix(copy);
+    copy.pY();
+}
+  
+
 void Skyline :: writeToFile(const char *fname) const
 {
     FILE *file = fopen(fname, "w");

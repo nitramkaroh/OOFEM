@@ -108,10 +108,10 @@ QuadMembrane :: computeBHmatrixAt(GaussPoint *gp, FloatMatrix &answer, TimeStep 
     for ( int i = 1; i <= dNdx.giveNumberOfRows(); i++ ) {
         answer.at(1, 3 * i - 2) = dNdx.at(i, 1);     // du/dx - 1
         answer.at(2, 3 * i - 1) = dNdx.at(i, 2);     // dv/dy - 2
-        answer.at(3, 3 * i - 2) = dNdx.at(i, 2);     // du/dy - 6
+	answer.at(3, 3 * i - 2) = dNdx.at(i, 2);     // du/dy - 6
 	answer.at(4, 3 * i - 0) = dNdx.at(i, 2);     // dw/dy - 7
         answer.at(5, 3 * i - 0) = dNdx.at(i, 1);     // dw/dx - 8
-        answer.at(6, 3 * i - 1) = dNdx.at(i, 1);     // dv/dx - 9
+	answer.at(6, 3 * i - 1) = dNdx.at(i, 1);     // dv/dx - 9
     }
 
 }
@@ -166,7 +166,7 @@ QuadMembrane :: computeDeformationGradientVector(FloatArray &answer, GaussPoint 
     
     this->computeBHmatrixAt(gp, B, tStep, 0);
     rF.beProductOf(B, u);
-    this->surfaceEvalDeformedNormalAt(n, a, b, 1, gp, tStep);
+    /* this->surfaceEvalDeformedNormalAt(n, a, b, 1, gp, tStep);
     if(n.at(3) < 0) {
       n.times(-1.0);
     }
@@ -183,6 +183,15 @@ QuadMembrane :: computeDeformationGradientVector(FloatArray &answer, GaussPoint 
     answer.at(7) = rF.at(4);
     answer.at(8) = rF.at(5);
     answer.at(9) = rF.at(6);
+    */
+    answer.resize(6);
+    answer.at(1) = rF.at(1) + 1.0;
+    answer.at(2) = rF.at(2) + 1.0;
+    answer.at(3) = rF.at(3);
+    answer.at(4) = rF.at(4);
+    answer.at(5) = rF.at(5);
+    answer.at(6) = rF.at(6);
+
     
 }
 

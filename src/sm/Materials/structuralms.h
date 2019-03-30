@@ -132,7 +132,9 @@ public:
     /// Assigns FVector to given vector v.
     void letFVectorBe(const FloatArray &v) { FVector = v; }
     /// Assigns tempStressVector to given vector v.
-    void letTempStressVectorBe(const FloatArray &v) { tempStressVector = v; }
+    void letTempStressVectorBe(const FloatArray &v) {
+      tempStressVector = v;
+    }
     /// Assigns tempStrainVector to given vector v
     void letTempStrainVectorBe(const FloatArray &v) { tempStrainVector = v; }
     /// Assigns tempPVector to given vector v

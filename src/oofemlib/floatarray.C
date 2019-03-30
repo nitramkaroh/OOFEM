@@ -46,7 +46,7 @@
 #include <ostream>
 #include <memory>
 #include <numeric>
-#include <cmath>
+//#include <cmath>
 
 #define FAST_RESIZE(newsize) \
     if ( (newsize) < this->giveSize() ) { \

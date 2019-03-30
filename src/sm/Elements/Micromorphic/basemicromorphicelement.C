@@ -366,7 +366,7 @@ BaseMicromorphicElement :: computeStiffnessMatrix_um(FloatMatrix &answer, MatRes
     NLStructuralElement *elem = this->giveElement();
     double dV;
     StructuralCrossSection *cs = elem->giveStructuralCrossSection();
-    FloatMatrix B, N_m, D, DN_m;
+    FloatMatrix B, N_m, D, DN_m, Dg, B_m, DgB_m;
 
     answer.clear();
 
@@ -380,12 +380,24 @@ BaseMicromorphicElement :: computeStiffnessMatrix_um(FloatMatrix &answer, MatRes
 	this->computeB_uMatrixAt(gp,B, elem, isStressTensorSymmetric);
 
 
-        micromorphicMat->giveMicromorphicMatrix_dSigdPhi(D, rMode, gp, tStep);
+        micromorphicMat->giveMicromorphicMatrix_dSigdPhi(D, rMode, gp, tStep);	
+	micromorphicMat->giveMicromorphicMatrix_dSigdPhiGrad(Dg, rMode, gp, tStep);
+
+	
         this->computeMicromorphicNMatrixAt(gp, N_m);
 
 	dV = elem->computeVolumeAround(gp);
         DN_m.beProductOf(D, N_m);
+
         answer.plusProductUnsym(B, DN_m, dV);
+
+
+	if(Dg.giveNumberOfColumns()!=0) {
+	  this->computeMicromorphicBMatrixAt(gp, B_m);
+	  DgB_m.beProductOf(Dg, B_m);
+	  answer.plusProductUnsym(B, DgB_m, dV);
+	}
+
     }
 
 }
@@ -398,7 +410,7 @@ BaseMicromorphicElement :: computeStiffnessMatrix_mu(FloatMatrix &answer, MatRes
 {
     double dV;
     NLStructuralElement *elem = this->giveElement();
-    FloatMatrix B, DB, D, N_m;
+    FloatMatrix B, DB, D, N_m, Dg;
     StructuralCrossSection *cs = elem->giveStructuralCrossSection();
 
     answer.clear();
@@ -413,6 +425,12 @@ BaseMicromorphicElement :: computeStiffnessMatrix_mu(FloatMatrix &answer, MatRes
 	this->computeB_uMatrixAt(gp, B, elem, isStressTensorSymmetric);
 
         micromorphicMat->giveMicromorphicMatrix_dSdUgrad(D, rMode, gp, tStep);
+	micromorphicMat->giveMicromorphicMatrix_dMdUgrad(Dg, rMode, gp, tStep);
+
+	if(Dg.giveNumberOfColumns() != 0) {
+	  D.add(Dg);
+	}
+	
         this->computeMicromorphicNMatrixAt(gp, N_m);
 
 	dV = elem->computeVolumeAround(gp);
@@ -430,7 +448,8 @@ BaseMicromorphicElement :: computeStiffnessMatrix_mm(FloatMatrix &answer, MatRes
     NLStructuralElement *elem = this->giveElement();
     double dV;
     FloatMatrix lStiff;
-    FloatMatrix B_m, N_m, dSdPhi, dMdPhiGrad, dSdPhi_N, dMdPhiGrad_B;
+    FloatMatrix B_m, N_m, dSdPhi, dSdPhiGrad, dMdPhi, dMdPhiGrad;
+    FloatMatrix dSdPhi_N, dSdPhiGrad_B, dMdPhi_N, dMdPhiGrad_B;
     StructuralCrossSection *cs = elem->giveStructuralCrossSection();
     answer.clear();
 
@@ -441,7 +460,16 @@ BaseMicromorphicElement :: computeStiffnessMatrix_mm(FloatMatrix &answer, MatRes
         }
 
         micromorphicMat->giveMicromorphicMatrix_dSdPhi(dSdPhi, rMode, gp, tStep);
+	micromorphicMat->giveMicromorphicMatrix_dSdPhiGrad(dSdPhiGrad, rMode, gp, tStep);
+        micromorphicMat->giveMicromorphicMatrix_dMdPhi(dMdPhi, rMode, gp, tStep);
         micromorphicMat->giveMicromorphicMatrix_dMdPhiGrad(dMdPhiGrad, rMode, gp, tStep);
+
+	if(dSdPhiGrad.giveNumberOfColumns() != 0) {
+	  
+	}
+
+
+	
         this->computeMicromorphicNMatrixAt(gp, N_m);
         this->computeMicromorphicBMatrixAt(gp, B_m);
         dV = elem->computeVolumeAround(gp);
@@ -451,6 +479,18 @@ BaseMicromorphicElement :: computeStiffnessMatrix_mm(FloatMatrix &answer, MatRes
 
 	dMdPhiGrad_B.beTProductOf(dMdPhiGrad, B_m);
 	answer.plusProductUnsym(B_m,dMdPhiGrad_B,dV);
+
+	if(dSdPhiGrad.giveNumberOfColumns() != 0) {
+	  dSdPhiGrad_B.beProductOf(dSdPhiGrad, B_m);
+	  answer.plusProductUnsym(N_m, dSdPhiGrad_B, dV);	
+	}
+
+	if(dMdPhi.giveNumberOfColumns() != 0) {
+	  dMdPhi_N.beProductOf(dMdPhi, N_m);
+	  answer.plusProductUnsym(B_m, dSdPhi_N, dV);		  
+	}	
+
+	
 
     }
 }

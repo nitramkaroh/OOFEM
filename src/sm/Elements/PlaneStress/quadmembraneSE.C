@@ -176,6 +176,7 @@ QuadMembraneSE :: initializeFrom(InputRecord *ir)
         return result;
     }
 
+    
     if ( numberOfGaussPoints != 1 && numberOfGaussPoints != 4 && numberOfGaussPoints != 9 && numberOfGaussPoints != 16 && numberOfGaussPoints != 25 ) {
         numberOfGaussPoints = 4;
         OOFEM_WARNING("Number of Gauss points enforced to 4");
@@ -234,20 +235,23 @@ QuadMembraneSE :: computeStiffnessMatrix(FloatMatrix &answer,MatResponseMode rMo
     B.add(Bnl);
     this->giveStructuralCrossSection()->giveStiffnessMatrix_PlaneStress(d, rMode, gp, tStep);
     StructuralMaterialStatus *status = static_cast< StructuralMaterialStatus * >( this->giveStructuralCrossSection()->giveMaterial(gp)->giveStatus(gp) );
-    FloatArray S = status->giveTempStressVector();
+    FloatArray redvS = status->giveTempStressVector();
+    FloatArray vS;
+    StructuralMaterial :: giveFullSymVectorForm(vS, redvS, _PlaneStress);
     dV = this->computeVolumeAround(gp);
     dbj.beProductOf(d, B);
     answer.plusProductUnsym(B, dbj, dV);    
 
-    if(S.at(1) == 0 && S.at(2) == 0) {
-      S.at(1) = 1;
-      S.at(2) = 1;
+    if(vS.at(1) == 0 && vS.at(2) == 0) {
+	vS.at(1) = 1000000;
+	vS.at(2) = 1000000;
     }
 
     FloatMatrix mS;
     mS.resize(6,6);
+   
     mS.zero();
-    mS = {{S.at(1), 0, S.at(3), 0, 0, 0},{ 0, S.at(2),0, 0, 0,S.at(3)},{S.at(3), 0, S.at(2), 0, 0, 0},{0, 0, 0, S.at(2), S.at(3), 0},{ 0, 0, 0, S.at(3), S.at(1), 0},{0, S.at(3), 0, 0, 0, S.at(1)}};
+    mS = {{vS.at(1), 0, vS.at(6), 0, 0, 0},{ 0, vS.at(2),0, 0, 0,vS.at(6)},{vS.at(6), 0, vS.at(2), 0, 0, 0},{0, 0, 0, vS.at(2), vS.at(6), 0},{ 0, 0, 0, vS.at(6), vS.at(1), 0},{0, vS.at(6), 0, 0, 0, vS.at(1)}};
 
     FloatMatrix SG;
     SG.beProductOf(mS,G);
@@ -298,7 +302,6 @@ QuadMembraneSE :: giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, 
       strain.zero();
     }
     strain.beProductOf(BE, u);
-
     this->giveStructuralCrossSection()->giveRealStress_PlaneStress(stress, gp, strain, tStep);    
 
     // updates gp stress and strain record  acording to current
@@ -311,13 +314,13 @@ QuadMembraneSE :: giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, 
     answer.plusProduct(B, stress, dV);
 
     //@todo: test to remove
-    this->giveStructuralCrossSection()->giveStiffnessMatrix_PlaneStress(D, TangentStiffness, gp, tStep);
+    /*   this->giveStructuralCrossSection()->giveStiffnessMatrix_PlaneStress(D, TangentStiffness, gp, tStep);
     DBl.beProductOf(D,Bl);
     DBnl.beProductOf(D,Bnl);
     k1.plusProductUnsym(Bl, DBl, dV);
     k2.plusProductUnsym(Bnl, DBl, dV);
     k3.plusProductUnsym(Bl, DBnl, 0.5*dV);
-    k4.plusProductUnsym(Bnl, DBnl, 0.5*dV);      
+    k4.plusProductUnsym(Bnl, DBnl, 0.5*dV);      */
   }
   
   // if inactive update state, but no contribution to global system
@@ -366,17 +369,27 @@ void
 QuadMembraneSE ::  surfaceEvaldNdxi(FloatMatrix &answer, int iSurf, GaussPoint *gp)
 {
 
-  FEInterpolation2d *interp2d = static_cast<FEInterpolation2d*> (this->giveInterpolation());
-  interp2d->boundarySurfaceEvaldNdx(answer, iSurf, gp->giveNaturalCoordinates(), FEIElementGeometryWrapper(this));
+  FEI2dQuadLin *interp2d = static_cast<FEI2dQuadLin*> (this->giveInterpolation());
+  FloatMatrix dn;
+  interp2d->giveDerivatives(answer, gp->giveNaturalCoordinates());
+  /*  answer.resize(2, dn.giveNumberOfRows()*3);
+  for ( int i = 1; i <= dn.giveNumberOfRows(); i++ ) {
+    answer.at(1, i * 3 - 2) = dn.at(i, 1);
+    answer.at(2, i * 3 - 1) = dn.at(i, 2);
+    }*/
+
 }
 
 
+
+
+  
 void
-QuadMembraneSE ::  surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &dxdeta, FloatArray &dxdksi, int iSurf, GaussPoint *gp, TimeStep *tStep)
+QuadMembraneSE ::  surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &dxdeta, FloatArray &dxdxi, int iSurf, GaussPoint *gp, TimeStep *tStep)
 {
   IntArray bNodes;
   FloatArray lcoords, vU;
-  FloatMatrix dNdxi, dxdxi, x;
+  FloatMatrix dNdxi, dx, x;
 
   lcoords = gp->giveNaturalCoordinates();
   this->giveBoundarySurfaceNodes (bNodes, iSurf);
@@ -403,19 +416,11 @@ QuadMembraneSE ::  surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &d
     
   }
 
-  /* testing stuff
-  FloatMatrix dNdk(4,1), xx, dxdx;
-  for(int i = 1; i <= 4; i++) {
-    dNdk.at(i,1) = dNdxi.at(i,1);
-  }
-
-  dxdx.beTProductOf(x, dNdk);
-  */
   
-  dxdxi.beTProductOf(dNdxi,x);
-  dxdxi.copyRow(dxdksi, 2);
-  dxdxi.copyRow(dxdeta, 1);
-  answer.beVectorProductOf(dxdksi, dxdeta);
+  dx.beTProductOf(dNdxi,x);
+  dx.copyRow(dxdeta, 1);
+  dx.copyRow(dxdxi, 2);
+  answer.beVectorProductOf(dxdeta, dxdxi);
 
   //test
   double J;
@@ -494,7 +499,7 @@ QuadMembraneSE ::  surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &d
   dudxi.copyRow(dudeta, 1);
 
   a1.beVectorProductOf(dudksi, dxdeta);
-  a2.beVectorProductOf(dudeta, dxdksi);
+  a2.beVectorProductOf(dudeta, dxdxi);
 
   /*  answer.add(a1);
   answer.subtract(a2);
@@ -549,6 +554,68 @@ QuadMembraneSE ::  surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &d
   
 
 
+void
+QuadMembraneSE ::  surfaceEvalNumericalStiffMatrixAt(FloatMatrix &answer, FloatArray &dxdeta, FloatArray &dxdxi, int iSurf, GaussPoint *gp, TimeStep *tStep)
+{
+  IntArray bNodes;
+  FloatArray lcoords, vU;
+  FloatMatrix dNdxi, dx, x;
+
+  lcoords = gp->giveNaturalCoordinates();
+  this->giveBoundarySurfaceNodes (bNodes, iSurf);
+
+  this->surfaceEvaldNdxi(dNdxi, iSurf, gp);
+  double nNodes = bNodes.giveSize();
+  x.resize(nNodes,3);
+  if(this->domain->giveEngngModel()->giveFormulation() != AL) {
+    // compute actual node positions for Total Lagrangean formulation
+    this->computeBoundaryVectorOf(bNodes, {D_u, D_v, D_w}, VM_Total, tStep, vU); // solution vector    
+    for(int i = 1; i <= nNodes; i++) {
+      Node *node = this->giveNode(bNodes.at(i));
+      x.at(i,1) = node->giveCoordinate(1) + vU.at( (i-1) * 3 + 1);
+      x.at(i,2) = node->giveCoordinate(2) + vU.at( (i-1) * 3 + 2);
+      x.at(i,3) = node->giveCoordinate(3) + vU.at( (i-1) * 3 + 3);
+    }
+  } else {
+    for(int i = 1; i <= nNodes; i++) {
+      Node *node = this->giveNode(bNodes.at(i));
+      x.at(i,1) = node->giveCoordinate(1);
+      x.at(i,2) = node->giveCoordinate(2);
+      x.at(i,3) = node->giveCoordinate(3);
+    }
+    
+  }
+
+  FloatArray n;
+  dx.beTProductOf(dNdxi,x);
+  dx.copyRow(dxdeta, 1);
+  dx.copyRow(dxdxi, 2);
+  n.beVectorProductOf(dxdeta, dxdxi);
+  answer.resize(12,12);
+  double pert = 1.e-9;
+  FloatArray v;
+  FloatMatrix xp(x), N, Ki;
+  this->computeNmatrixAt(lcoords, N);
+  int index = 0;
+  for (int i = 1; i<=4; i++) {
+    for (int j = 1; j <= 3; j++) {
+      index++;
+      xp.at(i,j) += pert;      
+      dx.beTProductOf(dNdxi,xp);
+      dx.copyRow(dxdeta, 1);
+      dx.copyRow(dxdxi, 2);
+      v.beVectorProductOf(dxdeta, dxdxi);
+      v.subtract(n);
+      v.times(1/pert);
+      Ki.beTProductOf(N, v);
+      for (int k = 1; k <= 12; k++) {
+	answer.at(k,index) = Ki.at(k,1);
+      }
+      xp = x;
+    }
+  }
+  
+}
   
 
 } // end namespace oofem

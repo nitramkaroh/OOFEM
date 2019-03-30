@@ -42,6 +42,7 @@
 #include "contextioerr.h"
 #include "datastream.h"
 #include "classfactory.h"
+#include "engngm.h"
 
 namespace oofem {
 REGISTER_Material(MisesMat);
@@ -54,7 +55,7 @@ MisesMat :: MisesMat(int n, Domain *d) : StructuralMaterial(n, d)
     sig0 = 0.;
     G = 0.;
     K = 0.;
-    yieldTol = 1.e-8;
+    yieldTol = 1.e-6;
 }
 
 // destructor
@@ -260,8 +261,12 @@ MisesMat :: performPlasticityReturn_PlaneStress(GaussPoint *gp, const FloatArray
 	  break;
 	}
 	iter++;
-	if(iter > 1000)
-	  OOFEM_ERROR("No convergence of the stress return algorithm in MisesMat :: performPlasticityReturn_PlaneStress\n");	
+	if(iter > 400) {
+	  this->giveDomain()->giveEngngModel()->setAnalysisCrash(true);
+	  break;
+	}
+	
+	//	  OOFEM_WARNING("No convergence of the stress return algorithm in MisesMat :: performPlasticityReturn_PlaneStress\n");	
       }
       // update accumulated plastic strain
       dGamma = dKappa;
@@ -542,7 +547,7 @@ MisesMat :: give3dMaterialStiffnessMatrix(FloatMatrix &answer,
     
 }
 
-
+  
 void
 MisesMat :: givePlaneStressStiffMtrx(FloatMatrix &answer,
                                           MatResponseMode mmode, GaussPoint *gp,
@@ -569,8 +574,9 @@ MisesMat :: givePlaneStressStiffMtrx(FloatMatrix &answer,
         return;
     }
     // Compute elastoplastic consistent tangent (Box 9.6)
-    FloatArray stress;
-    stress = status->giveTempStressVector();
+    FloatArray stress, fullStress;
+    fullStress = status->giveTempStressVector();
+    StructuralMaterial :: giveReducedSymVectorForm(stress, fullStress, _PlaneStress);    
     // Compute xi
     double xi = 2. / 3. * ( stress.at(1) * stress.at(1) + stress.at(2) * stress.at(2) - stress.at(1) * stress.at(2) ) + 2. * stress.at(3) * stress.at(3);
     // compute dGamma
@@ -612,7 +618,7 @@ MisesMat :: givePlaneStressStiffMtrx(FloatMatrix &answer,
     answer.subtract(correction);
     //@todo: add damage part of the stiffness
 }
-
+  
 
   
 
@@ -706,7 +712,7 @@ MisesMat :: giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType ty
     if ( type == IST_PlasticStrainTensor ) {
         answer = status->givePlasDef();
         return 1;
-    } else if ( type == IST_MaxEquivalentStrainLevel ) {
+    } else if ( type == IST_MaxEquivalentStrainLevel || type == IST_CumPlasticStrain ) {
         answer.resize(1);
         answer.at(1) = status->giveCumulativePlasticStrain();
         return 1;
@@ -808,7 +814,7 @@ MisesMatStatus :: printOutputAt(FILE *file, TimeStep *tStep)
 void MisesMatStatus :: initTempStatus()
 {
     StructuralMaterialStatus :: initTempStatus();
-
+    dGamma = 0;
     tempDamage = damage;
     tempPlasticStrain = plasticStrain;
     tempKappa = kappa;

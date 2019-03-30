@@ -61,6 +61,19 @@ std::vector< std::vector<int> > StructuralMaterial :: svIndex = {
 };
 
 
+std::vector< std::vector<int> > StructuralMaterial :: huhu1 = {
+    { 1, 3, 0 },
+    { 3, 2, 0 },
+    { 0, 0, 0 }
+};
+  
+std::vector< std::vector<int> > StructuralMaterial :: huhu2 = {
+    { 1, 3, 0 },
+    { 4, 2, 0 },
+    { 0, 0, 0 }
+};
+
+
 StructuralMaterial :: StructuralMaterial(int n, Domain * d) : Material(n, d) { }  
 
 
@@ -403,8 +416,12 @@ StructuralMaterial :: giveFirstPKStressVector_PlaneStress(FloatArray &answer, Ga
 
 
 void
-StructuralMaterial :: giveFirstPKStressVector_Membrane2d(FloatArray &answer, GaussPoint *gp, FloatArray &vF, TimeStep *tStep)
+StructuralMaterial :: giveFirstPKStressVector_Membrane2d(FloatArray &answer, GaussPoint *gp, const FloatArray &vF, TimeStep *tStep)
 {
+  this->giveFirstPKStressVector_PlaneStress(answer, gp, vF, tStep);
+
+  
+  /*
     StructuralMaterialStatus *status = static_cast< StructuralMaterialStatus * >( this->giveStatus(gp) );
     IntArray F_control, P_control; // Determines which components are controlled by F and P resp.
     FloatArray increment_vF, vP, vP_control;
@@ -434,14 +451,14 @@ StructuralMaterial :: giveFirstPKStressVector_Membrane2d(FloatArray &answer, Gau
     }
 
     // Initial guess;
-    /*    vF = status->giveFVector();
-    for ( int i = 1; i <= F_control.giveSize(); ++i ) {
-        vF.at( F_control.at(i) ) = reducedvF.at(i);
-	}*/
+    //   vF = status->giveFVector();
+    //for ( int i = 1; i <= F_control.giveSize(); ++i ) {
+    //  vF.at( F_control.at(i) ) = reducedvF.at(i);
+    //	}
 
     // Iterate to find full vF.
     for ( int k = 0; k < 100; k++ ) { // Allow for a generous 100 iterations.
-      /******************/
+      //
       FloatArray vE, vS, vPt;
       FloatMatrix F, E, S, P;
       F.beMatrixForm(vF);
@@ -451,13 +468,12 @@ StructuralMaterial :: giveFirstPKStressVector_Membrane2d(FloatArray &answer, Gau
       E.at(3, 3) -= 1.0;
       E.times(0.5);
       vE.beSymVectorFormOfStrain(E);      // 6
-      ///@todo Have this function:
+      //@todo Have this function:
       //      this->giveRealStressVector_3d(vS, gp, vE, tStep);
-      /* S.beMatrixForm(vS);
-      P.beProductOf(F, S);
-      vPt.beVectorForm(P);
-      */
-      /*****************/
+      // S.beMatrixForm(vS);
+      //P.beProductOf(F, S);
+      //vPt.beVectorForm(P);
+      //
       this->giveFirstPKStressVector_3d(vP, gp, vF, tStep);
         vP_control.beSubArrayOf(vP, P_control);
 	double norm = vP.computeNorm();
@@ -477,7 +493,7 @@ StructuralMaterial :: giveFirstPKStressVector_Membrane2d(FloatArray &answer, Gau
 
 	
         tangent_Pcontrol.solveForRhs(vP_control, increment_vF);
-	/********************************/
+	//
 	FloatArray ivE, ivF(9);
 	FloatMatrix iF, iE, iE2, iE3;
 	ivF.assemble(increment_vF, P_control);
@@ -489,7 +505,7 @@ StructuralMaterial :: giveFirstPKStressVector_Membrane2d(FloatArray &answer, Gau
 	iE.add(iE3);
 	iE.times(0.5);
 	ivE.beSymVectorFormOfStrain(iE);
-	/*********************************/
+	//
 	double dF = vP.at(3)/tangent.at(3,3);
 	iiF.times(dF);
 	iF.beMatrixForm(iiF);
@@ -507,7 +523,7 @@ StructuralMaterial :: giveFirstPKStressVector_Membrane2d(FloatArray &answer, Gau
 
     OOFEM_WARNING("Iteration did not converge");
     answer.clear();
-    
+    */
 }
 
 
@@ -807,6 +823,28 @@ StructuralMaterial :: convert_dSdE_2_dPdF(FloatMatrix &answer, const FloatMatrix
         answer(3, 1) = F(3) * C(0, 2) * F(3) + F(3) * C(0, 1) * F(1) + F(1) * C(2, 2) * F(3) + F(1) * C(2, 1) * F(1) + S(2);
         answer(3, 2) = F(3) * C(0, 2) * F(0) + F(3) * C(0, 1) * F(2) + F(1) * C(2, 2) * F(0) + F(1) * C(2, 1) * F(2) + 0.0;
         answer(3, 3) = F(3) * C(0, 0) * F(3) + F(3) * C(0, 2) * F(1) + F(1) * C(2, 0) * F(3) + F(1) * C(2, 2) * F(1) + S(0);
+
+
+	FloatMatrix answer1(4,4);
+	FloatMatrix I(3, 3);
+        I.beUnitMatrix();
+	for ( int i = 1; i <= 2; i++ ) {
+	  for ( int j = 1; j <= 2; j++ ) {
+	    for ( int k = 1; k <= 2; k++ ) {
+	      for ( int l = 1; l <= 2; l++ ) {
+		answer1.at( giveVIPS(i, j), giveVIPS(k, l) ) += I.at(i, k) * S.at( giveSymVIPS(j, l) );
+		for ( int m = 1; m <= 2; m++ ) {
+		  for ( int n = 1; n <= 2; n++ ) {
+		    answer1.at( giveVIPS(i, j), giveVIPS(k, l) ) += F.at( giveVIPS(i, m) ) * F.at( giveVIPS(k, n) ) * C.at( giveSymVIPS(m, j), giveSymVIPS(n, l) );
+		  }
+		}
+	      }
+	    }
+	  }
+	}
+
+	int a = 1;
+	
     } else if ( matMode == _PlaneStrain ) {
         //Save terms associated with H = [du/dx, dv/dy, dw/dz, du/dy, dv/dx] //@todo not fully checked
 
@@ -896,7 +934,6 @@ StructuralMaterial :: convert_dSdE_2_dPdF(FloatMatrix &answer, const FloatMatrix
       
     }
 
-    int huhu = 1;
 }
 
 void

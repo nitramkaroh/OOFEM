@@ -44,6 +44,7 @@ Structural3DElement :: Structural3DElement(int n, Domain *aDomain) :
   NLStructuralElement(n, aDomain), FbarElementExtensionInterface(aDomain), PressureFollowerLoadElementInterface(this),
     matRotation(false)
 {
+  cellGeometryWrapper = NULL;
 }
 
 

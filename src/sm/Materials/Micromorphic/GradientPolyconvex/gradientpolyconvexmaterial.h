@@ -48,6 +48,7 @@
 #define _IFT_GradientPolyconvexMaterial_Name "gradientpolyconvexmaterial"
 #define _IFT_GradientPolyconvexMaterial_eps "eps"
 #define _IFT_GradientPolyconvexMaterial_alpha "alpha"
+#define _IFT_GradientPolyconvexMaterial_gamma "gamma"
 //@}
 
 namespace oofem {
@@ -67,6 +68,7 @@ class GradientPolyconvexMaterial : public IsotropicLinearElasticMaterial, Microm
 protected:
   double eps;
   double alpha;
+  double gamma;
   FloatMatrix tC1, tC2;
 
 public:

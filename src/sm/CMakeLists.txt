@@ -115,6 +115,7 @@ set (sm_element
     Elements/Micromorphic/Micropolar/qplanestrainmicropolar.C
     Elements/Micromorphic/Micropolar/planestressmicropolar.C
     Elements/Micromorphic/Micropolar/qplanestressmicropolar.C
+    Elements/Micromorphic/Micropolar/lbrickmicropolar.C
     Elements/Micromorphic/Microstretch/planestrainmicrostretch.C
     Elements/Micromorphic/Micromorphic/planestrainmicromorphic.C
     Elements/Micromorphic/Microplastic/truss1dmicroplastic.C
@@ -122,6 +123,8 @@ set (sm_element
     Elements/Micromorphic/Microplastic/qplanestrainmicroplastic.C
     #Gradient-polyconvex element based on micromorph continua
     Elements/Micromorphic/GradientPolyconvex/planestraingradpolyconvex.C
+    Elements/Micromorphic/GradientPolyconvex/lbrickgradpolyconvex.C
+    #Elements/Micromorphic/GradientPolyconvex/planestraingradpolyconvex.C
     #Second-gradient continua
     Elements/Micromorphic/Straindivergence/planestrainstraindivergence.C
 
@@ -239,6 +242,7 @@ set (sm_material
     Materials/rcsdnl.C
     Materials/mooneyrivlin.C
     Materials/neohookean.C
+    Materials/doublewellmaterial.C
     Materials/m4.C
     Materials/microplane_m1.C
     Materials/druckerPragerPlasticitySM.C
@@ -261,6 +265,7 @@ set (sm_material
     Materials/latticedamage2d.C
     Materials/dustmat.C
     Materials/lsmastermat.C
+    Materials/lsmastermat2.C
     Materials/metricstrainmastermaterial.C
     Materials/lsmastermatgrad.C
     Materials/simplevitrificationmaterial.C
@@ -289,10 +294,14 @@ set (sm_material
     Materials/Micromorphic/micromorphicmaterialextensioninterface.C
     Materials/Micromorphic/Microdil/microdilmaterial_elastic.C
     Materials/Micromorphic/Micropolar/micropolarmaterial_elastic.C
-    Materials/Micromorphic/Micromorphic/micromorphicmaterial_elastic.C
+    Materials/Micromorphic/Micropolar/micropolarmaterial_chiral.C
+    Materials/Micromorphic/Micromorphic/micromorphicmaterial_elastic.C  
     Materials/Micromorphic/Microplasticity/misesmatmicroplastic.C
     Materials/Micromorphic/Microplasticity/ellipticmicroplasticmaterial.C
     Materials/Micromorphic/GradientPolyconvex/gradientpolyconvexmaterial.C
+    Materials/Micromorphic/GradientPolyconvex/gradientpolyconvexmaterial_defgrad.C
+    Materials/Micromorphic/GradientPolyconvex/stvenantkirchhoff_gradpolyconvex.C
+    Materials/Micromorphic/GradientPolyconvex/stvenantkirchhoff_gradpolyconvexdefgrad.C
     # Second-gradient materials
     Materials/Micromorphic/secondgradientms.C
     Materials/Micromorphic/secondgradientmaterialextensioninterface.C

@@ -799,11 +799,7 @@ Membrane1d :: computeMidsurfaceVolume(TimeStep *tStep)
       double dl = this->computeEdgeVolumeAround(gp,1);
 
       V += w*(r+u)*(1+du)*dl;
-      /*
-	f.at(1) = 0.;
-	f.at(2) = (r)*pressure;
-      */
-      
+     
 
       
 
@@ -811,6 +807,7 @@ Membrane1d :: computeMidsurfaceVolume(TimeStep *tStep)
     return V;
 
 }
+
 
 
 

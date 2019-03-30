@@ -39,6 +39,7 @@
 #include "zznodalrecoverymodel.h"
 #include "sprnodalrecoverymodel.h"
 #include "spatiallocalizer.h"
+#include "Loads/pressurefollowerloadinterface.h"
 
 #define _IFT_L4Axisymm_Name "l4axisymm"
 
@@ -49,8 +50,7 @@ class FEI2dQuadLinAxi;
  * This class implements an isoparametric four-node quadrilateral axisymmetric
  * finite element. Each node has 2 degrees of freedom.
  */
-class L4Axisymm : public AxisymElement, public ZZNodalRecoveryModelInterface, public SPRNodalRecoveryModelInterface,
-public SpatialLocalizerInterface
+ class L4Axisymm : public AxisymElement, public ZZNodalRecoveryModelInterface, public SPRNodalRecoveryModelInterface,public SpatialLocalizerInterface, public PressureFollowerLoadElementInterface
 {
 protected:
     static FEI2dQuadLinAxi interpolation;
@@ -70,6 +70,16 @@ public:
 
     virtual IRResultType initializeFrom(InputRecord *ir);
 
+
+
+    virtual void surfaceEvalNmatrixAt(FloatMatrix &answer, int iSurf, GaussPoint *gp);
+    virtual void surfaceEvaldNdxi(FloatMatrix &answer, int iSurf, GaussPoint *gp);
+    virtual void surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &dxdksi, FloatArray &dxdeta, int iSurf, GaussPoint *gp, TimeStep *tStep);
+    virtual IntegrationRule* surfaceGiveIntegrationRule(int order, int iSurf);
+    virtual void surfaceEvalNormalDerivative(FloatMatrix &answer, int iSurf, GaussPoint *gp, TimeStep *tStep);
+    void  surfaceEvalNumericalStiffMatrixAt(FloatMatrix &answer, FloatArray &dxdeta, FloatArray &dxdxi, int iSurf, GaussPoint *gp, TimeStep *tStep);
+
+    
     virtual void SPRNodalRecoveryMI_giveSPRAssemblyPoints(IntArray &pap);
     virtual void SPRNodalRecoveryMI_giveDofMansDeterminedByPatch(IntArray &answer, int pap);
     virtual int SPRNodalRecoveryMI_giveNumberOfIP();

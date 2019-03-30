@@ -128,8 +128,9 @@ public:
                                                GaussPoint *gp,
                                                TimeStep *tStep);
     virtual void givePlaneStressStiffMtrx(FloatMatrix &answer,
-                                          MatResponseMode mmode, GaussPoint *gp,
+	  MatResponseMode mmode, GaussPoint *gp,
                                           TimeStep *tStep);
+
 
     virtual void give1dStressStiffMtrx(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep); 
 

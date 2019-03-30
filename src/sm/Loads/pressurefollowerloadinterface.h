@@ -67,11 +67,13 @@ public:
 
     
     // private:
-
-    virtual double surfaceEvalVolumeAround(GaussPoint *gp, int iSurf) = 0;
+    virtual void  surfaceEvalNumericalStiffMatrixAt(FloatMatrix &answer, FloatArray &dxdeta, FloatArray &dxdxi, int iSurf, GaussPoint *gp, TimeStep *tStep){answer.zero();}
     virtual void surfaceEvalNmatrixAt(FloatMatrix &answer, int iSurf, GaussPoint *gp) = 0;
     virtual void surfaceEvaldNdxi(FloatMatrix &answer, int iSurf, GaussPoint *gp) = 0;
     virtual void surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &dxdksi, FloatArray &dxdeta, int iSurf, GaussPoint *gp, TimeStep *tStep) = 0;
+
+    virtual void surfaceEvalNormalDerivative(FloatMatrix &answer, int iSurf, GaussPoint *gp, TimeStep *tStep){;}
+    
     virtual IntegrationRule* surfaceGiveIntegrationRule(int order, int iSurf) = 0;
 
 };
