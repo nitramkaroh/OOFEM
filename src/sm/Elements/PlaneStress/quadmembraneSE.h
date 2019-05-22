@@ -85,7 +85,7 @@ public:
     
     void computeStiffnessMatrix(FloatMatrix &answer,MatResponseMode rMode, TimeStep *tStep);
     void giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord);
-    
+    virtual int giveSpatialDimension(){return 3;}
 protected:
 
     virtual void computeBmatrixAt(GaussPoint *gp, FloatMatrix &answer, TimeStep *tStep = NULL, int = 0, int = ALL_STRAINS);

@@ -10,7 +10,7 @@
  *
  *             OOFEM : Object Oriented Finite Element Code
  *
- *               Copyright (C) 1993 - 2013   Borek Patzak
+ *               Copyright (C) 1993 - 2015   Borek Patzak
  *
  *
  *
@@ -32,47 +32,46 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef hyperelasticmaterial_h
-#define hyperelasticmaterial_h
+#ifndef stvenantkirchhoff_incompressible_h
+#define stvenantkirchhoff_incompressible_h
 
+
+#include "../sm/Materials/isolinearelasticmaterial.h"
 #include "../sm/Materials/structuralmaterial.h"
 #include "../sm/Materials/structuralms.h"
+#include "cltypes.h"
 
-///@name Input fields for HyperElasticMaterial
+
+///@name Input fields for MicromorphLEmat
 //@{
-#define _IFT_HyperElasticMaterial_Name "hyperelmat"
-#define _IFT_HyperElasticMaterial_k "k"
-#define _IFT_HyperElasticMaterial_g "g"
+#define _IFT_StVenantKirchhoffIncompressibleMaterial_Name "stvenantkirchhoffincompressiblematerial"
+#define _IFT_StVenantKirchhoffIncompressibleMaterial_K "k"
 //@}
 
 namespace oofem {
+
+
 /**
- * Saint Venant–Kirchhoff model defined by shear and bulk modulus.
- * @todo Should we even have this? Isn't this identical to the isotropic linear elastic model? / Mikael
  */
-class HyperElasticMaterial : public StructuralMaterial
+class StVenantKirchhoffIncompressibleMaterial : public IsotropicLinearElasticMaterial
 {
 protected:
-    double K; ///< Bulk modulus.
-    double G; ///< Shear modulus.
-
+  double K;
 public:
-    HyperElasticMaterial(int n, Domain * d);
+    StVenantKirchhoffIncompressibleMaterial(int n, Domain * d);
+    virtual ~StVenantKirchhoffIncompressibleMaterial();
+
+    // definition
+    virtual const char *giveInputRecordName() const { return _IFT_StVenantKirchhoffIncompressibleMaterial_Name; }
+    virtual const char *giveClassName() const { return "StVenantKirchhoffGradientPolyconvexMaterial"; }
 
     virtual IRResultType initializeFrom(InputRecord *ir);
 
-    virtual void give3dMaterialStiffnessMatrix(FloatMatrix &answer,
-                                               MatResponseMode mode, GaussPoint *gp,
-                                               TimeStep *tStep);
+    virtual void giveStiffnessMatrix(FloatMatrix &answer, MatResponseMode rMode, GaussPoint *gp, TimeStep *tStep);
+    void giveFirstPKStressVector_3d(FloatArray &answer, GaussPoint *gp, const FloatArray &vF, TimeStep *tStep);
+    void give3dMaterialStiffnessMatrix_dPdF(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep);
+  };
+ 
 
-
-    virtual void giveRealStressVector_3d(FloatArray &answer, GaussPoint *gp,
-                                         const FloatArray &reducedStrain, TimeStep *tStep);
-
-    virtual MaterialStatus *CreateStatus(GaussPoint *gp) const;
-
-    virtual const char *giveInputRecordName() const { return _IFT_HyperElasticMaterial_Name; }
-    virtual const char *giveClassName() const { return "HyperElasticMaterial"; }
-};
 } // end namespace oofem
 #endif

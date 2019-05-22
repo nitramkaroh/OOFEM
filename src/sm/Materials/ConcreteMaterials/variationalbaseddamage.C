@@ -272,7 +272,9 @@ VarBasedDamageMaterial :: giveNonlocalInternalForces_B_factor(FloatArray &answer
 {
   answer = nonlocalDamageDrivingVariableGrad;
   answer.times(gf * internalLength * internalLength);
+#ifdef keep_track_of_dissipated_energy
   this->computeRegulirizingWork(gp, nonlocalDamageDrivingVariableGrad);
+#endif
 }
 
 void
@@ -313,7 +315,7 @@ VarBasedDamageMaterial :: computeDamagePrime(double &answer, double damageDrivin
 
   if(pf!=0) {
     //corresponds to the Miehe phase-field model
-    answer = 2*(1-damageDrivingVariable);
+    answer = 2 * ( 1. - damageDrivingVariable );
   }
 }
   
@@ -322,9 +324,9 @@ VarBasedDamageMaterial :: computeDamagePrime2(double &answer, double damageDrivi
 {
   /// for now, only class of models using exponent p is used
   if(p == 1) {
-    answer = -exp( -damageDrivingVariable );
+    answer = - exp( - damageDrivingVariable );
   } else {   
-    answer = -p*pow( ( 1. + ( p - 1. ) * damageDrivingVariable ), (2.* p - 1) / ( 1. - p ) );
+    answer = - p * pow( ( 1. + ( p - 1. ) * damageDrivingVariable ), (2. * p - 1) / ( 1. - p ) );
   }
 
   if(pf!=0) {

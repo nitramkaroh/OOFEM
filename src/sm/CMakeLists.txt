@@ -236,12 +236,12 @@ set (sm_material
     Materials/RheoChainMaterials/mps.C
     Materials/RheoChainMaterials/mpsdammat.C
     Materials/RheoChainMaterials/eurocode2creep.C
+    Materials/HyperelasticMaterials/mooneyrivlin.C
+    Materials/HyperelasticMaterials/neohookean.C    
     Materials/structuralfe2material.C
     Materials/rcsd.C 
     Materials/rcsde.C 
     Materials/rcsdnl.C
-    Materials/mooneyrivlin.C
-    Materials/neohookean.C
     Materials/doublewellmaterial.C
     Materials/m4.C
     Materials/microplane_m1.C
@@ -251,7 +251,6 @@ set (sm_material
     Materials/j2mat.C
     Materials/mdm.C
     Materials/micromaterial.C
-    Materials/hyperelasticmaterial.C
     Materials/misesmat.C 
     Materials/misesmat2.C 
     Materials/misesmatgrad.C 
@@ -302,6 +301,7 @@ set (sm_material
     Materials/Micromorphic/GradientPolyconvex/gradientpolyconvexmaterial_defgrad.C
     Materials/Micromorphic/GradientPolyconvex/stvenantkirchhoff_gradpolyconvex.C
     Materials/Micromorphic/GradientPolyconvex/stvenantkirchhoff_gradpolyconvexdefgrad.C
+    Materials/Micromorphic/GradientPolyconvex/stvenantkirchhoff_incompressible.C
     # Second-gradient materials
     Materials/Micromorphic/secondgradientms.C
     Materials/Micromorphic/secondgradientmaterialextensioninterface.C

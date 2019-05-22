@@ -612,7 +612,7 @@ IsotropicDamageMaterial1 :: computeEta(FloatArray &answer, const FloatArray &str
         double nu = lmat->give(NYxz, gp);
         FloatArray principalStrains;
         FloatMatrix N;
-
+	
         if ( gp->giveMaterialMode() == _1dMat ) {
             dim = 1;
             StrainVector fullStrain(strain, _1dMat);
@@ -646,7 +646,7 @@ IsotropicDamageMaterial1 :: computeEta(FloatArray &answer, const FloatArray &str
         for ( int i = 1; i <= dim; i++ ) {
             if ( i <= dim ) {
                 if ( principalStrains.at(i) > 0.0 ) {
-                    for ( int j = 1; j < dim; j++ ) {
+                    for ( int j = 1; j <= dim; j++ ) {
                         n.at(j) = N.at(j, i);
                     }
 

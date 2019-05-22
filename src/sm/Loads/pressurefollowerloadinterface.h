@@ -71,6 +71,7 @@ public:
     virtual void surfaceEvalNmatrixAt(FloatMatrix &answer, int iSurf, GaussPoint *gp) = 0;
     virtual void surfaceEvaldNdxi(FloatMatrix &answer, int iSurf, GaussPoint *gp) = 0;
     virtual void surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &dxdksi, FloatArray &dxdeta, int iSurf, GaussPoint *gp, TimeStep *tStep) = 0;
+    virtual void surfaceEvalNormalAt(FloatArray &answer, FloatArray &dxdksi, FloatArray &dxdeta, int iSurf, GaussPoint *gp, TimeStep *tStep){;}
 
     virtual void surfaceEvalNormalDerivative(FloatMatrix &answer, int iSurf, GaussPoint *gp, TimeStep *tStep){;}
     

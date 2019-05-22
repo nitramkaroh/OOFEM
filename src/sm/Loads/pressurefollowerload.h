@@ -45,6 +45,7 @@
 #define _IFT_PressureFollowerLoad_Name "pressurefollowerload"
 #define _IFT_PressureFollowerLoad_pressure "pressure"
 #define _IFT_PressureFollowerLoad_useTangent "usetangent"
+#define _IFT_PressureFollowerLoad_nfl "nfl"
 //@}
 
 namespace oofem {
@@ -59,6 +60,7 @@ class OOFEM_EXPORT PressureFollowerLoad : public ActiveBoundaryCondition
 {
     double pressure; ///< pressure.
     bool useTangent; ///< Determines if tangent should be used.
+    bool nfl;
 
 public:
     /**

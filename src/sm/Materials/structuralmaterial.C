@@ -843,8 +843,6 @@ StructuralMaterial :: convert_dSdE_2_dPdF(FloatMatrix &answer, const FloatMatrix
 	  }
 	}
 
-	int a = 1;
-	
     } else if ( matMode == _PlaneStrain ) {
         //Save terms associated with H = [du/dx, dv/dy, dw/dz, du/dy, dv/dx] //@todo not fully checked
 
@@ -2337,6 +2335,610 @@ StructuralMaterial :: givePlaneStressVectorTranformationMtrx(FloatMatrix &answer
 }
 
 
+
+
+double
+StructuralMaterial :: compute_I1_C_from_F(const FloatMatrix &F)
+{
+#ifdef DEBUG
+    if ( F.giveNumberOfRows() != 3 || F.giveNumberOfColumns() != 3 ) {
+      OOFEM_ERROR("Inconsistent size of deformation gradient");
+    }
+#endif
+    FloatMatrix C;
+    C.beTProductOf(F,F);
+    
+    return ( C.at(1,1) + C.at(2,2) + C.at(3,3) );
+}
+
+double
+StructuralMaterial :: compute_I2_C_from_F(const FloatMatrix &F)
+{
+#ifdef DEBUG
+  if ( F.giveNumberOfRows() != 3 || F.giveNumberOfColumns() != 3 ) {
+    OOFEM_ERROR("Inconsistent size of deformation gradient");
+  }
+#endif
+  FloatMatrix C, C2;
+  C.beTProductOf(F,F);
+  C2.beProductOf(C,C);
+  double a = C.at(1,1) + C.at(2,2) + C.at(3,3);
+  double b = C2.at(1,1) + C2.at(2,2) + C2.at(3,3);
+  return ( 0.5 * ( a - b ) );
+}
+
+
+
+double
+StructuralMaterial :: compute_I1_C_from_C(const FloatMatrix &C)
+{
+#ifdef DEBUG
+    if ( C.giveNumberOfRows() != 3 || C.giveNumberOfColumns() != 3 ) {
+      OOFEM_ERROR("Inconsistent size of deformation gradient");
+    }
+#endif   
+    return ( C.at(1,1) + C.at(2,2) + C.at(3,3) );
+}
+
+double
+StructuralMaterial :: compute_I2_C_from_C(const FloatMatrix &C)
+{
+#ifdef DEBUG
+  if ( C.giveNumberOfRows() != 3 || C.giveNumberOfColumns() != 3 ) {
+    OOFEM_ERROR("Inconsistent size of deformation gradient");
+  }
+#endif
+  FloatMatrix C2;
+  C2.beProductOf(C,C);
+  double a = C.at(1,1) + C.at(2,2) + C.at(3,3);
+  double b = C2.at(1,1) + C2.at(2,2) + C2.at(3,3);
+  return ( 0.5 * ( a - b ) );
+}
+
+  
+double
+StructuralMaterial :: compute_I3_C_from_F(const FloatMatrix &F)
+{
+#ifdef DEBUG
+  if ( F.giveNumberOfRows() != 3 || F.giveNumberOfColumns() != 3 ) {
+    OOFEM_ERROR("Inconsistent size of deformation gradient");
+  }
+#endif
+  double J = F.giveDeterminant();
+  return J*J;
+
+}
+
+void
+StructuralMaterial :: compute_dI1_C_dF(FloatArray &answer, const FloatMatrix &F)
+{
+  answer.beVectorForm(F);
+  answer.times(2);
+}
+
+void
+StructuralMaterial :: compute_dI2_C_dF(FloatArray &answer, const FloatMatrix &F)
+{
+  double I1;
+  FloatMatrix C, FC, mAnswer;
+  C.beTProductOf(F,F);
+  I1 = C.at(1,1) + C.at(2,2) + C.at(3,3); 
+  FC.beProductOf(F,C);
+  FC.times(2);
+  mAnswer = F;
+  mAnswer.times(I1);
+  mAnswer.subtract(FC);
+  answer.beVectorForm(mAnswer);
+}
+
+  
+
+void
+StructuralMaterial :: compute_dI3_C_dF(FloatArray &answer, const FloatMatrix &F)
+{}
+
+
+void
+StructuralMaterial :: compute_dJ_dF(FloatArray &answer, const FloatMatrix &F)
+{
+
+  double J;
+  FloatMatrix invF, invFt;
+  
+  invF.beInverseOf(F);
+  J = F.giveDeterminant();
+  invFt.beTranspositionOf(invF);
+  answer.beVectorForm(invFt);
+  answer.times(J);
+}
+
+  
+
+void
+StructuralMaterial :: compute_d2I1_C_dF2(FloatMatrix &answer, const FloatMatrix &F)
+{
+
+    answer.resize(9, 9);
+    answer.zero();
+
+    FloatMatrix I(3, 3);
+    I.beUnitMatrix();
+    
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  for ( int l = 1; l <= 3; l++ ) {
+	    answer.at( giveVI(i, j), giveVI(k, l) ) += 2. *  I.at( i, k ) * I.at( j, l );
+	  }
+	}
+      }
+    }     
+}
+
+
+void
+StructuralMaterial :: computeNumerical_d2I1_Cdev_dF2(FloatMatrix &stiff1, FloatMatrix &stiff2, const FloatMatrix &F)
+{
+
+    
+    FloatArray dI1dF, dI2dF;
+    
+    compute_dI1_Cdev_dF(dI1dF, F);
+    compute_dI2_Cdev_dF(dI2dF, F);
+    
+
+
+    double pert = 1.e-8;  
+    FloatArray pdI1dF, pdI2dF;
+    FloatMatrix pF;
+    stiff1.resize(9,9);
+    stiff2.resize(9,9);
+    stiff1.zero();
+    stiff2.zero();
+      
+    pF = F;
+    pF.at(1,1) += pert;
+    compute_dI1_Cdev_dF(pdI1dF, pF);
+    compute_dI2_Cdev_dF(pdI2dF, pF);
+
+    for(int i = 1; i <= 9; i++) {
+      stiff1.at(i,1) = pdI1dF.at(i) - dI1dF.at(i);
+      stiff2.at(i,1) = pdI2dF.at(i) - dI2dF.at(i);    
+    }
+
+
+    pF = F;
+    pF.at(2,2) += pert;
+    compute_dI1_Cdev_dF(pdI1dF, pF);
+    compute_dI2_Cdev_dF(pdI2dF, pF);
+
+    for(int i = 1; i <= 9; i++) {
+      stiff1.at(i,2) = pdI1dF.at(i) - dI1dF.at(i);
+      stiff2.at(i,2) = pdI2dF.at(i) - dI2dF.at(i);    
+    }
+
+
+    pF = F;
+    pF.at(3,3) += pert;
+    compute_dI1_Cdev_dF(pdI1dF, pF);
+    compute_dI2_Cdev_dF(pdI2dF, pF);
+
+    for(int i = 1; i <= 9; i++) {
+      stiff1.at(i,3) = pdI1dF.at(i) - dI1dF.at(i);
+      stiff2.at(i,3) = pdI2dF.at(i) - dI2dF.at(i);    
+    }
+
+
+    pF = F;
+    pF.at(2,3) += pert;
+    compute_dI1_Cdev_dF(pdI1dF, pF);
+    compute_dI2_Cdev_dF(pdI2dF, pF);
+
+    for(int i = 1; i <= 9; i++) {
+      stiff1.at(i,4) = pdI1dF.at(i) - dI1dF.at(i);
+      stiff2.at(i,4) = pdI2dF.at(i) - dI2dF.at(i);    
+    }
+
+    pF = F;
+    pF.at(1,3) += pert;
+    compute_dI1_Cdev_dF(pdI1dF, pF);
+    compute_dI2_Cdev_dF(pdI2dF, pF);
+
+    for(int i = 1; i <= 9; i++) {
+      stiff1.at(i,5) = pdI1dF.at(i) - dI1dF.at(i);
+      stiff2.at(i,5) = pdI2dF.at(i) - dI2dF.at(i);    
+    }
+
+    pF = F;
+    pF.at(1,2) += pert;
+    compute_dI1_Cdev_dF(pdI1dF, pF);
+    compute_dI2_Cdev_dF(pdI2dF, pF);
+
+    for(int i = 1; i <= 9; i++) {
+      stiff1.at(i,6) = pdI1dF.at(i) - dI1dF.at(i);
+      stiff2.at(i,6) = pdI2dF.at(i) - dI2dF.at(i);    
+    }
+
+    pF = F;
+    pF.at(3,2) += pert;
+    compute_dI1_Cdev_dF(pdI1dF, pF);
+    compute_dI2_Cdev_dF(pdI2dF, pF);
+
+    for(int i = 1; i <= 9; i++) {
+      stiff1.at(i,7) = pdI1dF.at(i) - dI1dF.at(i);
+      stiff2.at(i,7) = pdI2dF.at(i) - dI2dF.at(i);    
+    }
+
+
+    pF = F;
+    pF.at(3,1) += pert;
+    compute_dI1_Cdev_dF(pdI1dF, pF);
+    compute_dI2_Cdev_dF(pdI2dF, pF);
+
+    for(int i = 1; i <= 9; i++) {
+      stiff1.at(i,8) = pdI1dF.at(i) - dI1dF.at(i);
+      stiff2.at(i,8) = pdI2dF.at(i) - dI2dF.at(i);    
+    }
+
+    pF = F;
+    pF.at(2,1) += pert;
+    compute_dI1_Cdev_dF(pdI1dF, pF);
+    compute_dI2_Cdev_dF(pdI2dF, pF);
+
+    for(int i = 1; i <= 9; i++) {
+      stiff1.at(i,9) = pdI1dF.at(i) - dI1dF.at(i);
+      stiff2.at(i,9) = pdI2dF.at(i) - dI2dF.at(i);    
+    }    
+    
+
+  stiff1.times(1./pert);
+  stiff2.times(1./pert);
+}
+
+
+  
+ 
+void
+StructuralMaterial :: compute_d2I2_C_dF2(FloatMatrix &answer, const FloatMatrix &F)
+{
+    answer.resize(9, 9);
+    answer.zero();
+
+    double I1;
+    FloatMatrix C, B, I(3, 3);
+    I.beUnitMatrix();
+    C.beTProductOf(F,F);
+    C.beProductTOf(F,F);
+    I1 = C.at(1,1) + C.at(2,2) + C.at(3,3); 
+    
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  for ( int l = 1; l <= 3; l++ ) {
+	    answer.at( giveVI(i, j), giveVI(k, l) ) += 2. * F.at( i, j ) * F.at( k, l ) - 2. * F.at( i, l ) * F.at( k, j ) + I1 * I.at( i, k ) * I.at( j, l ) - 2. * C.at( l, j ) * I.at( i, k ) - 2. * B.at( i, k ) * I.at( j, l );
+	  }
+	}
+      }
+    }  
+
+}
+
+
+
+
+void
+StructuralMaterial :: compute_d2I1_C_dF2_and_d2I2_C_dF2(FloatMatrix &d2I1dF2, FloatMatrix &d2I2dF2, const FloatMatrix &F)
+{
+
+    d2I1dF2.resize(9, 9);
+    d2I1dF2.zero();
+
+    d2I2dF2.resize(9, 9);
+    d2I2dF2.zero();
+
+    double I1;
+    FloatMatrix C, B, I(3, 3);
+    I.beUnitMatrix();
+    C.beTProductOf(F,F);
+    C.beProductTOf(F,F);
+    I1 = C.at(1,1) + C.at(2,2) + C.at(3,3); 
+
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  for ( int l = 1; l <= 3; l++ ) {
+	    d2I1dF2.at( giveVI(i, j), giveVI(k, l) ) += 2. * I.at( i, k ) * I.at( j, l );
+	    d2I2dF2.at( giveVI(i, j), giveVI(k, l) ) += 2. * F.at( i, j )* F.at( k, l ) - 2. * F.at( i, l )* F.at( k, j ) + I1 * I.at( i, k ) * I.at( j, l ) - 2. * C.at( l, j ) * I.at( i, k ) - 2. * B.at( i, k ) * I.at( j, l );
+	  }
+	}
+      }
+    }  
+
+}
+
+
+
+  
+void
+StructuralMaterial :: compute_d2I3_C_dF2(FloatMatrix &answer, const FloatMatrix &F)
+{}
+
+
+void
+StructuralMaterial :: compute_d2J_dF2(FloatMatrix &answer, const FloatMatrix &F)
+{
+
+    double J;
+    FloatMatrix invF;
+    
+    invF.beInverseOf(F);
+    J = F.giveDeterminant();
+    
+  
+    answer.resize(9, 9);
+    answer.zero();
+
+   
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  for ( int l = 1; l <= 3; l++ ) {
+	    answer.at( giveVI(i, j), giveVI(k, l) ) += invF.at( j, i ) * invF.at( l, k ) - invF.at( j, k ) * invF.at( l, i );
+	  }
+	}
+      }
+    }
+    answer.times(J);
+
+}
+
+
+void
+StructuralMaterial :: compute_d2lnJ_dF2(FloatMatrix &answer, const FloatMatrix &F)
+{
+
+    FloatMatrix invF;    
+    invF.beInverseOf(F);
+    
+    answer.resize(9, 9);
+    answer.zero();
+    
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  for ( int l = 1; l <= 3; l++ ) {
+	    answer.at( giveVI(i, j), giveVI(k, l) ) = -invF.at( j, k ) * invF.at( l, i );
+	  }
+	}
+      }
+    }
+    
+}
+  
+
+
+
+ 
+
+double
+StructuralMaterial :: compute_I1_Cdev_from_F(const FloatMatrix &F)
+{
+  double I1 = this->compute_I1_C_from_F(F);
+  double J = F.giveDeterminant();
+  return pow(J, -2./3.) * I1;
+}
+
+double
+StructuralMaterial :: compute_I2_Cdev_from_F(const FloatMatrix &F)
+{
+    double I2 = this->compute_I2_C_from_F(F);
+    double J = F.giveDeterminant();
+    return pow(J, -4./3.) * I2;
+
+}
+
+void
+StructuralMaterial :: compute_dI1_Cdev_dF(FloatArray &answer, const FloatMatrix &F)
+{
+
+  double I1 = this->compute_I1_C_from_F(F);
+  double J_23 = pow(F.giveDeterminant(), -2./3.);
+  FloatMatrix invF, invFt;
+  invF.beInverseOf(F);
+  invFt.beTranspositionOf(invF);
+  invFt.times(2./3.*I1);
+
+  FloatMatrix mAnswer;
+  mAnswer = F;
+  mAnswer.times(2.);
+  mAnswer.subtract(invFt);
+  mAnswer.times(J_23);
+  answer.beVectorForm(mAnswer);
+  
+}
+
+void
+StructuralMaterial :: compute_dI2_Cdev_dF(FloatArray &answer, const FloatMatrix &F)
+{
+  
+    double I1 = this->compute_I1_C_from_F(F);
+    double I2 = this->compute_I2_C_from_F(F);
+    double J_43 = pow(F.giveDeterminant(), -4./3.);
+  
+    FloatMatrix invF, invFt, C, FC;
+    invF.beInverseOf(F);
+    invFt.beTranspositionOf(invF);
+    invFt.times(4./3.*I2);
+
+    C.beTProductOf(F,F);
+    FC.beProductOf(F,C);
+    FC.times(2.);
+
+
+    FloatMatrix mAnswer;
+    mAnswer = F;
+    mAnswer.times(2.*I1);
+    mAnswer.subtract(invF);
+    mAnswer.subtract(FC);
+    mAnswer.times(J_43);
+    answer.beVectorForm(mAnswer);
+
+}
+
+void
+StructuralMaterial :: compute_d2I1_Cdev_dF2(FloatMatrix &answer, const FloatMatrix &F)
+{
+
+
+    answer.resize(9, 9);
+    answer.zero();
+
+    double I1;
+    FloatMatrix C, invF, I(3, 3);
+    double J_23 = pow(F.giveDeterminant(), -2./3.);
+    C.beTProductOf(F,F);
+    C.beProductTOf(F,F);
+    invF.beInverseOf(F);
+    I.beUnitMatrix();
+    I1 = C.at(1,1) + C.at(2,2) + C.at(3,3); 
+
+    
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  for ( int l = 1; l <= 3; l++ ) {
+	    answer.at( giveVI(i, j), giveVI(k, l) ) += 3. * I.at( i, k ) * I.at( j, l ) + I1 * invF.at( j, k )* invF.at( l, i ) - 2./3. * I1 * invF.at( j, i )* F.at( l, k )- 2. * invF.at( l, k )* F.at( i, j )- 2. * invF.at( j, i )* F.at( k, l );
+	  }
+	}
+      }
+    }  
+
+    answer.times(2./3.*J_23);
+  
+
+}
+
+void
+StructuralMaterial :: compute_d2I2_Cdev_dF2(FloatMatrix &answer, const FloatMatrix &F)
+{
+
+    answer.resize(9, 9);
+    answer.zero();
+
+    double I1, I2;
+    FloatMatrix FC, C, B, invF, I(3, 3);
+    double J_43 = pow(F.giveDeterminant(), -4./3.);
+    C.beTProductOf(F,F);
+    B.beProductTOf(F,F);
+    
+    invF.beInverseOf(F);
+    I.beUnitMatrix();
+    I1 = this->compute_I1_C_from_C(C);
+    I2 = this->compute_I2_C_from_C(C);
+    FC.beProductOf(F,C);
+
+    
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  for ( int l = 1; l <= 3; l++ ) {
+	    answer.at( giveVI(i, j), giveVI(k, l) ) += I1 * I.at( i, k ) * I.at( j, l ) + 2 * F.at( i, j ) * F.at( k, l ) + 2./3. * I2 * invF.at( j, k )  * invF.at( l, i ) - 2./3. * I1 * invF.at( j, i )  * F.at( k, l ) + 4. / 3. * invF.at( j, i ) * FC.at(k, l)  - C.at( l, j ) * I.at(i, k) - F.at( i, l ) * F.at( k, j ) - B.at( i, k ) * F.at(l, j) - 4. / 3. * ( I1 * F.at( i, j ) * invF.at( l , k ) - 2. / 3. * I2 *  invF.at( j , i ) * invF.at( l , k ) - FC.at( i, j )  );
+	  }
+	}
+      }
+    }  
+
+    answer.times( 2. * J_43 );
+}
+
+
+void
+StructuralMaterial :: compute_dInvFt_dF(FloatMatrix &answer, const FloatMatrix &invF)
+{
+  
+    answer.resize(9, 9);
+    answer.zero();
+   
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  for ( int l = 1; l <= 3; l++ ) {
+	    answer.at( giveVI(i, j), giveVI(k, l) ) = - invF.at( j, k ) * invF.at( l, i );
+	  }
+	}
+      }
+    }  
+}
+
+
+void 
+StructuralMaterial :: compute_d2I1_Cdev_dF2_and_d2I2_Cdev_dF2(FloatMatrix &d2I1dF2, FloatMatrix &d2I2dF2, const FloatMatrix &F)
+      
+
+{  
+    d2I1dF2.resize(9, 9);
+    d2I1dF2.zero();
+    
+    d2I2dF2.resize(9, 9);
+    d2I2dF2.zero();
+
+       
+    double I1, I2, J;
+    FloatMatrix C, B, FC, invF, I(3, 3);
+
+    J = F.giveDeterminant();
+    double J_23 = pow(J, -2./3.);
+    double J_43 = pow(J, -4./3.);
+    
+    
+    C.beTProductOf(F,F);
+    B.beProductTOf(F,F);
+    invF.beInverseOf(F);
+    I.beUnitMatrix();
+    I1 = this->compute_I1_C_from_C(C);
+    I2 = this->compute_I2_C_from_C(C);
+    FC.beProductOf(F,C);
+
+
+    
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  for ( int l = 1; l <= 3; l++ ) {
+	    d2I1dF2.at( giveVI(i, j), giveVI(k, l) ) = 3. * I.at( i, k ) * I.at( j, l ) + I1 * invF.at( j, k )* invF.at( l, i ) + 2./3. * I1 * invF.at( j, i )* invF.at( l, k )- 2. * invF.at( l, k )* F.at( i, j ) - 2. * invF.at( j, i )* F.at( k, l );
+	double test = 1. * ( ( 5. * I1 * invF.at(1, 1) * invF.at(1, 1) - 12. * F.at(1, 1) * invF.at(1, 1) + 9. ) ) / ( 3);
+	    d2I2dF2.at( giveVI(i, j), giveVI(k, l) ) = I1 * I.at( i, k ) * I.at( j, l ) + 2 * F.at( i, j ) * F.at( k, l ) + 2./3. * I2 * invF.at( j, k )  * invF.at( l, i ) - 2./3. * I1 * invF.at( j, i )  * F.at( k, l ) + 4. / 3. * invF.at( j, i ) * FC.at(k, l)  - C.at( l, j ) * I.at(i, k) - F.at( i, l ) * F.at( k, j ) - B.at( i, k ) * F.at(l, j) - 4. / 3. * ( I1 * F.at( i, j ) * invF.at( l , k ) - 2. / 3. * I2 *  invF.at( j , i ) * invF.at( l , k ) - FC.at( i, j )  );
+	  }
+	}
+      }
+    }  
+    
+    d2I1dF2.times( 2./3. * J_23 );
+    d2I2dF2.times( 2. * J_43 );
+}
+
+
+
+void
+StructuralMaterial :: compute_cross_product(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b)
+{
+
+    answer.resize(9, 9);
+    answer.zero();
+    
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  for ( int l = 1; l <= 3; l++ ) {
+	    answer.at( giveVI(i, j), giveVI(k, l) ) = a.at(i,j) * b.at(k,l);
+	  }
+	}
+      }
+    }
+}
+
+  
+  
 void
 StructuralMaterial :: transformStrainVectorTo(FloatArray &answer, const FloatMatrix &base,
                                               const FloatArray &strainVector, bool transpose)

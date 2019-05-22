@@ -225,7 +225,7 @@ QuadMembraneSE :: computeStiffnessMatrix(FloatMatrix &answer,MatResponseMode rMo
   //testing
   FloatMatrix ism(6,6);
   ism.zero();
-  bool matStiffSymmFlag = this->giveCrossSection()->isCharacteristicMtrxSymmetric(rMode);
+  //bool matStiffSymmFlag = this->giveCrossSection()->isCharacteristicMtrxSymmetric(rMode);
   for ( GaussPoint *gp: *this->giveDefaultIntegrationRulePtr() ) {
     this->computeBmatrixAt(gp, B, tStep);
     this->computeNlBmatrixAt(gp, Bnl, G, tStep);

@@ -697,6 +697,47 @@ public:
      */
     static void sortPrincDirAndValCloseTo(FloatArray *pVal, FloatMatrix *pDir, FloatMatrix *toPDir);
 
+
+
+
+    /// function for large strain materials
+    // @todo: add comments
+
+
+    double compute_I1_C_from_F(const FloatMatrix &F);
+    double compute_I2_C_from_F(const FloatMatrix &F);
+    double compute_I1_C_from_C(const FloatMatrix &C);
+    double compute_I2_C_from_C(const FloatMatrix &C);
+    double compute_I3_C_from_F(const FloatMatrix &F);
+    void compute_dI1_C_dF(FloatArray &answer, const FloatMatrix &F);
+    void compute_dI2_C_dF(FloatArray &answer, const FloatMatrix &F);
+    void compute_dI3_C_dF(FloatArray &answer, const FloatMatrix &F);
+    void compute_dJ_dF(FloatArray &answer, const FloatMatrix &F);
+    void compute_d2I1_C_dF2(FloatMatrix &answer, const FloatMatrix &F);
+    void compute_d2I2_C_dF2(FloatMatrix &answer, const FloatMatrix &F);
+    void compute_d2I1_C_dF2_and_d2I2_C_dF2(FloatMatrix &d2I1dF2, FloatMatrix &d2I2dF2, const FloatMatrix &F);
+    void compute_d2lnJ_dF2_and_dInvF_dF(FloatMatrix &d2lnJ_dF2, FloatMatrix &dInvF_dF, const FloatMatrix &F);
+    void compute_d2lnJ_dF2(FloatMatrix &answer, const FloatMatrix &F);
+
+    
+    void compute_d2I3_C_dF2(FloatMatrix &answer, const FloatMatrix &F);
+    void compute_d2J_dF2(FloatMatrix &answer, const FloatMatrix &F);
+    void compute_dInvFt_dF(FloatMatrix &answer, const FloatMatrix &invF);
+    double compute_I1_Cdev_from_F(const FloatMatrix &F);
+    double compute_I2_Cdev_from_F(const FloatMatrix &F);
+    void compute_dI1_Cdev_dF(FloatArray &answer, const FloatMatrix &F);
+    void compute_dI2_Cdev_dF(FloatArray &answer, const FloatMatrix &F);
+    void compute_d2I1_Cdev_dF2(FloatMatrix &answer, const FloatMatrix &F);
+    void compute_d2I2_Cdev_dF2(FloatMatrix &answer, const FloatMatrix &F);
+    void compute_d2I1_Cdev_dF2_and_d2I2_Cdev_dF2(FloatMatrix &d2I1dF2, FloatMatrix &d2I2dF2, const FloatMatrix &F);
+    void compute_cross_product(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b);
+    void computeNumerical_d2I1_Cdev_dF2(FloatMatrix &stiff1, FloatMatrix &stiff2, const FloatMatrix &F);
+
+
+
+
+
+    
     friend class CrossSection;
     friend class StructuralCrossSection;
     friend class SimpleCrossSection;

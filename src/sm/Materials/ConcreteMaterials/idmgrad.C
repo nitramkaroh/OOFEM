@@ -176,9 +176,10 @@ IsotropicGradientDamageMaterial :: giveGradientDamageStiffnessMatrix_du(FloatMat
   
   IsotropicGradientDamageMaterialStatus *status = static_cast< IsotropicGradientDamageMaterialStatus * >( this->giveStatus(gp) );
 
-  FloatArray eta;
+  FloatArray eta, reducedStrain;
   FloatArray totalStrain = status->giveTempStrainVector();
-  this->computeEta(eta, totalStrain, gp, tStep);
+  StructuralMaterial :: giveReducedSymVectorForm( reducedStrain, totalStrain, gp->giveMaterialMode() );
+  this->computeEta(eta, reducedStrain, gp, tStep);
   answer.initFromVector(eta, false);
   answer.times(-1.);
   if ( mode != TangentStiffness) {  

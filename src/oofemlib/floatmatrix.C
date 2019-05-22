@@ -1571,7 +1571,7 @@ void FloatMatrix :: printYourself() const
 {
     printf("FloatMatrix with dimensions : %d %d\n",
            nRows, nColumns);
-    if ( nRows <= 250 && nColumns <= 250 ) {
+    if ( nRows <= 1250 && nColumns <= 1250 ) {
         for ( int i = 1; i <= nRows; ++i ) {
             for ( int j = 1; j <= nColumns && j <= 100; ++j ) {
                 printf( "%10.3e  ", this->at(i, j) );

@@ -69,7 +69,13 @@ IRResultType PressureFollowerLoad :: initializeFrom(InputRecord *ir)
 {
     IRResultType result;
     IR_GIVE_FIELD(ir, this->pressure, _IFT_PressureFollowerLoad_pressure);
-    this->useTangent = ir->hasField(_IFT_PressureFollowerLoad_useTangent);
+    this->nfl = ir->hasField(_IFT_PressureFollowerLoad_nfl);
+    if(nfl == false) {
+      this->useTangent = ir->hasField(_IFT_PressureFollowerLoad_useTangent);
+    } else {
+      this->useTangent = false;
+    }
+    
     return ActiveBoundaryCondition :: initializeFrom(ir);
 }
 
@@ -295,7 +301,11 @@ void PressureFollowerLoad :: computeLoadVectorFromElement(FloatArray &answer, El
     for ( GaussPoint *gp : *iRule) {
 	// compute normal vector
         FloatArray n, dxdksi,dxdeta;
-	pfli->surfaceEvalDeformedNormalAt(n, dxdksi, dxdeta, iSurf, gp, tStep);
+	if(nfl == false) {
+	  pfli->surfaceEvalDeformedNormalAt(n, dxdksi, dxdeta, iSurf, gp, tStep);
+	} else {
+	  pfli->surfaceEvalNormalAt(n, dxdksi, dxdeta, iSurf, gp, tStep);
+	}
   	// compute surface N matirx
 	FloatMatrix N;
 	pfli->surfaceEvalNmatrixAt(N, iSurf, gp);

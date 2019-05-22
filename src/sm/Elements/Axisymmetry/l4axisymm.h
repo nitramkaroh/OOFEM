@@ -75,8 +75,10 @@ public:
     virtual void surfaceEvalNmatrixAt(FloatMatrix &answer, int iSurf, GaussPoint *gp);
     virtual void surfaceEvaldNdxi(FloatMatrix &answer, int iSurf, GaussPoint *gp);
     virtual void surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &dxdksi, FloatArray &dxdeta, int iSurf, GaussPoint *gp, TimeStep *tStep);
+    virtual void  surfaceEvalNormalAt(FloatArray &answer, FloatArray &dxdeta, FloatArray &dxdxi, int iSurf, GaussPoint *gp, TimeStep *tStep);
     virtual IntegrationRule* surfaceGiveIntegrationRule(int order, int iSurf);
     virtual void surfaceEvalNormalDerivative(FloatMatrix &answer, int iSurf, GaussPoint *gp, TimeStep *tStep);
+    
     void  surfaceEvalNumericalStiffMatrixAt(FloatMatrix &answer, FloatArray &dxdeta, FloatArray &dxdxi, int iSurf, GaussPoint *gp, TimeStep *tStep);
 
     

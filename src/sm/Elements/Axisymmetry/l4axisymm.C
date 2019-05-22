@@ -318,6 +318,51 @@ L4Axisymm ::  surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &dxdeta
 }
   
 
+void
+L4Axisymm ::  surfaceEvalNormalAt(FloatArray &answer, FloatArray &dxdeta, FloatArray &dxdxi, int iSurf, GaussPoint *gp, TimeStep *tStep)
+{
+
+  IntArray bNodes;
+  FloatArray vU, vdx, x, dx;
+  FloatMatrix e3, N, dNdxi;
+ 
+  e3 = {{0,-1},{1,0}};
+  this->giveBoundaryEdgeNodes (bNodes, iSurf);
+  double nNodes = bNodes.giveSize();
+  x.resize(2*nNodes);
+  this->surfaceEvalNmatrixAt(N, iSurf, gp);
+  this->surfaceEvaldNdxi(dNdxi, iSurf, gp);
+
+  double r = 0.0;
+
+  if(this->domain->giveEngngModel()->giveFormulation() != AL) {
+    // compute actual node positions for Total Lagrangean formulation
+    this->computeBoundaryVectorOf(bNodes, {D_u, D_v}, VM_Total, tStep, vU); // solution vector    
+    for(int i = 1; i <= nNodes; i++) {
+      Node *node = this->giveNode(bNodes.at(i));
+      x.at(2*i-1) = node->giveCoordinate(1);
+      x.at(2*i) = node->giveCoordinate(2);
+      // Evaluate radius deformation
+      r += x.at(2*i -1) * N.at(1, 2 * i - 1);
+    }
+  } else {
+    for(int i = 1; i <= nNodes; i++) {
+      Node *node = this->giveNode(bNodes.at(i));
+      x.at(2*i -1) = node->giveCoordinate(1);
+      x.at(2*i) = node->giveCoordinate(2);
+      // Evaluate radius after deformation
+      r += x.at(2*i -1) * N.at(1, 2 * i - 1);
+    }
+  }
+
+  
+  dx.beProductOf(dNdxi,x);
+  answer.beProductOf(e3, dx);
+  answer.times(r);
+  
+}
+
+  
 
 void
 L4Axisymm ::  surfaceEvalNumericalStiffMatrixAt(FloatMatrix &answer, FloatArray &dxdeta, FloatArray &dxdxi, int iSurf, GaussPoint *gp, TimeStep *tStep)

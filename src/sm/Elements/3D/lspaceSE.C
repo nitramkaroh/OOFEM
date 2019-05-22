@@ -107,7 +107,7 @@ LSpaceSE :: computeStiffnessMatrix(FloatMatrix &answer,MatResponseMode rMode, Ti
   double dV;
   FloatArray u, strain, S;
   FloatMatrix B, BE, Bnl, d, dbj, G;
-  bool matStiffSymmFlag = this->giveCrossSection()->isCharacteristicMtrxSymmetric(rMode);
+  //  bool matStiffSymmFlag = this->giveCrossSection()->isCharacteristicMtrxSymmetric(rMode);
   for ( GaussPoint *gp: *this->giveDefaultIntegrationRulePtr() ) {
     this->computeBmatrixAt(gp, B, tStep);
     this->computeNlBmatrixAt(gp, Bnl, G, tStep);
