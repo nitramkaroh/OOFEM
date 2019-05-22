@@ -40,7 +40,7 @@
 
 
 #define _IFT_IsotropicDamageMaterialMicromorphic_Name "idmmicromorphic"
-#define _IFT_IsotropicDamageMaterialMicromorphic_k "k"
+#define _IFT_IsotropicDamageMaterialMicromorphic_k1 "k1"
 
 
 namespace oofem {

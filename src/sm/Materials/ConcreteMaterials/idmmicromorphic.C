@@ -75,7 +75,7 @@ IsotropicDamageMaterialMicromorphic :: initializeFrom(InputRecord *ir)
         return result;
     }
     //    IR_GIVE_OPTIONAL_FIELD(ir, di_eta, _IFT_IsotropicDamageMaterialMicromorphic_di_eta);
-    IR_GIVE_FIELD(ir, k1, _IFT_IsotropicDamageMaterialMicromorphic_k);
+    IR_GIVE_FIELD(ir, k1, _IFT_IsotropicDamageMaterialMicromorphic_k1);
     k2 = 2.*gf*internalLength*internalLength;
     return IRRT_OK;
 }
