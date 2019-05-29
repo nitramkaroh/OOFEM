@@ -130,7 +130,7 @@ IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_uu(Floa
 
 
       
-
+      /*
       FloatArray strainP, stressP, oldStrain, oldStress;
       oldStress = status->giveTempStressVector();
       oldStrain = status->giveTempStrainVector();
@@ -144,6 +144,7 @@ IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_uu(Floa
       stiff.resize(1,1);
       stiff.at(1,1) = (stressP.at(1) - oldStress.at(1))/pert;
       this->giveRealStressVectorGradientDamage(stressP, lddv, gp, oldStrain, mddv, tStep);
+      */
     }
   }
   
@@ -185,7 +186,7 @@ IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_ud(Floa
       answer.times( - k1 * dDamage / ( k1 + dDamage * dDamage * ddDiss + ddDamage * ( dDiss - storedEnergy ) ) );
 
 
-
+      /*
       double lddv;
       FloatArray strainP, stressP, oldStrain, oldStress;
       oldStress = status->giveTempStressVector();
@@ -199,6 +200,7 @@ IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_ud(Floa
       stiff.resize(1,1);
       stiff.at(1,1) = (stressP.at(1) -oldStress.at(1))/pert;
       this->giveRealStressVectorGradientDamage(stressP, lddv, gp, oldStrain, mddv, tStep);
+      */
     } else {
       answer.times(0);
     }
@@ -238,7 +240,7 @@ IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_du(Floa
       // times minus derivative of damage function
       answer.times( - k1 * E * equivStrain * dDamage / ( k1 + dDamage * dDamage * ddDiss + ddDamage * ( dDiss - storedEnergy ) ) );
 
-
+      /*
       FloatArray strainP, stressP, oldStrain, oldStress;
       oldStress = status->giveTempStressVector();
       oldStrain = status->giveTempStrainVector();
@@ -253,8 +255,10 @@ IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_du(Floa
       stiff.resize(1,1);
       stiff.at(1,1) = -k1 * (lddvp - lddv) / pert;
       this->giveRealStressVectorGradientDamage(stressP, lddv, gp, oldStrain, mddv, tStep);
-
+      */
       
+    } else {
+      answer.times(0);
     }
   } else {
     answer.times(0);
@@ -292,6 +296,7 @@ IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_dd(Floa
       this->computeDamagePrime2(ddDamage, localDamageDrivingVariable, gp);      
       answer.at(1,1) *= ( dDamage * dDamage * ddDiss + ddDamage * ( dDiss - storedEnergy ) ) / ( k1 + dDamage * dDamage * ddDiss + ddDamage * ( dDiss - storedEnergy ) );
 
+      /*
       FloatArray strainP, stressP, oldStrain, oldStress;
       oldStress = status->giveTempStressVector();
       oldStrain = status->giveTempStrainVector();
@@ -306,6 +311,7 @@ IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_dd(Floa
       stiff.resize(1,1);
       stiff.at(1,1) = k1 * (1.- (lddvp - lddv) / pert );
       this->giveRealStressVectorGradientDamage(stressP, lddv, gp, oldStrain, mddv, tStep);
+      */
       
     }
   } else {
