@@ -769,6 +769,9 @@ public:
     /// Returns reference to receiver timer (EngngModelTimer).
     EngngModelTimer *giveTimer() { return & timer; }
 
+    virtual void resetStiffnessMatrix(){;}
+
+
     /**
      * Increases number of equations of receiver's domain and returns newly created equation number.
      * Used mainly by DofManagers to allocate their corresponding equation number if it

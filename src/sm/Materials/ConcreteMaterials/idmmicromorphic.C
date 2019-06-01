@@ -99,7 +99,7 @@ IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_uu(Floa
   
   this->giveLinearElasticMaterial()->giveStiffnessMatrix(answer, mode, gp, tStep);
   answer.times(1.0 - tempDamage);
-
+  
   if ( mode == TangentStiffness ) {
     if(tempDamage > status->giveDamage() ) {
       double localDamageDrivingVariable, dDamage, ddDamage, dDiss, ddDiss, equivStrain, storedEnergy, E;
@@ -356,6 +356,9 @@ IsotropicDamageMaterialMicromorphic :: giveNonlocalInternalForces_B_factor(Float
 {
   answer = micromorphicDamageDrivingVariableGrad;
   answer.times(k2);
+#ifdef keep_track_of_dissipated_energy
+  this->computeRegulirizingWork(gp,  micromorphicDamageDrivingVariableGrad);
+#endif
 }
 
 
@@ -505,6 +508,23 @@ IsotropicDamageMaterialMicromorphic :: CreateStatus(GaussPoint *gp) const
 }
 
 
+#ifdef keep_track_of_dissipated_energy
+void
+IsotropicDamageMaterialMicromorphic :: computeRegulirizingWork(GaussPoint *gp, const FloatArray &nonlocalDamageDrivingVariableGrad)
+{
+    IsotropicDamageMaterialMicromorphicStatus *status = static_cast< IsotropicDamageMaterialMicromorphicStatus* >( gp->giveMaterialStatus() );
+    double nlddv = status->giveTempNonlocalDamageDrivingVariable();
+    double lddv = status->giveTempLocalDamageDrivingVariable();
+      
+    double tempReg = 0.5 * k2 * nonlocalDamageDrivingVariableGrad.computeSquaredNorm() + 0.5 * k1 * (nlddv - lddv) * (nlddv - lddv);
+    
+    status->setTempRegularizingEnergy(tempReg);
+} 
+#endif
+
+
+
+  
   IsotropicDamageMaterialMicromorphicStatus :: IsotropicDamageMaterialMicromorphicStatus(int n, Domain *d, GaussPoint *g) : VarBasedDamageMaterialStatus(n, d, g, 0)
 {
 
@@ -537,8 +557,10 @@ IsotropicDamageMaterialMicromorphicStatus :: updateYourself(TimeStep *tStep)
 //
 {
     VarBasedDamageMaterialStatus :: updateYourself(tStep);
+
 }
- 
+
+  
 
   /*
 contextIOResultType

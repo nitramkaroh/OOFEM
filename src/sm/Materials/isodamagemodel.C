@@ -39,6 +39,7 @@
 #include "datastream.h"
 #include "contextioerr.h"
 #include "dynamicinputrecord.h"
+#include "gausspoint.h"
 
 namespace oofem {
 IsotropicDamageMaterial :: IsotropicDamageMaterial(int n, Domain *d) : StructuralMaterial(n, d)
@@ -520,16 +521,20 @@ void
 IsotropicDamageMaterialStatus :: computeWork(GaussPoint *gp)
 {
     // strain increment
-    FloatArray deps;
-    deps.beDifferenceOf(tempStrainVector, strainVector);
-
+    FloatArray deps, reducedStrain, reducedStress;
+  
+    StructuralMaterial :: giveReducedSymVectorForm( reducedStrain, strainVector, gp->giveMaterialMode() );
+    StructuralMaterial :: giveReducedSymVectorForm( reducedStress, stressVector, gp->giveMaterialMode() );
+    
+    deps.beDifferenceOf(tempStrainVector, reducedStrain);
+    
     // increment of stress work density
-    double dSW = ( tempStressVector.dotProduct(deps) + stressVector.dotProduct(deps) ) / 2.;
+    double dSW = ( tempStressVector.dotProduct(deps) + reducedStress.dotProduct(deps) ) / 2.;
     tempStressWork = stressWork + dSW;
-
+    
     // elastically stored energy density
     double We = tempStressVector.dotProduct(tempStrainVector) / 2.;
-
+    
     // dissipative work density
     tempDissWork = tempStressWork - We;
 }

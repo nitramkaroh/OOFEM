@@ -84,6 +84,12 @@ public:
     //    virtual void computeDamage(double &answer, double micromorphicDamage, double damage, double storedEnergy, GaussPoint *gp);
     void computeDamageDrivingVariable(double &answer, double localDamageDrivingVariable_n, double micromorphicDamageDrivingVariable, double storedEnergy, GaussPoint *gp);
 
+#ifdef keep_track_of_dissipated_energy
+    void computeRegulirizingWork(GaussPoint *gp, const FloatArray &nonlocalDamageDrivingVariableGrad);
+#endif
+
+
+    
     //    int giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType type, TimeStep *tStep);
 
 

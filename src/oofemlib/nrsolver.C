@@ -333,6 +333,8 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
 	  tStep->setSubStepNumber(nite);
 	  engngModel->reduceTimeStep(tStep);
 	  engngModel->setAnalysisCrash(false);
+	  engngModel->resetStiffnessMatrix();
+	  
 	  // init engng for the new step
 	  engngModel->initStepIncrements();
 	  // compute initial guess if needed

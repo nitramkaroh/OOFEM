@@ -142,6 +142,7 @@ public:
     virtual void terminate(TimeStep *tStep);
 
     void giveInitialGuess(int di, TimeStep *tStep);
+    void resetStiffnessMatrix();
     
     virtual void printOutputAt(FILE *file, TimeStep *tStep);
 

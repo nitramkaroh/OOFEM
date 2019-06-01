@@ -460,9 +460,11 @@ VarBasedDamageMaterial :: computeLocalDamageDrivingVariable(double &answer, Gaus
 
   VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus* >( gp->giveMaterialStatus() );
   FloatArray strain = status->giveTempStrainVector();
+  FloatArray redStrain;
+  StructuralMaterial :: giveReducedSymVectorForm(redStrain, strain, gp->giveMaterialMode());
   double eps, E;
   E = linearElasticMaterial->give('E', gp);
-  this->computeEquivalentStrain(eps, strain, gp, tStep);
+  this->computeEquivalentStrain(eps, redStrain, gp, tStep);
   answer = 0.5*E*eps*eps;    
 }
 
@@ -480,8 +482,8 @@ VarBasedDamageMaterial :: CreateStatus(GaussPoint *gp) const
 void
 VarBasedDamageMaterial :: computeRegulirizingWork(GaussPoint *gp, const FloatArray &nonlocalDamageDrivingVariableGrad)
 {
-    double tempReg = 0.5*gf*internalLength*internalLength*nonlocalDamageDrivingVariableGrad.computeNorm();
-      VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus* >( gp->giveMaterialStatus() );
+    double tempReg = 0.5*gf*internalLength*internalLength*nonlocalDamageDrivingVariableGrad.computeSquaredNorm();
+    VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus* >( gp->giveMaterialStatus() );
     status->setTempRegularizingEnergy(tempReg);
 }
 #endif

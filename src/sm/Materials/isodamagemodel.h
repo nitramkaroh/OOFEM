@@ -38,7 +38,7 @@
 // this turns on or off a bunch of internal variables
 // that allow tracing the distribution of dissipated energy
 // (can be turned off if such information is not needed)
-//#define keep_track_of_dissipated_energy
+#define keep_track_of_dissipated_energy
 
 #include "material.h"
 #include "Materials/linearelasticmaterial.h"

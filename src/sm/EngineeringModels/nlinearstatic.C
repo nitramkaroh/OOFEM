@@ -422,7 +422,14 @@ NonLinearStatic :: updateLoadVectors(TimeStep *tStep)
     }
 }
 
+void
+NonLinearStatic :: resetStiffnessMatrix()
+{
+  //  stiffnessMatrix.reset( classFactory.createSparseMtrx(sparseMtrxType) );
+  stiffnessMatrix->buildInternalStructure( this, 1, EModelDefaultEquationNumbering() );
+}
 
+  
 void
 NonLinearStatic :: proceedStep(int di, TimeStep *tStep)
 {
@@ -639,10 +646,14 @@ NonLinearStatic :: giveInitialGuess(int di, TimeStep *tStep)
       FloatArray extrapolatedForces;
       this->assembleExtrapolatedForces( extrapolatedForces, tStep, TangentStiffnessMatrix, this->giveDomain(di) );
       extrapolatedForces.negated();
-
-    
-      
       this->updateComponent( tStep->givePreviousStep(), NonLinearLhs, this->giveDomain(di) );
+
+      for( int i = 1; i <= extrapolatedForces.giveSize(); i++) {
+	if( stiffnessMatrix->at(i,i) == 0 ) {
+	  int ahoj = 1;
+	}      
+      }
+      
       SparseLinearSystemNM *linSolver = nMethod->giveLinearSolver();
       OOFEM_LOG_RELEVANT("solving for increment\n");
       linSolver->solve(*stiffnessMatrix, extrapolatedForces, incrementOfDisplacement);
