@@ -49,6 +49,7 @@
 #include "timestep.h"
 #include "function.h"
 #include "engngm.h"
+#include "mathfem.h"
 
 #include "xfem/XFEMDebugTools.h"
 

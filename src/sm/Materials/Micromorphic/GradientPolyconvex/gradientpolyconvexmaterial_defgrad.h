@@ -67,7 +67,8 @@ class GradientF_PolyconvexMaterial : public IsotropicLinearElasticMaterial, Micr
 protected:
   double eps;
   double alpha;
-  FloatMatrix tC1, tC2;
+  FloatMatrix tC1_0, tC2_0;
+
 
 public:
     GradientF_PolyconvexMaterial(int n, Domain * d);
@@ -105,6 +106,8 @@ virtual void giveGeneralizedStressVectors (FloatArray &sigma, FloatArray &s, Flo
 
 protected:
     virtual MaterialStatus *CreateStatus(GaussPoint *gp) const { return new GradientF_PolyconvexMaterialStatus(1, domain, gp, true); }
+    FloatMatrix &givetC1(TimeStep *tStep);
+    FloatMatrix &givetC2(TimeStep *tStep);
 
                                                                      
 };

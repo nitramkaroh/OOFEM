@@ -126,7 +126,7 @@ IsotropicLinearElasticMaterial :: give3dMaterialStiffnessMatrix(FloatMatrix &ans
 //
 // forceElasticResponse ignored - always elastic
 //
-{
+{//
     double e, nu, ee;
 
     e  = this->E;

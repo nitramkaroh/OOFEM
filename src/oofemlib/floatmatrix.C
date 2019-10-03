@@ -1839,7 +1839,20 @@ void FloatMatrix :: giveMatrixOfAxialVector(const FloatArray &aVector)
 }
 
 
+void FloatMatrix :: beLeviCivitaTensor()
+{
 
+  this->resize(9,3);
+  this->zero();
+  this->at(4,1) =  1.;
+  this->at(5,2) = -1.;
+  this->at(6,3) =  1.;
+  this->at(7,1) = -1.;
+  this->at(8,2) =  1.;
+  this->at(9,3) = -1.;
+
+
+}
 
 
 

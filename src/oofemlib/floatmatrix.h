@@ -587,6 +587,7 @@ public:
     void beSkewProjectionMatrix();
     void beSymProjectionMatrix();
     void beIsotropicMatrix(double a, double b, double c);
+    void beLeviCivitaTensor();
     
     /**
      * Swaps the indices in the 6x6 matrix such that it converts between OOFEM's

@@ -55,6 +55,8 @@
 #include "mathfem.h"
 #include "materialmapperinterface.h"
 #include "unknownnumberingscheme.h"
+#include "set.h"
+
 
 #ifdef __OOFEG
  #include "oofeggraphiccontext.h"
@@ -496,7 +498,8 @@ StructuralElement :: computeResultingIPEigenstrainAt(FloatArray &answer, TimeSte
     int n, nLoads;
     Load *load;
     FloatArray gCoords, eigenstrain;
-
+    int nbc = domain->giveNumberOfBoundaryConditions();
+    
     if ( this->computeGlobalCoordinates( gCoords, gp->giveNaturalCoordinates() ) == 0 ) {
         OOFEM_ERROR("computeGlobalCoordinates failed");
     }
@@ -511,6 +514,30 @@ StructuralElement :: computeResultingIPEigenstrainAt(FloatArray &answer, TimeSte
             answer.add(eigenstrain);
         }
     }
+
+// new approach using sets
+
+    for ( int i = 1; i <= nbc; ++i ) {
+      
+      GeneralBoundaryCondition *bc = domain->giveBc(i);
+      
+      if  (( load = dynamic_cast< StructuralEigenstrainLoad * >(bc) )) {
+	if  ( bc->giveSetNumber() && bc->isImposed(tStep) ) {
+	  if ( load->giveBCValType() == EigenstrainBVT ) {
+	    
+	    Set *set = domain->giveSet( bc->giveSetNumber() );
+	    const IntArray &elements = set->giveElementList();
+	    
+	    if (elements.contains(this->giveNumber() ) ) {
+	      load->computeValueAt(eigenstrain, tStep, gCoords, mode);
+	      answer.add(eigenstrain);
+	    }
+	  }
+	}
+      }
+    }
+
+    
 }
 
 

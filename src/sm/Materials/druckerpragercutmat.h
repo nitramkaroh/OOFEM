@@ -139,6 +139,8 @@ protected:
     /// Compute dot(kappa_1), dot(kappa_2) etc.
     virtual void computeStrainHardeningVarsIncrement(FloatArray &answer, GaussPoint *gp, const FloatArray &stress, const FloatArray &dlambda, const FloatArray &dplasticStrain, const IntArray &activeConditionMap);
 
+    double computeDamage(GaussPoint *gp, const FloatArray &strainSpaceHardeningVariables, TimeStep *tStep);
+    
     /// Computes the derivative of yield/loading function with respect to kappa_1, kappa_2 etc.
     virtual void computeKGradientVector(FloatArray &answer, functType ftype, int isurf, GaussPoint *gp, FloatArray &fullStressVector, const FloatArray &strainSpaceHardeningVariables);
 

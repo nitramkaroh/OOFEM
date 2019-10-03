@@ -37,6 +37,7 @@
 #include "gausspoint.h"
 #include "CrossSections/structuralcrosssection.h"
 #include "gaussintegrationrule.h"
+#include "mathfem.h"
 
 namespace oofem {
 Structural2DElement :: Structural2DElement(int n, Domain *aDomain) :
@@ -440,7 +441,7 @@ PlaneStrainElement :: computeBHmatrixAt(GaussPoint *gp, FloatMatrix &answer, Tim
     FloatMatrix dNdx;
     this->giveInterpolation()->evaldNdx( dNdx, gp->giveNaturalCoordinates(), * this->giveCellGeometryWrapper(tStep, alpha) );
 
-    answer.resize(4, dNdx.giveNumberOfRows() * 2);
+    answer.resize(5, dNdx.giveNumberOfRows() * 2);
     answer.zero();
 
     for ( int i = 1; i <= dNdx.giveNumberOfRows(); i++ ) {

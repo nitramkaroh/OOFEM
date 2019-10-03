@@ -134,7 +134,7 @@ MisesMatGrad :: giveGradientDamageStiffnessMatrix_ud(FloatMatrix &answer, MatRes
 }
 
 void
-MisesMatGrad :: giveGradientDamageStiffnessMatrix_dd_l(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
+MisesMatGrad :: giveGradientDamageStiffnessMatrix_dd_BB(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
 {
     MaterialMode mMode = gp->giveMaterialMode();
     switch ( mMode ) {
@@ -152,14 +152,6 @@ MisesMatGrad :: giveGradientDamageStiffnessMatrix_dd_l(FloatMatrix &answer, MatR
     }
 }
 
-
-
-  
-void
-MisesMatGrad :: giveGradientDamageStiffnessMatrix_dd(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
-{
-  answer.resize(0,0);
-}
 
 
 void
@@ -329,7 +321,7 @@ MisesMatGrad :: give1dKappaMatrix(FloatMatrix &answer, MatResponseMode mode, Gau
     if ( dKappa > 0 ) {
         double trialS = signum(stress);
         double factor = trialS * E / ( E + H );
-        answer.at(1, 1) = factor;
+        answer.at(1, 1) = -factor;
     }
 }
 
@@ -396,7 +388,7 @@ MisesMatGrad :: give1dGprime(FloatMatrix &answer, MatResponseMode mode, GaussPoi
         const FloatArray &tempEffStress = status->giveTempEffectiveStress();
         answer.at(1, 1) = tempEffStress.at(1);
         gPrime = computeDamageParamPrime(kappa);
-        answer.times(gPrime * mParam);
+        answer.times(-gPrime * mParam);
     } else {
         answer.zero();
     }
@@ -460,7 +452,7 @@ void
 MisesMatGrad :: giveInternalLength(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
 {
     answer.resize(1, 1);
-    answer.at(1, 1) = L;
+    answer.at(1, 1) = L*L;
 }
 
 
@@ -470,10 +462,11 @@ MisesMatGrad :: giveRealStressVectorGradientDamage(FloatArray &answer1, double &
 
     MisesMatGradStatus *status = static_cast< MisesMatGradStatus * >( this->giveStatus(gp) );
     FloatArray totalStrain;
-    StructuralMaterial :: giveFullSymVectorForm(totalStrain, reducedStrain, _PlaneStrain);    
+    StructuralMaterial :: giveFullSymVectorForm(totalStrain, reducedStrain, gp->giveMaterialMode());    
     this->initTempStatus(gp);
     double tempDamage;
-    MisesMat :: performPlasticityReturn(gp, totalStrain);
+    //MisesMat :: performPlasticityReturn(gp, totalStrain);
+    MisesMat :: performPlasticityReturn(gp, reducedStrain);
     status->letTempStrainVectorBe(totalStrain);
     status->setNonlocalCumulatedStrain(nonlocalCumulatedStrain);
     tempDamage = computeDamage(gp, tStep);
@@ -503,7 +496,9 @@ MisesMatGrad :: computeCumPlastStrain(double &kappa, GaussPoint *gp, TimeStep *t
 void
 MisesMatGrad :: giveNonlocalInternalForces_N_factor(double &answer, double nlDamageDrivingVariable, GaussPoint *gp, TimeStep *tStep)
 {
- answer = nlDamageDrivingVariable;
+    MisesMatGradStatus *status = static_cast< MisesMatGradStatus * >( this->giveStatus(gp) );
+    double localCumulativePlasticStrain = status->giveTempCumulativePlasticStrain();
+    answer = nlDamageDrivingVariable - localCumulativePlasticStrain;
 }
 
 void

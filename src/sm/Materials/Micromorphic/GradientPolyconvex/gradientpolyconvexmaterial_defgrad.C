@@ -95,6 +95,11 @@ GradientF_PolyconvexMaterial :: giveMicromorphicMatrix_dSigdUgrad(FloatMatrix &a
     ///////////
     C.beTProductOf(F,F);
 
+    FloatMatrix tC1, tC2;
+    tC1 = this->givetC1(tStep);
+    tC2 = this->givetC2(tStep);
+
+    
     C_tC1 = C;
     C_tC1.subtract(tC1);
 
@@ -525,6 +530,11 @@ GradientF_PolyconvexMaterial :: giveFiniteStrainGeneralizedStressVectors_3d(Floa
     C.beTProductOf(F,F);
     this->compute_dC_dF(dCdF,vF);
 
+    FloatMatrix tC1, tC2;
+    tC1 = this->givetC1(tStep);
+    tC2 = this->givetC2(tStep);
+
+    
     C_tC1 = C;
     C_tC1.subtract(tC1);
 
@@ -606,6 +616,38 @@ GradientF_PolyconvexMaterial :: compute_dC_dF(FloatMatrix &dCdF,const FloatArray
 
 
 
+FloatMatrix&
+GradientF_PolyconvexMaterial :: givetC1(TimeStep *tStep)
+ {
+   double t = tStep->giveIntrinsicTime();
+   double tEps = (t+1) * eps;
+     
+   tC1_0 = {{ 1.0, tEps, 0},{tEps, 1.+tEps*tEps, 0}, {0, 0, 1}};
+   // tC1_0 = {{ 1.0, tEps, 0},{tEps, 1., 0}, {0, 0, 1.}};
+   //   tC1_0 = {{(1. + tEps) * (1. + tEps), 0, 0},{0, 1. / (1. + tEps) / (1. + tEps), 0}, {0, 0, 1}};
+   //tC1_0 = {{(1. + tEps) * (1. + tEps), tEps, 0},{tEps, (1. + tEps) * (1. + tEps), 0}, {0, 0, 1}};
+   
+      
+   return tC1_0;
+ }
+  
+
+FloatMatrix &
+GradientF_PolyconvexMaterial :: givetC2(TimeStep *tStep)
+ {
+   double t = tStep->giveIntrinsicTime();
+   double tEps = (t+1) * eps;
+     
+   tC2_0 = {{ 1.0, -tEps, 0},{-tEps, 1.+tEps*tEps, 0}, {0, 0, 1}};
+   //tC2_0 = {{1.0, -tEps, 0},{-tEps, 1., 0}, {0, 0, 1.}};
+   //tC2_0 = {{1. / (1. + tEps) / (1. + tEps), 0, 0},{0, (1. + tEps)*(1. + tEps), 0}, {0, 0, 1}};
+   //tC1_0 = {{(1. + tEps) * (1. + tEps), -tEps, 0},{-tEps, (1. + tEps) * (1. + tEps), 0}, {0, 0, 1}};
+
+   
+   return tC2_0;
+ }  
+
+  
   
   
 
@@ -613,7 +655,7 @@ IRResultType
 GradientF_PolyconvexMaterial :: initializeFrom(InputRecord *ir)
 {
     IRResultType result;                             // Required by IR_GIVE_FIELD macro
-    IsotropicLinearElasticMaterial :: initializeFrom(ir);
+    //    IsotropicLinearElasticMaterial :: initializeFrom(ir);
     
     IR_GIVE_FIELD(ir, Hk, _IFT_MicromorphicMaterialExtensionInterface_Hk);
     IR_GIVE_FIELD(ir, Ak, _IFT_MicromorphicMaterialExtensionInterface_Ak);
@@ -627,9 +669,9 @@ GradientF_PolyconvexMaterial :: initializeFrom(InputRecord *ir)
     */
 
     
-    tC1 = {{ 1.0, eps, 0},{eps, 1.+eps*eps, 0}, {0, 0, 1}};
+    /*tC1 = {{ 1.0, eps, 0},{eps, 1.+eps*eps, 0}, {0, 0, 1}};
     tC2 = {{1.0, -eps, 0},{-eps, 1.+eps*eps, 0}, {0, 0, 1}};
-    
+    */
 
     /*    tC1 = {{ 1.0, eps, 0},{eps, 1., 0}, {0, 0, 1.}};
     tC2 = {{1.0, -eps, 0},{-eps, 1., 0}, {0, 0, 1.}};
@@ -683,6 +725,10 @@ GradientF_PolyconvexMaterial :: giveIPValue(FloatArray &answer, GaussPoint *gp, 
       C.beTProductOf(F,F);
       C_tC1 = C;
       C_tC2 = C;
+      FloatMatrix tC1, tC2;
+      tC1 = this->givetC1(tStep);
+      tC2 = this->givetC2(tStep);
+
       C_tC1.subtract(tC1);
       C_tC2.subtract(tC2);
       double normC_tC1, normC_tC2;

@@ -702,8 +702,6 @@ public:
 
     /// function for large strain materials
     // @todo: add comments
-
-
     double compute_I1_C_from_F(const FloatMatrix &F);
     double compute_I2_C_from_F(const FloatMatrix &F);
     double compute_I1_C_from_C(const FloatMatrix &C);
@@ -730,8 +728,25 @@ public:
     void compute_d2I1_Cdev_dF2(FloatMatrix &answer, const FloatMatrix &F);
     void compute_d2I2_Cdev_dF2(FloatMatrix &answer, const FloatMatrix &F);
     void compute_d2I1_Cdev_dF2_and_d2I2_Cdev_dF2(FloatMatrix &d2I1dF2, FloatMatrix &d2I2dF2, const FloatMatrix &F);
-    void compute_cross_product(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b);
+    void compute_dyadic_product(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b);
+    void compute_dyadic_product_reduced(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b);
+    void compute_sym_dyadic_product(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b);
+    void compute_sym_dyadic_product_reduced(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b);
     void computeNumerical_d2I1_Cdev_dF2(FloatMatrix &stiff1, FloatMatrix &stiff2, const FloatMatrix &F);
+
+    void compute_2order_tensor_cross_product(FloatMatrix &answer, const FloatArray &a, const FloatArray &b);
+    void compute_2order_tensor_cross_product(FloatArray &answer, const FloatArray &a, const FloatArray &b);
+    void compute_2order_tensor_cross_product(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b);
+
+    void compute_4order_tensor_cross_product(FloatMatrix &answer, const FloatArray &a, const FloatMatrix &b);
+    void compute_4order_tensor_cross_product(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b);
+
+    
+    void compute_tensor_cross_product_tensor(FloatMatrix &answer, const FloatArray &a);
+    void compute_tensor_cross_product_tensor(FloatMatrix &answer, const FloatMatrix &a);
+    void compute_dCm_dC(FloatMatrix &answer, double m, const FloatArray &lam, const FloatMatrix &N);
+
+    void computeMatrixPower(FloatMatrix &answer, const FloatArray &eVals, const FloatMatrix &eVecs, double m );
 
 
 

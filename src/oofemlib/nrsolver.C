@@ -263,7 +263,7 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
 
         // convergence check
         converged = this->checkConvergence(RT, F, rhs, ddX, X, RRT, internalForcesEBENorm, nite, errorOutOfRangeFlag);
-	if ( converged == true && errorOutOfRangeFlag == false) {
+	if ( converged == true && errorOutOfRangeFlag == false && nite >= minIterations) {
 	  break;
 	}
 	//	converged = true;
@@ -291,6 +291,7 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
             ddX = rhs;
         } else {
 	  linSolver->solve(k, rhs, ddX);
+	  
 	  if(nite == 1) {
 	    // If desired by the user, the solution is (slightly) perturbed, so that various symmetries can be broken.
 	    // This is useful e.g. to trigger localization in a homogeneous material under uniform stress without
@@ -358,6 +359,9 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
 	if(followerLoadFlag) {
 	  engngModel->updateComponent(tStep, ExternalRhs, domain);
 	  RT = R;
+	  if ( R0 ) {
+	    RT.add(* R0);
+	  }
 	}
         tStep->incrementStateCounter(); // update solution state counter
         tStep->incrementSubStepNumber();

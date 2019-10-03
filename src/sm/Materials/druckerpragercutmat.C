@@ -246,6 +246,8 @@ void DruckerPragerCutMat :: computeStrainHardeningVarsIncrement(FloatArray &answ
     answer.resize(4);
     answer.zero();
 
+    answer.at(1) = dlambda.at(1);
+    
     if ( dlambda.at(4) > 0. ) {
         answer.at(4) = dlambda.at(4) * sqrt(1. / 3. + 2 * alphaPsi * alphaPsi);
     }
@@ -262,6 +264,20 @@ void DruckerPragerCutMat :: computeKGradientVector(FloatArray &answer, functType
     }
 }
 
+
+double
+DruckerPragerCutMat :: computeDamage(GaussPoint *gp, const FloatArray &strainSpaceHardeningVariables, TimeStep *tStep)
+{
+  double kappa = strainSpaceHardeningVariables.at(1);
+  if ( kappa > 0. ) {
+        return omegaCrit * ( 1.0 - exp(-a * kappa) );
+    } else {
+        return 0.;
+    }
+}
+
+
+  
 //necesarry only for mpm_ClosestPoint
 //Computes second mixed derivative of loading function with respect to stress and hardening vars.
 void DruckerPragerCutMat :: computeReducedSKGradientMatrix(FloatMatrix &gradientMatrix, int isurf, GaussPoint *gp, const FloatArray &fullStressVector, const FloatArray &strainSpaceHardeningVariables)

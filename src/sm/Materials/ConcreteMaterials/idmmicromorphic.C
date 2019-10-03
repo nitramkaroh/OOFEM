@@ -269,7 +269,7 @@ IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_du(Floa
 
 
 void
-IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_dd(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
+IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_dd_NN(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
 {
 
   answer.resize(1,1);
@@ -323,7 +323,7 @@ IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_dd(Floa
 
   
 void
-IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_dd_l(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
+IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_dd_BB(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
 {
     MaterialMode matMode = gp->giveMaterialMode();
   if(matMode == _1dMat) {

@@ -14,6 +14,7 @@
 #include "spatiallocalizer.h"
 #include "element.h"
 #include "gausspoint.h"
+#include <cmath>
 
 namespace oofem {
 REGISTER_EnrichmentFront(EnrFrontCohesiveBranchFuncOneEl)
@@ -61,7 +62,7 @@ void EnrFrontCohesiveBranchFuncOneEl :: evaluateEnrFuncAt(std :: vector< double 
 
 #ifdef DEBUG
     for ( double val:oEnrFunc ) {
-        if ( !std :: isfinite(val) ) {
+        if ( ! std::isfinite(val) ) {
             printf("r: %e theta: %e\n", r, theta);
             OOFEM_ERROR("!std::isfinite(val)")
         }

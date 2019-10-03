@@ -39,6 +39,7 @@
 #include "gausspoint.h"		  
 #include "engngm.h"
 #include "../sm/Materials/structuralms.h"
+#include "mathfem.h"
 
 namespace oofem {
 

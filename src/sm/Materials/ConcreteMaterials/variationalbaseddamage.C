@@ -210,7 +210,7 @@ VarBasedDamageMaterial :: giveGradientDamageStiffnessMatrix_ud(FloatMatrix &answ
 }
 
 void
-VarBasedDamageMaterial :: giveGradientDamageStiffnessMatrix_dd(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
+VarBasedDamageMaterial :: giveGradientDamageStiffnessMatrix_dd_NN(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
 {  
   double localDamageDrivingVariable, damageDrivingVariable, dDamage,ddDamage, dDiss, ddDiss, damage;
 
@@ -233,7 +233,7 @@ VarBasedDamageMaterial :: giveGradientDamageStiffnessMatrix_dd(FloatMatrix &answ
 }
 
 void
-VarBasedDamageMaterial :: giveGradientDamageStiffnessMatrix_dd_l(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
+VarBasedDamageMaterial :: giveGradientDamageStiffnessMatrix_dd_BB(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
 {
 
   MaterialMode matMode = gp->giveMaterialMode();

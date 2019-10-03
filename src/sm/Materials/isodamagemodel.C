@@ -92,13 +92,15 @@ IsotropicDamageMaterial :: give3dMaterialStiffnessMatrix(FloatMatrix &answer,
 
     this->giveLinearElasticMaterial()->give3dMaterialStiffnessMatrix(answer, mode, gp, tStep);
     answer.times(1.0 - tempDamage);
+    if(tStep->giveIntrinsicTime() < this->castingTime)
+      answer.times(1.e-10);
     //TODO - correction for tangent mode
 }
 
 
 void
 IsotropicDamageMaterial :: giveRealStressVector(FloatArray &answer, GaussPoint *gp,
-                                                const FloatArray &totalStrain,
+                                                const FloatArray &totalStrainR,
                                                 TimeStep *tStep)
 //
 // returns real stress vector in 3d stress space of receiver according to
@@ -106,7 +108,21 @@ IsotropicDamageMaterial :: giveRealStressVector(FloatArray &answer, GaussPoint *
 // strain increment, the only way, how to correctly update gp records
 //
 {
-    IsotropicDamageMaterialStatus *status = static_cast< IsotropicDamageMaterialStatus * >( this->giveStatus(gp) );
+
+  IsotropicDamageMaterialStatus *status = static_cast< IsotropicDamageMaterialStatus * >( this->giveStatus(gp) );
+
+  FloatArray totalStrain(totalStrainR);
+  if(tStep->giveIntrinsicTime() < this->castingTime) {
+      answer.times(1.e-10);
+      status->letCastingStrainVectorBe(totalStrain);
+      return;
+  } else if(tStep->giveIntrinsicTime() >= this->castingTime && this->castingTime > 0) {
+    FloatArray castingStrain;
+    status->giveCastingStrainVector(castingStrain);
+    totalStrain.subtract(castingStrain);    
+  }
+
+
     //StructuralCrossSection *crossSection = (StructuralCrossSection*) gp -> giveElement()->giveCrossSection();
     LinearElasticMaterial *lmat = this->giveLinearElasticMaterial();
     FloatArray reducedTotalStrainVector;
@@ -183,6 +199,7 @@ IsotropicDamageMaterial :: giveRealStressVector(FloatArray &answer, GaussPoint *
 void IsotropicDamageMaterial :: givePlaneStressStiffMtrx(FloatMatrix &answer, MatResponseMode mode,
                                                          GaussPoint *gp, TimeStep *tStep)
 {
+     
     IsotropicDamageMaterialStatus *status = static_cast< IsotropicDamageMaterialStatus * >( this->giveStatus(gp) );
     double tempDamage;
     if ( mode == ElasticStiffness ) {
@@ -223,6 +240,7 @@ void IsotropicDamageMaterial :: givePlaneStressStiffMtrx(FloatMatrix &answer, Ma
 void IsotropicDamageMaterial :: givePlaneStrainStiffMtrx(FloatMatrix &answer, MatResponseMode mode,
                                                          GaussPoint *gp, TimeStep *tStep)
 {
+
     IsotropicDamageMaterialStatus *status = static_cast< IsotropicDamageMaterialStatus * >( this->giveStatus(gp) );
     double tempDamage;
     if ( mode == ElasticStiffness ) {
@@ -233,8 +251,7 @@ void IsotropicDamageMaterial :: givePlaneStrainStiffMtrx(FloatMatrix &answer, Ma
     }
 
     this->giveLinearElasticMaterial()->giveStiffnessMatrix(answer, mode, gp, tStep);
-    answer.times(1.0 - tempDamage);
-    //TODO - correction for tangent mode
+    answer.times(1.0 - tempDamage);    
 }
 
 
@@ -253,6 +270,7 @@ void IsotropicDamageMaterial :: give1dStressStiffMtrx(FloatMatrix &answer, MatRe
     this->giveLinearElasticMaterial()->giveStiffnessMatrix(answer, mode, gp, tStep);
     answer.times(1.0 - tempDamage);
     //TODO - correction for tangent mode
+
 }
 
 #ifdef __OOFEG
@@ -362,6 +380,8 @@ IsotropicDamageMaterial :: initializeFrom(InputRecord *ir)
     IR_GIVE_OPTIONAL_FIELD(ir, permStrain, _IFT_IsotropicDamageMaterial_permstrain);
 
     IR_GIVE_FIELD(ir, tempDillatCoeff, _IFT_IsotropicDamageMaterial_talpha);
+
+    IR_GIVE_OPTIONAL_FIELD(ir, timeC, _IFT_IsotropicDamageMaterial_time);
     return StructuralMaterial :: initializeFrom(ir);
 }
 

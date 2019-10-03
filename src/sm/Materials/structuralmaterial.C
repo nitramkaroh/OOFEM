@@ -2364,7 +2364,7 @@ StructuralMaterial :: compute_I2_C_from_F(const FloatMatrix &F)
   C2.beProductOf(C,C);
   double a = C.at(1,1) + C.at(2,2) + C.at(3,3);
   double b = C2.at(1,1) + C2.at(2,2) + C2.at(3,3);
-  return ( 0.5 * ( a - b ) );
+  return ( 0.5 * ( a * a - b ) );
 }
 
 
@@ -2392,7 +2392,7 @@ StructuralMaterial :: compute_I2_C_from_C(const FloatMatrix &C)
   C2.beProductOf(C,C);
   double a = C.at(1,1) + C.at(2,2) + C.at(3,3);
   double b = C2.at(1,1) + C2.at(2,2) + C2.at(3,3);
-  return ( 0.5 * ( a - b ) );
+  return ( 0.5 * ( a * a - b ) );
 }
 
   
@@ -2778,7 +2778,7 @@ StructuralMaterial :: compute_dI2_Cdev_dF(FloatArray &answer, const FloatMatrix 
     FloatMatrix mAnswer;
     mAnswer = F;
     mAnswer.times(2.*I1);
-    mAnswer.subtract(invF);
+    mAnswer.subtract(invFt);
     mAnswer.subtract(FC);
     mAnswer.times(J_43);
     answer.beVectorForm(mAnswer);
@@ -2842,7 +2842,8 @@ StructuralMaterial :: compute_d2I2_Cdev_dF2(FloatMatrix &answer, const FloatMatr
       for ( int j = 1; j <= 3; j++ ) {
 	for ( int k = 1; k <= 3; k++ ) {
 	  for ( int l = 1; l <= 3; l++ ) {
-	    answer.at( giveVI(i, j), giveVI(k, l) ) += I1 * I.at( i, k ) * I.at( j, l ) + 2 * F.at( i, j ) * F.at( k, l ) + 2./3. * I2 * invF.at( j, k )  * invF.at( l, i ) - 2./3. * I1 * invF.at( j, i )  * F.at( k, l ) + 4. / 3. * invF.at( j, i ) * FC.at(k, l)  - C.at( l, j ) * I.at(i, k) - F.at( i, l ) * F.at( k, j ) - B.at( i, k ) * F.at(l, j) - 4. / 3. * ( I1 * F.at( i, j ) * invF.at( l , k ) - 2. / 3. * I2 *  invF.at( j , i ) * invF.at( l , k ) - FC.at( i, j )  );
+	    answer.at( giveVI(i, j), giveVI(k, l) ) = I1 * I.at( i, k ) * I.at( j, l ) + 2. * F.at( i, j ) * F.at( k, l ) - 4./3. * I1 * F.at( i, j )  * invF.at( l, k ) + 8./9. * I2 * invF.at( j, i )  * invF.at( l, k ) - 4./3. * I1 * invF.at( j, i )  * F.at( k, l ) + 4. / 3. * FC.at(k,l) *  invF.at(j,i) + 2./3. * I2 * invF.at( j, k )  * invF.at( l, i ) + 4./3. * FC.at( i, j ) * invF.at( l, k ) - C.at( l, j ) * I.at(i, k) - F.at( i, l ) * F.at( k, j ) - B.at( i, k ) * I.at(l, j);
+
 	  }
 	}
       }
@@ -2906,8 +2907,7 @@ StructuralMaterial :: compute_d2I1_Cdev_dF2_and_d2I2_Cdev_dF2(FloatMatrix &d2I1d
 	for ( int k = 1; k <= 3; k++ ) {
 	  for ( int l = 1; l <= 3; l++ ) {
 	    d2I1dF2.at( giveVI(i, j), giveVI(k, l) ) = 3. * I.at( i, k ) * I.at( j, l ) + I1 * invF.at( j, k )* invF.at( l, i ) + 2./3. * I1 * invF.at( j, i )* invF.at( l, k )- 2. * invF.at( l, k )* F.at( i, j ) - 2. * invF.at( j, i )* F.at( k, l );
-	double test = 1. * ( ( 5. * I1 * invF.at(1, 1) * invF.at(1, 1) - 12. * F.at(1, 1) * invF.at(1, 1) + 9. ) ) / ( 3);
-	    d2I2dF2.at( giveVI(i, j), giveVI(k, l) ) = I1 * I.at( i, k ) * I.at( j, l ) + 2 * F.at( i, j ) * F.at( k, l ) + 2./3. * I2 * invF.at( j, k )  * invF.at( l, i ) - 2./3. * I1 * invF.at( j, i )  * F.at( k, l ) + 4. / 3. * invF.at( j, i ) * FC.at(k, l)  - C.at( l, j ) * I.at(i, k) - F.at( i, l ) * F.at( k, j ) - B.at( i, k ) * F.at(l, j) - 4. / 3. * ( I1 * F.at( i, j ) * invF.at( l , k ) - 2. / 3. * I2 *  invF.at( j , i ) * invF.at( l , k ) - FC.at( i, j )  );
+	    d2I2dF2.at( giveVI(i, j), giveVI(k, l) ) = I1 * I.at( i, k ) * I.at( j, l ) + 2. * F.at( i, j ) * F.at( k, l ) - 4./3. * I1 * F.at( i, j )  * invF.at( l, k ) + 8./9. * I2 * invF.at( j, i )  * invF.at( l, k ) - 4./3. * I1 * invF.at( j, i )  * F.at( k, l ) + 4. / 3. * FC.at(k,l) *  invF.at(j,i) + 2./3. * I2 * invF.at( j, k )  * invF.at( l, i ) + 4./3. * FC.at( i, j ) * invF.at( l, k ) - C.at( l, j ) * I.at(i, k) - F.at( i, l ) * F.at( k, j ) - B.at( i, k ) * I.at(l, j);
 	  }
 	}
       }
@@ -2920,7 +2920,7 @@ StructuralMaterial :: compute_d2I1_Cdev_dF2_and_d2I2_Cdev_dF2(FloatMatrix &d2I1d
 
 
 void
-StructuralMaterial :: compute_cross_product(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b)
+StructuralMaterial :: compute_dyadic_product(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b)
 {
 
     answer.resize(9, 9);
@@ -2937,7 +2937,407 @@ StructuralMaterial :: compute_cross_product(FloatMatrix &answer, const FloatMatr
     }
 }
 
+
+
+void
+StructuralMaterial :: compute_dyadic_product_reduced(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b)
+{
+
+    answer.resize(6, 6);
+    answer.zero();
+    
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  for ( int l = 1; l <= 3; l++ ) {
+	    if(i <= j && k <= l){
+	      answer.at( giveSymVI(i, j), giveSymVI(k, l) ) = a.at(i,j) * b.at(k,l);
+	    }
+	  }
+	}
+      }
+    }
+}
+
+
+void
+StructuralMaterial :: compute_sym_dyadic_product(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b)
+{
+
+    answer.resize(9, 9);
+    answer.zero();
+    
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  for ( int l = 1; l <= 3; l++ ) {
+	    answer.at( giveVI(i, j), giveVI(k, l) ) = 1./2. * ( a.at(i,k) * b.at(l,j) + a.at(i,l) * b.at(k,j) );
+	  }
+	}
+      }
+    }
+}
+
+
+void
+StructuralMaterial :: compute_sym_dyadic_product_reduced(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b)
+{
+
+    answer.resize(6, 6);
+    answer.zero();
+    
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  for ( int l = 1; l <= 3; l++ ) {
+	    if(i <= j && k <= l){
+	      answer.at( giveVI(i, j), giveVI(k, l) ) = 1./2. * ( a.at(i,k) * b.at(l,j) + a.at(i,l) * b.at(k,j) );
+	    }
+	  }
+	}
+      }
+    }
+}
+
+
+
+void
+StructuralMaterial :: compute_2order_tensor_cross_product(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b)
+{
+
+    answer.resize(3, 3);
+    answer.zero();
+
+    FloatMatrix lc;
+    lc.beLeviCivitaTensor();
+   
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  for ( int m = 1; m <= 3; m++ ) {
+	    for ( int l = 1; l <= 3; l++ ) {
+	      for ( int n = 1; n <= 3; n++ ) {
+		answer.at( i, j ) += lc.at( giveVI( i, k ), l ) * lc.at( giveVI( j, m ), n ) * a.at( k, m ) * b.at( l, n );
+	      }
+	    }
+	  }
+	}
+      }
+    }
+}
+
+
+
+
+
+
+
+void
+StructuralMaterial :: compute_2order_tensor_cross_product(FloatArray &answer, const FloatArray &a, const FloatArray &b)
+{
+
+    answer.resize(9);
+    answer.zero();
+
+
+    FloatMatrix lc;
+    lc.beLeviCivitaTensor();
+   
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  for ( int m = 1; m <= 3; m++ ) {
+	    for ( int l = 1; l <= 3; l++ ) {
+	      for ( int n = 1; n <= 3; n++ ) {
+		answer.at( giveVI( i, j ) ) += lc.at( giveVI( i, k ), l ) * lc.at( giveVI( j, m ), n ) * a.at( giveVI(k, m) ) * b.at( giveVI(l, n) );
+	      }
+	    }
+	  }
+	}
+      }
+    }
+}
+
+
+void
+StructuralMaterial :: compute_2order_tensor_cross_product(FloatMatrix &answer, const FloatArray &a, const FloatArray &b)
+{
+
+    answer.resize(3,3);
+    answer.zero();
+
+
+    FloatMatrix lc;
+    lc.beLeviCivitaTensor();
+   
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  for ( int m = 1; m <= 3; m++ ) {
+	    for ( int l = 1; l <= 3; l++ ) {
+	      for ( int n = 1; n <= 3; n++ ) {
+		answer.at( i, j ) += lc.at( giveVI( i, k ), l ) * lc.at( giveVI( j, m ), n ) * a.at( giveVI(k, m) ) * b.at( giveVI(l, n) );
+	      }
+	    }
+	  }
+	}
+      }
+    }
+}
+
+
+
+
+void
+StructuralMaterial :: compute_4order_tensor_cross_product(FloatMatrix &answer, const FloatArray &ma, const FloatMatrix &mb)
+{
+
+    answer.resize(9,9);
+    answer.zero();
+
+
+    FloatMatrix lc;
+    lc.beLeviCivitaTensor();
+   
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int l = 1; l <= 3; l++ ) {
+	  for ( int n = 1; n <= 3; n++ ) {
+	    for ( int p = 1; p <= 3; p++ ) {
+	      for ( int q = 1; q <= 3; q++ ) {
+		for ( int a = 1; a <= 3; a++ ) {
+		  for ( int b = 1; b <= 3; b++ ) {
+		    answer.at( giveVI( i, j ), giveVI( a, b ) ) += lc.at( giveVI( i, l ), p ) * lc.at( giveVI( j, n ), q ) * ma.at( giveVI(l, n) ) * mb.at( giveVI(p, q), giveVI(a, b) );
+		  }
+		}
+	      }
+	    }
+	  }
+	}
+      }
+    }
+}
+
+
+
+void
+StructuralMaterial :: compute_4order_tensor_cross_product(FloatMatrix &answer, const FloatMatrix &ma, const FloatMatrix &mb)
+{
+
+    answer.resize(9,9);
+    answer.zero();
+
+
+    FloatMatrix lc;
+    lc.beLeviCivitaTensor();
+   
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int l = 1; l <= 3; l++ ) {
+	  for ( int n = 1; n <= 3; n++ ) {
+	    for ( int p = 1; p <= 3; p++ ) {
+	      for ( int q = 1; q <= 3; q++ ) {
+		for ( int a = 1; a <= 3; a++ ) {
+		  for ( int b = 1; b <= 3; b++ ) {
+		    answer.at( giveVI( i, j ), giveVI( a, b ) ) += lc.at( giveVI( i, l ), p ) * lc.at( giveVI( j, n ), q ) * ma.at( l, n ) * mb.at( giveVI(p, q), giveVI(a, b) );
+		  }
+		}
+	      }
+	    }
+	  }
+	}
+      }
+    }
+}
+
+ 
+
+
+void
+StructuralMaterial :: compute_tensor_cross_product_tensor(FloatMatrix &answer, const FloatMatrix &a)
+{
+
+    answer.resize(9, 9);
+    answer.zero();
+
+    FloatMatrix lc;
+    lc.beLeviCivitaTensor();
+   
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int r = 1; r <= 3; r++ ) {
+	  for ( int s = 1; s <= 3; s++ ) {
+	    for ( int k = 1; k <= 3; k++ ) {
+	      for ( int m = 1; m <= 3; m++ ) {
+		answer.at( giveVI(i, j), giveVI(r, s) ) += lc.at( giveVI( i, r ), k ) * lc.at( giveVI( j, s ), m ) * a.at( k, m );
+	      }
+	    }
+	  }
+	}
+      }
+    }
+}
+
+
+
+void
+StructuralMaterial :: compute_tensor_cross_product_tensor(FloatMatrix &answer, const FloatArray &a)
+{
+
+    answer.resize(9, 9);
+    answer.zero();
+
+    FloatMatrix lc;
+    lc.beLeviCivitaTensor();
+   
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int r = 1; r <= 3; r++ ) {
+	  for ( int s = 1; s <= 3; s++ ) {
+	    for ( int k = 1; k <= 3; k++ ) {
+	      for ( int m = 1; m <= 3; m++ ) {
+		answer.at( giveVI(i, j), giveVI(r, s) ) += lc.at( giveVI( i, r ), k ) * lc.at( giveVI( j, s ), m ) * a.at( giveVI(k, m) );
+	      }
+	    }
+	  }
+	}
+      }
+    }
+}
+
+
+void
+StructuralMaterial :: compute_dCm_dC(FloatMatrix &answer, double m, const FloatArray &lam, const FloatMatrix &N)
+{   
+
+  FloatArray  d(3), c(3);
+
+  c.at(1) = pow(lam.at(1),  m);
+  c.at(2) = pow(lam.at(2),  m);
+  c.at(3) = pow(lam.at(3),  m);
+
+  d.at(1)= m * pow(lam.at(1), m - 1.);
+  d.at(2)= m * pow(lam.at(2), m - 1.);
+  d.at(3)= m * pow(lam.at(3), m - 1.);
   
+  FloatMatrix theta(3,3);
+  
+ 
+  // compute auxiliary variables 
+  // the computation differes depends on if the eigenvalues of C are equal or not
+  if(lam.at(1) != lam.at(2)) {
+    if(lam.at(2) != lam.at(3)) {
+      if(lam.at(1) != lam.at(3)) {
+	// all eigenvalues are different
+	for(int i = 1; i <= 3; i++) {
+	  for(int j = 1; j <= 3; j++) {
+	    if(i == j) {
+	      continue;
+	    } else {
+	      theta.at(i,j) = (c.at(i) - c.at(j))/(lam.at(i) - lam.at(j));
+	    }
+	  }
+	}
+      } else { //l1 == l3 && l1 != l2
+	for(int i = 1; i <= 3; i++) {
+	  for(int j = 1; j <= 3; j++) {
+	    if( i == j ) {
+	      continue;
+	    } else {
+	      if((i == 1 && j == 3) || (i == 3 && j == 1) ) {
+		theta.at(i,j) = 1./2.*d.at(i);
+	      } else {
+		theta.at(i,j) = (c.at(i) - c.at(j))/(lam.at(i) - lam.at(j));
+	      }
+	    }
+	  }
+	}	  
+      }
+    } else { //l2 == l3 && l1 != l2
+      for(int i = 1; i <= 3; i++) {
+	for(int j = 1; j <= 3; j++) {
+	  if( i == j ) {
+	    continue;
+	  } else {
+	    if((i == 2 && j == 3) || (i == 3 && j == 2) ) {
+	      theta.at(i,j) = 1./2.*d.at(i);
+	    } else {
+	      theta.at(i,j) = (c.at(i) - c.at(j))/(lam.at(i) - lam.at(j));
+	    }
+	  }
+	}
+      } 
+    }
+  } else if(lam.at(1) != lam.at(3)) { // l1 == l2  && l1 != l3
+    for(int i = 1; i <= 3; i++) {
+      for(int j = 1; j <= 3; j++) {
+	if( i == j ) {
+	  continue;
+	} else {
+	  if((i == 1 && j == 2) || (i == 2 && j == 1) ) {
+	    theta.at(i,j) = 1./2.*d.at(i);
+	  } else {
+	    theta.at(i,j) = (c.at(i) - c.at(j))/(lam.at(i) - lam.at(j));
+	  }
+	}
+      }
+    } 
+  } else {  // l1 == l2 == l3
+    for(int i = 1; i <= 3; i++) {
+      for(int j = 1; j <= 3; j++) {
+	theta.at(i,j) = 1./2. * d.at(i);
+      }
+    }
+  }
+  
+  
+  FloatMatrix M(9,9);
+  
+  for (int i = 1; i <= 3; i++) {
+    for (int j = 1; j <= 3; j++) {
+      for (int k = 1; k <= 3; k++) {
+	for (int l = 1; l <=3; l++) {
+	  M.at(giveVI(i,j),giveVI(k,l)) = N.at(k,i)*N.at(l,j) + N.at(k,j)*N.at(l,i);
+	}
+      }
+    }
+  }
+    
+  answer.resize(9,9);
+  for (int k = 1; k <= 3; k++) {
+    for (int l = 1; l <= 3; l++) {
+      for (int m = 1; m <=3; m++) {
+	for (int n = 1; n<=3; n++) {
+	  for (int i = 1; i <= 3; i++) {
+	    answer.at(giveVI(k,l),giveVI(m,n)) += 0.5 * d.at(i) * N.at(k,i) * N.at(l,i) * M.at(giveVI(i,i),giveVI(m,n));
+	    for (int j  = 1; j <= 3; j++) {
+	      if(j != i) {
+		answer.at(giveVI(k,l),giveVI(m,n)) += 0.5 * theta.at(i,j)*N.at(k,i)*N.at(l,j)*M.at(giveVI(i,j),giveVI(m,n));
+	      }
+	    }
+	  }
+	}	    
+      }
+    }
+  }
+  answer.resizeWithData(6,6);
+}
+
+void
+StructuralMaterial :: computeMatrixPower(FloatMatrix &answer, const FloatArray &eVals, const FloatMatrix &eVecs, double m )
+{
+
+    answer.resize(3, 3);
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	answer.at(i, j) = pow(eVals.at(1),m) * eVecs.at(i, 1) * eVecs.at(j, 1) + pow(eVals.at(2),m) *eVecs.at(i, 2) * eVecs.at(j, 2) + pow(eVals.at(3),m) *eVecs.at(i, 3) * eVecs.at(j, 3);  
+      }
+    }
+    
+}
+
+
+
   
 void
 StructuralMaterial :: transformStrainVectorTo(FloatArray &answer, const FloatMatrix &base,

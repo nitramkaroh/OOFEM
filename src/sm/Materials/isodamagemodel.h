@@ -50,6 +50,7 @@
 #define _IFT_IsotropicDamageMaterial_talpha "talpha"
 #define _IFT_IsotropicDamageMaterial_maxOmega "maxomega"
 #define _IFT_IsotropicDamageMaterial_permstrain "ps"
+#define _IFT_IsotropicDamageMaterial_time "time"
 //@}
 
 namespace oofem {
@@ -70,6 +71,10 @@ protected:
     double damage;
     /// Non-equilibrated damage level of material.
     double tempDamage;
+    ///
+    FloatArray castingStrain;
+
+    
     /**
      * Characteristic element length,
      * computed when damage initialized from direction of
@@ -126,6 +131,11 @@ public:
     /// Sets crack vector to given value. This is useful for plotting cracks as a vector field (paraview etc.).
     void setCrackVector(FloatArray cv) { crackVector = cv; }
 
+
+    void letCastingStrainVectorBe(const FloatArray strain){castingStrain = strain;}
+    void giveCastingStrainVector(FloatArray &strain){ strain = castingStrain;}
+
+    
 #ifdef keep_track_of_dissipated_energy
     /// Returns the density of total work of stress on strain increments.
     double giveStressWork() { return stressWork; }
@@ -171,6 +181,8 @@ protected:
 
     /// Indicator of the type of permanent strain formulation (0 = standard damage with no permanent strain)
     int permStrain;
+
+    double timeC;
 
     /// Reference to bulk (undamaged) material
     LinearElasticMaterial *linearElasticMaterial;

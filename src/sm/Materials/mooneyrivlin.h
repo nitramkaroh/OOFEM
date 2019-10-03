@@ -40,7 +40,7 @@
 
 ///@name Input fields for MooneyRivlinMaterial
 //@{
-#define _IFT_MooneyRivlinMaterial_Name "mooneyrivlin"
+#define _IFT_MooneyRivlinMaterial_Name "mooneyrivlinmat"
 #define _IFT_MooneyRivlinMaterial_c1 "c1"
 #define _IFT_MooneyRivlinMaterial_c2 "c2"
 #define _IFT_MooneyRivlinMaterial_k "k"

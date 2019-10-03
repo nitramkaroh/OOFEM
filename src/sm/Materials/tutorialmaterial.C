@@ -38,6 +38,7 @@
 #include "floatarray.h"
 #include "dynamicinputrecord.h"
 #include "classfactory.h"
+#include "mathfem.h"
 
 namespace oofem {
 REGISTER_Material(TutorialMaterial);

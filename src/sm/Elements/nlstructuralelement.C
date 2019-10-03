@@ -46,6 +46,8 @@
 #include "dynamicinputrecord.h"
 #include "gausspoint.h"
 #include "engngm.h"
+#include "mathfem.h"
+
 #include "../sm/Elements/meandilelementinterface.h"
 
 namespace oofem {

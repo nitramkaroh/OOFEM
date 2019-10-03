@@ -38,7 +38,6 @@
 
 #include "../sm/Materials/Micromorphic/micromorphicmaterialextensioninterface.h"
 #include "../sm/Materials/Micromorphic/micromorphicms.h"
-#include "../sm/Materials/isolinearelasticmaterial.h"
 #include "../sm/Materials/structuralmaterial.h"
 #include "cltypes.h"
 
@@ -46,9 +45,8 @@
 ///@name Input fields for MicromorphLEmat
 //@{
 #define _IFT_GradientPolyconvexMaterial_Name "gradientpolyconvexmaterial"
-#define _IFT_GradientPolyconvexMaterial_eps "eps"
-#define _IFT_GradientPolyconvexMaterial_alpha "alpha"
 #define _IFT_GradientPolyconvexMaterial_gamma "gamma"
+#define _IFT_GradientPolyconvexMaterial_hmt "hmt"
 //@}
 
 namespace oofem {
@@ -63,14 +61,18 @@ namespace oofem {
 /**
  * MicromorphicLinearElasticMaterial
  */
-class GradientPolyconvexMaterial : public IsotropicLinearElasticMaterial, MicromorphicMaterialExtensionInterface
+class GradientPolyconvexMaterial : public StructuralMaterial, MicromorphicMaterialExtensionInterface
 {
 protected:
-  double eps;
-  double alpha;
   double gamma;
-  FloatMatrix tC1, tC2;
+  StructuralMaterial *hyperelasticMaterial;
+  int hyperElasticMaterialType;
+  enum HMT {
+        HMT_DoubleWellMaterial=0,
+  };
 
+
+  
 public:
     GradientPolyconvexMaterial(int n, Domain * d);
     virtual ~GradientPolyconvexMaterial();
@@ -89,7 +91,7 @@ public:
         }
     }
 
-    virtual void giveStiffnessMatrix(FloatMatrix &answer, MatResponseMode rMode, GaussPoint *gp, TimeStep *tStep);
+    virtual void giveStiffnessMatrix(FloatMatrix &answer, MatResponseMode rMode, GaussPoint *gp, TimeStep *tStep) {    OOFEM_ERROR("Shouldn't be called."); }
     virtual void giveMicromorphicMatrix_dSigdUgrad(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep);
     virtual void giveMicromorphicMatrix_dSigdPhi(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep);
     virtual void giveMicromorphicMatrix_dSdUgrad(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep);
@@ -101,8 +103,6 @@ virtual void giveGeneralizedStressVectors (FloatArray &sigma, FloatArray &s, Flo
     virtual void giveFiniteStrainGeneralizedStressVectors_3d (FloatArray &sigma, FloatArray &s, FloatArray &M, GaussPoint *gp, const FloatArray &displacementGradient, const FloatArray &micromorphicVar, const FloatArray micromorphicVarGrad, TimeStep *tStep);
     virtual void giveFiniteStrainGeneralizedStressVectors_PlaneStrain (FloatArray &sigma, FloatArray &s, FloatArray &M, GaussPoint *gp, const FloatArray &displacementGradient, const FloatArray &micromorphicVar, const FloatArray micromorphicVarGrad, TimeStep *tStep);
     
-
-    void compute_dC_dF(FloatMatrix &dCdF,const FloatArray &vF);
     virtual int giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType type, TimeStep *tStep);
 
 protected:

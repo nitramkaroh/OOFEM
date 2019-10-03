@@ -38,6 +38,7 @@
 #include "floatarray.h"
 #include "classfactory.h"
 #include "isolinearelasticmaterial.h"
+#include "mathfem.h"
 
 
 

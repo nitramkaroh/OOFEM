@@ -89,6 +89,10 @@ StationaryTransportProblem :: initializeFrom(InputRecord *ir)
     // read field export flag
     IntArray exportFields;
     IR_GIVE_OPTIONAL_FIELD(ir, exportFields, _IFT_StationaryTransportProblem_exportfields);
+    if ( !UnknownsField ) { // can exist from nonstationary transport problem
+      UnknownsField.reset( new PrimaryField(this, 1, FT_TransportProblemUnknowns, 0) );
+    }
+
     if ( exportFields.giveSize() ) {
         FieldManager *fm = this->giveContext()->giveFieldManager();
         for ( int i = 1; i <= exportFields.giveSize(); i++ ) {
@@ -102,9 +106,6 @@ StationaryTransportProblem :: initializeFrom(InputRecord *ir)
         }
     }
 
-    if ( !UnknownsField ) { // can exist from nonstationary transport problem
-        UnknownsField.reset( new PrimaryField(this, 1, FT_TransportProblemUnknowns, 0) );
-    }
 
     return IRRT_OK;
 }
@@ -239,7 +240,7 @@ StationaryTransportProblem :: updateComponent(TimeStep *tStep, NumericalCmpn cmp
                              EModelDefaultEquationNumbering(), this->giveDomain(1), & this->eNorm);
         this->updateSharedDofManagers(this->internalForces, EModelDefaultEquationNumbering(), InternalForcesExchangeTag);
         return;
-    } else if ( cmpn == NonLinearLhs ) {
+    } else if ( cmpn == NonLinearLhs || InitialGuess) {
         if ( !this->keepTangent ) {
             // Optimization for linear problems, we can keep the old matrix (which could save its factorization)
             this->conductivityMatrix->zero();

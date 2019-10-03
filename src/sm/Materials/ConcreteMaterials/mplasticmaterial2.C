@@ -40,6 +40,8 @@
 #include "mathfem.h"
 #include "datastream.h"
 #include "contextioerr.h"
+#include "engngm.h"
+
 
 namespace oofem {
 #define YIELD_TOL 1.e-6
@@ -430,11 +432,18 @@ huhu: //label for goto
                                 this->computeTrialStressIncrement(fullStressVector, gp, elasticStrainVectorR, tStep);
                                 fullStressVector.printYourself();
 
-                                OOFEM_ERROR("Internal Consistency error: all combinations of yield functions tried, no consistent return");
+				//this->giveDomain()->giveEngngModel()->setAnalysisCrash(true);
+				//break;
+                                OOFEM_WARNING("Internal Consistency error: all combinations of yield functions tried, no consistent return");
+				
                             }
 
 #else
-                            OOFEM_ERROR("Internal Consistency error: all combinations of yield functions tried, no consistent return");
+			    //this->giveDomain()->giveEngngModel()->setAnalysisCrash(true);
+			    //break;
+			    OOFEM_WARNING("Internal Consistency error: all combinations of yield functions tried, no consistent return");
+				
+			    //                            OOFEM_ERROR("Internal Consistency error: all combinations of yield functions tried, no consistent return");
 #endif
                         }
 
@@ -773,10 +782,14 @@ huhu: //label for goto
                                     this->computeTrialStressIncrement(fullStressVector, gp, elasticStrainVectorR, tStep);
                                     fullStressVector.printYourself();
 
-                                    OOFEM_ERROR("Internal Consistency error: all combinations of yield functions tried, no consistent return");
+                                    //OOFEM_ERROR("Internal Consistency error: all combinations of yield functions tried, no consistent return");
+				    this->giveDomain()->giveEngngModel()->setAnalysisCrash(true);
+				    break;
                                 }
 
 #else
+				this->giveDomain()->giveEngngModel()->setAnalysisCrash(true);
+				break;
                                 OOFEM_ERROR("Internal Consistency error: all combinations of yield functions tried, no consistent return");
 #endif
                             }
@@ -810,8 +823,8 @@ huhu: //label for goto
 
                     continue;
                 } else {
-                    OOFEM_WARNING("local equlibrium not reached in %d iterations\nElement %d, gp %d, continuing",
-                              PLASTIC_MATERIAL_MAX_ITERATIONS, gp->giveElement()->giveNumber(), gp->giveNumber() );
+		  //                    OOFEM_WARNING("local equlibrium not reached in %d iterations\nElement %d, gp %d, continuing",
+		  //                PLASTIC_MATERIAL_MAX_ITERATIONS, gp->giveElement()->giveNumber(), gp->giveNumber() );
                     answer = fullStressVector;
                     // debug line
                     nIterations = 0;

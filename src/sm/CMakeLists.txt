@@ -10,24 +10,19 @@ set (sm_element
     Elements/3D/lspaceSE.C 
     Elements/3D/lspacebb.C
     Elements/3D/qspace.C 
-    Elements/3D/qspacegraddamage.C
     Elements/3D/q27space.C
     Elements/3D/ltrspace.C 
     Elements/3D/qtrspace.C 
-    Elements/3D/qtrspacegraddamage.C
     Elements/3D/lwedge.C 
     Elements/3D/qwedge.C 
     Elements/3D/macrolspace.C
-    Elements/3D/qspacegraddamage.C
-    Elements/3D/qwedgegraddamage.C
     Elements/Bars/truss1d.C 
     Elements/Bars/truss2d.C 
     Elements/Bars/truss3d.C
     Elements/Bars/qtruss1d.C
-    Elements/Bars/truss1dgraddamage.C
-    Elements/Bars/qtruss1dgraddamage.C
     Elements/Beams/libeam2d.C 
     Elements/Beams/libeam2dnl.C
+    Elements/Beams/beam2beam2danalyticalcontactelement.C
     Elements/Beams/libeam3d.C 
     Elements/Beams/libeam3dnl.C 
     Elements/Beams/libeam3dnl2.C 
@@ -55,16 +50,12 @@ set (sm_element
     Elements/Axisymmetry/l4axisymm.C
     Elements/Axisymmetry/membrane1d.C
     Elements/PlaneStrain/quad1planestrain.C
-    Elements/PlaneStrain/quad1planestraingraddamage.C 
     Elements/PlaneStrain/qplanestrain.C 
-    Elements/PlaneStrain/qplanestraingraddamage.C
     Elements/PlaneStrain/qtrplanestrain.C 
-    Elements/PlaneStrain/qtrplanestraingraddamage.C
     Elements/PlaneStrain/trplanestrain.C
     Elements/PlaneStress/planestresselementevaluator.C
     Elements/PlaneStress/trplanrot.C
     Elements/PlaneStress/trplanstrss.C
-    Elements/PlaneStress/trplstrgraddamage.C 
     Elements/PlaneStress/qplanstrss.C 
     Elements/PlaneStress/q9planstrss.C 
     Elements/PlaneStress/qtrplstr.C 
@@ -72,10 +63,7 @@ set (sm_element
     Elements/PlaneStress/planstrssxfem.C
     Elements/PlaneStress/trplanstrssxfem.C
     Elements/PlaneStress/qtrplanstrssxfem.C
-    Elements/PlaneStress/qtrplstrgraddamage.C
     Elements/PlaneStress/trplanrot3d.C
-    Elements/PlaneStress/planestressgraddamage.C
-    Elements/PlaneStress/qplanestressgraddamage.C
     Elements/PlaneStress/trplanestressrotallman.C
     Elements/PlaneStress/basicelement.C
     Elements/PlaneStress/trplanestressrotallman3d.C
@@ -86,7 +74,6 @@ set (sm_element
     Elements/AbaqusUserElement.C
     Elements/htselement.C
     Elements/latticestructuralelement.C
-    Elements/graddamageelement.C 
     Elements/lumpedmasselement.C
     Elements/springelement.C
     Elements/lattice2d.C
@@ -99,6 +86,21 @@ set (sm_element
     Elements/nodalspringelement.C
     Elements/meandilelementinterface.C
     Elements/fbarelementinterface.C
+    #Gradient damage elements
+    Elements/GradientDamage/graddamageelement.C 
+    Elements/GradientDamage/Bars/truss1dgraddamage.C
+    Elements/GradientDamage/Bars/qtruss1dgraddamage.C
+    Elements/GradientDamage/PlaneStrain/quad1planestraingraddamage.C 
+    Elements/GradientDamage/PlaneStrain/qplanestraingraddamage.C
+    Elements/GradientDamage/PlaneStrain/qtrplanestraingraddamage.C
+    Elements/GradientDamage/PlaneStress/trplstrgraddamage.C 
+    Elements/GradientDamage/PlaneStress/qtrplstrgraddamage.C
+    Elements/GradientDamage/PlaneStress/planestressgraddamage.C
+    Elements/GradientDamage/PlaneStress/qplanestressgraddamage.C
+    Elements/GradientDamage/3D/qspacegraddamage.C
+    Elements/GradientDamage/3D/qtrspacegraddamage.C
+    Elements/GradientDamage/3D/qspacegraddamage.C
+    Elements/GradientDamage/3D/qwedgegraddamage.C
     #Mixed pressure elements
     Elements/MixedPressure/basemixedpressureelement.C
     Elements/MixedPressure/PlaneStrain/qtrplanestrainp1.C
@@ -123,7 +125,10 @@ set (sm_element
     Elements/Micromorphic/Microplastic/qplanestrainmicroplastic.C
     #Gradient-polyconvex element based on micromorph continua
     Elements/Micromorphic/GradientPolyconvex/planestraingradpolyconvex.C
+    Elements/Micromorphic/GradientPolyconvex/qlplanestraingradpolyconvex.C
+    Elements/Micromorphic/GradientPolyconvex/qplanestraingradpolyconvex.C
     Elements/Micromorphic/GradientPolyconvex/lbrickgradpolyconvex.C
+    Elements/Micromorphic/GradientPolyconvex/qlbrickgradpolyconvex.C
     #Elements/Micromorphic/GradientPolyconvex/planestraingradpolyconvex.C
     #Second-gradient continua
     Elements/Micromorphic/Straindivergence/planestrainstraindivergence.C
@@ -237,12 +242,13 @@ set (sm_material
     Materials/RheoChainMaterials/mpsdammat.C
     Materials/RheoChainMaterials/eurocode2creep.C
     Materials/HyperelasticMaterials/mooneyrivlin.C
-    Materials/HyperelasticMaterials/neohookean.C    
+    Materials/HyperelasticMaterials/ogdenmaterial.C
+    Materials/HyperelasticMaterials/neohookean.C
+    Materials/HyperelasticMaterials/doublewellmaterial.C    
     Materials/structuralfe2material.C
     Materials/rcsd.C 
     Materials/rcsde.C 
     Materials/rcsdnl.C
-    Materials/doublewellmaterial.C
     Materials/m4.C
     Materials/microplane_m1.C
     Materials/druckerPragerPlasticitySM.C
@@ -286,6 +292,7 @@ set (sm_material
     Materials/simpleplasticgradientdamagematerial.C
     Materials/plasticgradientdamagematerials.C
     Materials/ellipticplasticmaterial.C
+    Materials/lourencomasonrymat.C
     #Mixed pressure material interface
     Materials/MixedPressure/mixedpressurematerialextensioninterface.C
     #Micromorphic materials
@@ -298,6 +305,8 @@ set (sm_material
     Materials/Micromorphic/Microplasticity/misesmatmicroplastic.C
     Materials/Micromorphic/Microplasticity/ellipticmicroplasticmaterial.C
     Materials/Micromorphic/GradientPolyconvex/gradientpolyconvexmaterial.C
+    Materials/Micromorphic/GradientPolyconvex/gradientpolyconvexmaterialold.C
+    Materials/Micromorphic/GradientPolyconvex/gradientpolyconvexmaterialTest.C
     Materials/Micromorphic/GradientPolyconvex/gradientpolyconvexmaterial_defgrad.C
     Materials/Micromorphic/GradientPolyconvex/stvenantkirchhoff_gradpolyconvex.C
     Materials/Micromorphic/GradientPolyconvex/stvenantkirchhoff_gradpolyconvexdefgrad.C

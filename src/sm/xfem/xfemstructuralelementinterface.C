@@ -45,6 +45,7 @@
 #include "engngm.h"
 #include "Elements/nlstructuralelement.h"
 
+#include "mathfem.h"
 #include "xfem/patchintegrationrule.h"
 #include "xfem/enrichmentitems/crack.h"
 #include "xfem/XFEMDebugTools.h"

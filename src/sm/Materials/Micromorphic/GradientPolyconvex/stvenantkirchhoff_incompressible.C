@@ -39,7 +39,7 @@
 #include "mathfem.h"
 #include "error.h"
 #include "classfactory.h"
-
+#include "engngm.h"
 
 namespace oofem {
   REGISTER_Material(StVenantKirchhoffIncompressibleMaterial);
@@ -75,34 +75,22 @@ StVenantKirchhoffIncompressibleMaterial :: giveFirstPKStressVector_3d(FloatArray
     // compute jacobian
     double J = F.giveDeterminant();
     // St. Venant-Kirchhoff material model
-    FloatArray vE, vS;
-    FloatMatrix E;
-    E.beTProductOf(F, F);
-    E.at(1, 1) -= 1.0;
-    E.at(2, 2) -= 1.0;
-    E.at(3, 3) -= 1.0;
-    E.times(0.5);
-    vE.beSymVectorFormOfStrain(E);      // 6
-    // linear relation between E and S
-    LinearElasticMaterial::giveRealStressVector_3d(vS, gp, vE, tStep);
-    // Compute first PK stress (P) from second PK stress (S)
-    FloatMatrix P, S;
-    S.beMatrixForm(vS);
-    P.beProductOf(F, S); 
-    answer.beVectorForm(P);
-
+    IsotropicLinearElasticMaterial :: giveFirstPKStressVector_3d(answer, gp, vF, tStep);
 
     FloatArray vPm(9);
     vPm.zero();
-    if( J <= 0) {
-      
-      this->compute_dJ_dF(vPm, F);
-      vPm.times( K * J );
-      
-    }
-        
-    answer.add(vPm);
+    double lnJ = log(J);
+    this->compute_dJ_dF(vPm, F);
 
+    if(tStep->giveIntrinsicTime() > 280) { 
+      vPm.times(K * lnJ / J);
+      answer.add(vPm);
+    }
+
+
+    /*    if(J <= 0.) {
+      this->giveDomain()->giveEngngModel()->setAnalysisCrash(true);
+      }*/
 
  
     // update gp
@@ -123,8 +111,8 @@ StVenantKirchhoffIncompressibleMaterial :: give3dMaterialStiffnessMatrix_dPdF(Fl
 
     double J;
     FloatArray vF;
-    FloatMatrix F, dSdE;
-
+    FloatMatrix F, dSdE, invF, invFt;
+    FloatMatrix dInvF_dF, iFtxiFt;
     this->give3dMaterialStiffnessMatrix(dSdE, mode, gp, tStep);
     this->give_dPdF_from(dSdE, answer, gp, _3dMat);
 
@@ -133,15 +121,23 @@ StVenantKirchhoffIncompressibleMaterial :: give3dMaterialStiffnessMatrix_dPdF(Fl
     //store deformation gradient into matrix
     F.beMatrixForm(vF);
     J = F.giveDeterminant();
-    if(J <= 0 ) {
-      FloatMatrix invF, invFt, dInvFt_dF, iFtxiFt;
-      invF.beInverseOf(F);
-      invFt.beTranspositionOf(invF);
-      this->compute_dInvFt_dF(dInvFt_dF, invF);
-      this->compute_cross_product(iFtxiFt, invFt, invFt);
-      answer.add(2. * K * J * J, iFtxiFt);
-      answer.add(K * J * J, dInvFt_dF);
+
+    invF.beInverseOf(F);
+    invFt.beTranspositionOf(invF);
+
+    double lnJ = log(J);
+    
+    this->compute_dInvFt_dF(dInvF_dF, invF);
+    this->compute_dyadic_product(iFtxiFt, invFt, invFt);
+    
+    iFtxiFt.times(K);
+    dInvF_dF.times(K * lnJ);
+    if(tStep->giveIntrinsicTime() > 280) { 
+      answer.add(iFtxiFt);
+      answer.add(dInvF_dF); 
     }
+
+
 }
   
 

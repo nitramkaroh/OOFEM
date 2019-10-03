@@ -36,6 +36,7 @@
 #include "floatmatrix.h"
 #include "floatarray.h"
 #include "classfactory.h"
+#include "mathfem.h"
 
 namespace oofem {
 REGISTER_Material(MooneyRivlinMaterial);
@@ -49,7 +50,7 @@ MooneyRivlinMaterial :: giveFirstPKStressVector_3d(FloatArray &answer, GaussPoin
 // returns 9 components of the first piola kirchhoff stress corresponding to the given deformation gradinet
 
 {
-    double J, lnJ, I1, I2, barI1, barI2;
+    double J, lnJ;
     FloatMatrix F, C, Cpow2, invFt, FC, invF;
 
     StructuralMaterialStatus *status = static_cast< StructuralMaterialStatus * >( this->giveStatus(gp) );
@@ -146,7 +147,7 @@ MooneyRivlinMaterial :: give3dMaterialStiffnessMatrix_dPdF(FloatMatrix &answer,
 
 
     this->compute_dInvFt_dF(dInvF_dF, invF);
-    this->compute_cross_product(iFtxiFt, invFt, invFt);
+    this->compute_dyadic_product(iFtxiFt, invFt, invFt);
     
     d2I1dF2.times(C1);
     d2I2dF2.times(C2);
@@ -154,260 +155,14 @@ MooneyRivlinMaterial :: give3dMaterialStiffnessMatrix_dPdF(FloatMatrix &answer,
     iFtxiFt.times(K);
     dInvF_dF.times(K * lnJ);
 
-    FloatMatrix answer1;
-    answer1 = d2I1dF2;
-    answer1.add(d2I2dF2);
-    answer1.add(iFtxiFt);
-    answer1.add(dInvF_dF);
+    answer = d2I1dF2;
+    answer.add(d2I2dF2);
+    answer.add(iFtxiFt);
+    answer.add(dInvF_dF);
     
 
     
 
-    double I1;
-    FloatMatrix C, Cpow2, FC;
-    // compute right Cauchy-Green tensor
-    C.beTProductOf(F, F);
-    //compute first invariant of deviatoric part of C;
-    I1 = ( C.at(1, 1) + C.at(2, 2) + C.at(3, 3) );
-    answer.resize(9,9);
-    answer.zero();
-
-    answer.at(1, 1) = ( 2. * C1 * ( 5. * I1 * invF.at(1, 1) * invF.at(1, 1) - 12. * F.at(1, 1) * invF.at(1, 1) + 9. ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(1, 2) = -( 2. * C1 * ( 6. * F.at(1, 1) * invF.at(2, 2) + 6. * F.at(2, 2) * invF.at(1, 1) - 2. * I1 * invF.at(1, 1) * invF.at(2, 2) - 3. * I1 * invF.at(1, 2) * invF.at(2, 1) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(1, 3) = -( 2. * C1 * ( 6. * F.at(1, 1) * invF.at(3, 3) + 6. * F.at(3, 3) * invF.at(1, 1) - 2. * I1 * invF.at(1, 1) * invF.at(3, 3) - 3. * I1 * invF.at(1, 3) * invF.at(3, 1) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(1, 4) = -( 2. * C1 * ( 6. * F.at(1, 1) * invF.at(3, 2) + 6. * F.at(2, 3) * invF.at(1, 1) - 2. * I1 * invF.at(1, 1) * invF.at(3, 2) - 3. * I1 * invF.at(1, 2) * invF.at(3, 1) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(1, 5) = -( 2. * C1 * ( 6. * F.at(1, 1) * invF.at(3, 1) + 6. * F.at(1, 3) * invF.at(1, 1) - 5. * I1 * invF.at(1, 1) * invF.at(3, 1) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(1, 6) = -( 2. * C1 * ( 6. * F.at(1, 1) * invF.at(2, 1) + 6. * F.at(1, 2) * invF.at(1, 1) - 5. * I1 * invF.at(1, 1) * invF.at(2, 1) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(1, 7) = -( 2. * C1 * ( 6. * F.at(1, 1) * invF.at(2, 3) + 6. * F.at(3, 2) * invF.at(1, 1) - 2. * I1 * invF.at(1, 1) * invF.at(2, 3) - 3. * I1 * invF.at(2, 1) * invF.at(1, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(1, 8) = -( 2. * C1 * ( 6. * F.at(1, 1) * invF.at(1, 3) + 6. * F.at(3, 1) * invF.at(1, 1) - 5. * I1 * invF.at(1, 1) * invF.at(1, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(1, 9) = -( 2. * C1 * ( 6. * F.at(1, 1) * invF.at(1, 2) + 6. * F.at(2, 1) * invF.at(1, 1) - 5. * I1 * invF.at(1, 1) * invF.at(1, 2) ) ) / ( 9. * pow(J, 2. / 3.) );
-
-
-
-
-    answer.at(2, 1) = -( 2. * C1 * ( 6. * F.at(1, 1) * invF.at(2, 2) + 6. * F.at(2, 2) * invF.at(1, 1) - 2. * I1 * invF.at(1, 1) * invF.at(2, 2) - 3. * I1 * invF.at(1, 2) * invF.at(2, 1) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(2, 2) = ( 2. * C1 * ( 5. * I1 * invF.at(2, 2) * invF.at(2, 2) - 12. * F.at(2, 2) * invF.at(2, 2) + 9 ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(2, 3) = -( 2. * C1 * ( 6. * F.at(2, 2) * invF.at(3, 3) + 6. * F.at(3, 3) * invF.at(2, 2) - 2. * I1 * invF.at(2, 2) * invF.at(3, 3) - 3. * I1 * invF.at(2, 3) * invF.at(3, 2) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(2, 4) = -( 2. * C1 * ( 6. * F.at(2, 2) * invF.at(3, 2) + 6. * F.at(2, 3) * invF.at(2, 2) - 5. * I1 * invF.at(2, 2) * invF.at(3, 2) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(2, 5) = -( 2. * C1 * ( 6. * F.at(1, 3) * invF.at(2, 2) + 6. * F.at(2, 2) * invF.at(3, 1) - 3. * I1 * invF.at(2, 1) * invF.at(3, 2) - 2. * I1 * invF.at(2, 2) * invF.at(3, 1) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(2, 6) = -( 2. * C1 * ( 6. * F.at(1, 2) * invF.at(2, 2) + 6. * F.at(2, 2) * invF.at(2, 1) - 5. * I1 * invF.at(2, 1) * invF.at(2, 2) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(2, 7) = -( 2. * C1 * ( 6. * F.at(2, 2) * invF.at(2, 3) + 6. * F.at(3, 2) * invF.at(2, 2) - 5. * I1 * invF.at(2, 2) * invF.at(2, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(2, 8) = -( 2. * C1 * ( 6. * F.at(2, 2) * invF.at(1, 3) + 6. * F.at(3, 1) * invF.at(2, 2) - 3. * I1 * invF.at(1, 2) * invF.at(2, 3) - 2. * I1 * invF.at(1, 3) * invF.at(2, 2) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(2, 9) = -( 2. * C1 * ( 6. * F.at(2, 1) * invF.at(2, 2) + 6. * F.at(2, 2) * invF.at(1, 2) - 5. * I1 * invF.at(1, 2) * invF.at(2, 2) ) ) / ( 9. * pow(J, 2. / 3.) );
-
-
-    answer.at(3, 1) = -( 2. * C1 * ( 6. * F.at(1, 1) * invF.at(3, 3) + 6. * F.at(3, 3) * invF.at(1, 1) - 2. * I1 * invF.at(1, 1) * invF.at(3, 3) - 3. * I1 * invF.at(1, 3) * invF.at(3, 1) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(3, 2) = -( 2. * C1 * ( 6. * F.at(2, 2) * invF.at(3, 3) + 6. * F.at(3, 3) * invF.at(2, 2) - 2. * I1 * invF.at(2, 2) * invF.at(3, 3) - 3. * I1 * invF.at(2, 3) * invF.at(3, 2) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(3, 3) = ( 2. * C1 * ( 5. * I1 * invF.at(3, 3) * invF.at(3, 3) - 12. * F.at(3, 3) * invF.at(3, 3) + 9 ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(3, 4) = -( 2. * C1 * ( 6. * F.at(2, 3) * invF.at(3, 3) + 6. * F.at(3, 3) * invF.at(3, 2) - 5. * I1 * invF.at(3, 2) * invF.at(3, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(3, 5) = -( 2. * C1 * ( 6. * F.at(1, 3) * invF.at(3, 3) + 6. * F.at(3, 3) * invF.at(3, 1) - 5. * I1 * invF.at(3, 1) * invF.at(3, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(3, 6) = -( 2. * C1 * ( 6. * F.at(1, 2) * invF.at(3, 3) + 6. * F.at(3, 3) * invF.at(2, 1) - 2. * I1 * invF.at(2, 1) * invF.at(3, 3) - 3. * I1 * invF.at(3, 1) * invF.at(2, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(3, 7) = -( 2. * C1 * ( 6. * F.at(3, 2) * invF.at(3, 3) + 6. * F.at(3, 3) * invF.at(2, 3) - 5. * I1 * invF.at(2, 3) * invF.at(3, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(3, 8) = -( 2. * C1 * ( 6. * F.at(3, 1) * invF.at(3, 3) + 6. * F.at(3, 3) * invF.at(1, 3) - 5. * I1 * invF.at(1, 3) * invF.at(3, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(3, 9) = -( 2. * C1 * ( 6. * F.at(2, 1) * invF.at(3, 3) + 6. * F.at(3, 3) * invF.at(1, 2) - 2. * I1 * invF.at(1, 2) * invF.at(3, 3) - 3. * I1 * invF.at(1, 3) * invF.at(3, 2) ) ) / ( 9. * pow(J, 2. / 3.) );
-
-
-
-
-    answer.at(4, 1) = -( 2. * C1 * ( 6. * F.at(1, 1) * invF.at(3, 2) + 6. * F.at(2, 3) * invF.at(1, 1) - 2. * I1 * invF.at(1, 1) * invF.at(3, 2) - 3. * I1 * invF.at(1, 2) * invF.at(3, 1) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(4, 2) = -( 2. * C1 * ( 6. * F.at(2, 2) * invF.at(3, 2) + 6. * F.at(2, 3) * invF.at(2, 2) - 5. * I1 * invF.at(2, 2) * invF.at(3, 2) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(4, 3) = -( 2. * C1 * ( 6. * F.at(2, 3) * invF.at(3, 3) + 6. * F.at(3, 3) * invF.at(3, 2) - 5. * I1 * invF.at(3, 2) * invF.at(3, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(4, 4) = ( 2. * C1 * ( 5. * I1 * invF.at(3, 2) * invF.at(3, 2) - 12. * F.at(2, 3) * invF.at(3, 2) + 9 ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(4, 5) = -( 2. * C1 * ( 6. * F.at(1, 3) * invF.at(3, 2) + 6. * F.at(2, 3) * invF.at(3, 1) - 5. * I1 * invF.at(3, 1) * invF.at(3, 2) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(4, 6) = -( 2. * C1 * ( 6. * F.at(1, 2) * invF.at(3, 2) + 6. * F.at(2, 3) * invF.at(2, 1) - 2. * I1 * invF.at(2, 1) * invF.at(3, 2) - 3. * I1 * invF.at(2, 2) * invF.at(3, 1) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(4, 7) = -( 2. * C1 * ( 6. * F.at(2, 3) * invF.at(2, 3) + 6. * F.at(3, 2) * invF.at(3, 2) - 3. * I1 * invF.at(2, 2) * invF.at(3, 3) - 2. * I1 * invF.at(2, 3) * invF.at(3, 2) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(4, 8) = -( 2. * C1 * ( 6. * F.at(2, 3) * invF.at(1, 3) + 6. * F.at(3, 1) * invF.at(3, 2) - 3. * I1 * invF.at(1, 2) * invF.at(3, 3) - 2. * I1 * invF.at(1, 3) * invF.at(3, 2) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(4, 9) = -( 2. * C1 * ( 6. * F.at(2, 1) * invF.at(3, 2) + 6. * F.at(2, 3) * invF.at(1, 2) - 5. * I1 * invF.at(1, 2) * invF.at(3, 2) ) ) / ( 9. * pow(J, 2. / 3.) );
-
-
-
-    answer.at(5, 1) = -( 2. * C1 * ( 6. * F.at(1, 1) * invF.at(3, 1) + 6. * F.at(1, 3) * invF.at(1, 1) - 5. * I1 * invF.at(1, 1) * invF.at(3, 1) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(5, 2) = -( 2. * C1 * ( 6. * F.at(1, 3) * invF.at(2, 2) + 6. * F.at(2, 2) * invF.at(3, 1) - 3. * I1 * invF.at(2, 1) * invF.at(3, 2) - 2. * I1 * invF.at(2, 2) * invF.at(3, 1) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(5, 3) = -( 2. * C1 * ( 6. * F.at(1, 3) * invF.at(3, 3) + 6. * F.at(3, 3) * invF.at(3, 1) - 5. * I1 * invF.at(3, 1) * invF.at(3, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(5, 4) = -( 2. * C1 * ( 6. * F.at(1, 3) * invF.at(3, 2) + 6. * F.at(2, 3) * invF.at(3, 1) - 5. * I1 * invF.at(3, 1) * invF.at(3, 2) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(5, 5) = ( 2. * C1 * ( 5. * I1 * invF.at(3, 1) * invF.at(3, 1) - 12. * F.at(1, 3) * invF.at(3, 1) + 9 ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(5, 6) = -( 2. * C1 * ( 6. * F.at(1, 2) * invF.at(3, 1) + 6. * F.at(1, 3) * invF.at(2, 1) - 5. * I1 * invF.at(2, 1) * invF.at(3, 1) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(5, 7) = -( 2. * C1 * ( 6. * F.at(1, 3) * invF.at(2, 3) + 6. * F.at(3, 2) * invF.at(3, 1) - 3. * I1 * invF.at(2, 1) * invF.at(3, 3) - 2. * I1 * invF.at(3, 1) * invF.at(2, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(5, 8) = -( 2. * C1 * ( 6. * F.at(1, 3) * invF.at(1, 3) + 6. * F.at(3, 1) * invF.at(3, 1) - 3. * I1 * invF.at(1, 1) * invF.at(3, 3) - 2. * I1 * invF.at(1, 3) * invF.at(3, 1) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(5, 9) = -( 2. * C1 * ( 6. * F.at(1, 3) * invF.at(1, 2) + 6. * F.at(2, 1) * invF.at(3, 1) - 3. * I1 * invF.at(1, 1) * invF.at(3, 2) - 2. * I1 * invF.at(1, 2) * invF.at(3, 1) ) ) / ( 9. * pow(J, 2. / 3.) );
-
-
-
-    answer.at(6, 1) = -( 2. * C1 * ( 6. * F.at(1, 1) * invF.at(2, 1) + 6. * F.at(1, 2) * invF.at(1, 1) - 5. * I1 * invF.at(1, 1) * invF.at(2, 1) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(6, 2) = -( 2. * C1 * ( 6. * F.at(1, 2) * invF.at(2, 2) + 6. * F.at(2, 2) * invF.at(2, 1) - 5. * I1 * invF.at(2, 1) * invF.at(2, 2) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(6, 3) = -( 2. * C1 * ( 6. * F.at(1, 2) * invF.at(3, 3) + 6. * F.at(3, 3) * invF.at(2, 1) - 2. * I1 * invF.at(2, 1) * invF.at(3, 3) - 3. * I1 * invF.at(3, 1) * invF.at(2, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(6, 4) = -( 2. * C1 * ( 6. * F.at(1, 2) * invF.at(3, 2) + 6. * F.at(2, 3) * invF.at(2, 1) - 2. * I1 * invF.at(2, 1) * invF.at(3, 2) - 3. * I1 * invF.at(2, 2) * invF.at(3, 1) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(6, 5) = -( 2. * C1 * ( 6. * F.at(1, 2) * invF.at(3, 1) + 6. * F.at(1, 3) * invF.at(2, 1) - 5. * I1 * invF.at(2, 1) * invF.at(3, 1) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(6, 6) = ( 2. * C1 * ( 5. * I1 * invF.at(2, 1) * invF.at(2, 1) - 12. * F.at(1, 2) * invF.at(2, 1) + 9 ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(6, 7) = -( 2. * C1 * ( 6. * F.at(1, 2) * invF.at(2, 3) + 6. * F.at(3, 2) * invF.at(2, 1) - 5. * I1 * invF.at(2, 1) * invF.at(2, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(6, 8) = -( 2. * C1 * ( 6. * F.at(1, 2) * invF.at(1, 3) + 6. * F.at(3, 1) * invF.at(2, 1) - 3. * I1 * invF.at(1, 1) * invF.at(2, 3) - 2. * I1 * invF.at(2, 1) * invF.at(1, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(6, 9) = -( 2. * C1 * ( 6. * F.at(1, 2) * invF.at(1, 2) + 6. * F.at(2, 1) * invF.at(2, 1) - 3. * I1 * invF.at(1, 1) * invF.at(2, 2) - 2. * I1 * invF.at(1, 2) * invF.at(2, 1) ) ) / ( 9. * pow(J, 2. / 3.) );
-
-
-
-
-    answer.at(7, 1) = -( 2. * C1 * ( 6. * F.at(1, 1) * invF.at(2, 3) + 6. * F.at(3, 2) * invF.at(1, 1) - 2. * I1 * invF.at(1, 1) * invF.at(2, 3) - 3. * I1 * invF.at(2, 1) * invF.at(1, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(7, 2) = -( 2. * C1 * ( 6. * F.at(2, 2) * invF.at(2, 3) + 6. * F.at(3, 2) * invF.at(2, 2) - 5. * I1 * invF.at(2, 2) * invF.at(2, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(7, 3) = -( 2. * C1 * ( 6. * F.at(3, 2) * invF.at(3, 3) + 6. * F.at(3, 3) * invF.at(2, 3) - 5. * I1 * invF.at(2, 3) * invF.at(3, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(7, 4) = -( 2. * C1 * ( 6. * F.at(2, 3) * invF.at(2, 3) + 6. * F.at(3, 2) * invF.at(3, 2) - 3. * I1 * invF.at(2, 2) * invF.at(3, 3) - 2. * I1 * invF.at(2, 3) * invF.at(3, 2) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(7, 5) = -( 2. * C1 * ( 6. * F.at(1, 3) * invF.at(2, 3) + 6. * F.at(3, 2) * invF.at(3, 1) - 3. * I1 * invF.at(2, 1) * invF.at(3, 3) - 2. * I1 * invF.at(3, 1) * invF.at(2, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(7, 6) = -( 2. * C1 * ( 6. * F.at(1, 2) * invF.at(2, 3) + 6. * F.at(3, 2) * invF.at(2, 1) - 5. * I1 * invF.at(2, 1) * invF.at(2, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(7, 7) = ( 2. * C1 * ( 5. * I1 * invF.at(2, 3) * invF.at(2, 3) - 12. * F.at(3, 2) * invF.at(2, 3) + 9 ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(7, 8) = -( 2. * C1 * ( 6. * F.at(3, 1) * invF.at(2, 3) + 6. * F.at(3, 2) * invF.at(1, 3) - 5. * I1 * invF.at(1, 3) * invF.at(2, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(7, 9) = -( 2. * C1 * ( 6. * F.at(2, 1) * invF.at(2, 3) + 6. * F.at(3, 2) * invF.at(1, 2) - 2. * I1 * invF.at(1, 2) * invF.at(2, 3) - 3. * I1 * invF.at(1, 3) * invF.at(2, 2) ) ) / ( 9. * pow(J, 2. / 3.) );
-
-
-
-
-
-    answer.at(8, 1) = -( 2. * C1 * ( 6. * F.at(1, 1) * invF.at(1, 3) + 6. * F.at(3, 1) * invF.at(1, 1) - 5. * I1 * invF.at(1, 1) * invF.at(1, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(8, 2) = -( 2. * C1 * ( 6. * F.at(2, 2) * invF.at(1, 3) + 6. * F.at(3, 1) * invF.at(2, 2) - 3. * I1 * invF.at(1, 2) * invF.at(2, 3) - 2. * I1 * invF.at(1, 3) * invF.at(2, 2) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(8, 3) = -( 2. * C1 * ( 6. * F.at(3, 1) * invF.at(3, 3) + 6. * F.at(3, 3) * invF.at(1, 3) - 5. * I1 * invF.at(1, 3) * invF.at(3, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(8, 4) = -( 2. * C1 * ( 6. * F.at(2, 3) * invF.at(1, 3) + 6. * F.at(3, 1) * invF.at(3, 2) - 3. * I1 * invF.at(1, 2) * invF.at(3, 3) - 2. * I1 * invF.at(1, 3) * invF.at(3, 2) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(8, 5) = -( 2. * C1 * ( 6. * F.at(1, 3) * invF.at(1, 3) + 6. * F.at(3, 1) * invF.at(3, 1) - 3. * I1 * invF.at(1, 1) * invF.at(3, 3) - 2. * I1 * invF.at(1, 3) * invF.at(3, 1) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(8, 6) = -( 2. * C1 * ( 6. * F.at(1, 2) * invF.at(1, 3) + 6. * F.at(3, 1) * invF.at(2, 1) - 3. * I1 * invF.at(1, 1) * invF.at(2, 3) - 2. * I1 * invF.at(2, 1) * invF.at(1, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(8, 7) = -( 2. * C1 * ( 6. * F.at(3, 1) * invF.at(2, 3) + 6. * F.at(3, 2) * invF.at(1, 3) - 5. * I1 * invF.at(1, 3) * invF.at(2, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(8, 8) = ( 2. * C1 * ( 5. * I1 * invF.at(1, 3) * invF.at(1, 3) - 12. * F.at(3, 1) * invF.at(1, 3) + 9 ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(8, 9) = -( 2. * C1 * ( 6. * F.at(2, 1) * invF.at(1, 3) + 6. * F.at(3, 1) * invF.at(1, 2) - 5. * I1 * invF.at(1, 2) * invF.at(1, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-
-
-
-
-
-    answer.at(9, 1) = -( 2. * C1 * ( 6. * F.at(1, 1) * invF.at(1, 2) + 6. * F.at(2, 1) * invF.at(1, 1) - 5. * I1 * invF.at(1, 1) * invF.at(1, 2) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(9, 2) = -( 2. * C1 * ( 6. * F.at(2, 1) * invF.at(2, 2) + 6. * F.at(2, 2) * invF.at(1, 2) - 5. * I1 * invF.at(1, 2) * invF.at(2, 2) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(9, 3) = -( 2. * C1 * ( 6. * F.at(2, 1) * invF.at(3, 3) + 6. * F.at(3, 3) * invF.at(1, 2) - 2. * I1 * invF.at(1, 2) * invF.at(3, 3) - 3. * I1 * invF.at(1, 3) * invF.at(3, 2) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(9, 4) = -( 2. * C1 * ( 6. * F.at(2, 1) * invF.at(3, 2) + 6. * F.at(2, 3) * invF.at(1, 2) - 5. * I1 * invF.at(1, 2) * invF.at(3, 2) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(9, 5) = -( 2. * C1 * ( 6. * F.at(1, 3) * invF.at(1, 2) + 6. * F.at(2, 1) * invF.at(3, 1) - 3. * I1 * invF.at(1, 1) * invF.at(3, 2) - 2. * I1 * invF.at(1, 2) * invF.at(3, 1) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(9, 6) = -( 2. * C1 * ( 6. * F.at(1, 2) * invF.at(1, 2) + 6. * F.at(2, 1) * invF.at(2, 1) - 3. * I1 * invF.at(1, 1) * invF.at(2, 2) - 2. * I1 * invF.at(1, 2) * invF.at(2, 1) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(9, 7) = -( 2. * C1 * ( 6. * F.at(2, 1) * invF.at(2, 3) + 6. * F.at(3, 2) * invF.at(1, 2) - 2. * I1 * invF.at(1, 2) * invF.at(2, 3) - 3. * I1 * invF.at(1, 3) * invF.at(2, 2) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(9, 8) = -( 2. * C1 * ( 6. * F.at(2, 1) * invF.at(1, 3) + 6. * F.at(3, 1) * invF.at(1, 2) - 5. * I1 * invF.at(1, 2) * invF.at(1, 3) ) ) / ( 9. * pow(J, 2. / 3.) );
-    answer.at(9, 9) = ( 2. * C1 * ( 5. * I1 * invF.at(1, 2) * invF.at(1, 2) - 12. * F.at(2, 1) * invF.at(1, 2) + 9 ) ) / ( 9. * pow(J, 2. / 3.) );
-
-    
-
-    
-    answer.at(1, 1) = answer.at(1, 1) - K *invF.at(1, 1) * invF.at(1, 1) * ( lnJ - 1. );
-    answer.at(1, 2) = answer.at(1, 2) + K * ( invF.at(1, 1) * invF.at(2, 2) - invF.at(1, 2) * invF.at(2, 1) * lnJ );
-    answer.at(1, 3) = answer.at(1, 3) + K * ( invF.at(1, 1) * invF.at(3, 3) - invF.at(1, 3) * invF.at(3, 1) * lnJ );
-    answer.at(1, 4) = answer.at(1, 4) + K * ( invF.at(1, 1) * invF.at(3, 2) - invF.at(1, 2) * invF.at(3, 1) * lnJ );
-    answer.at(1, 5) = answer.at(1, 5) - K *invF.at(1, 1) * invF.at(3, 1) * ( lnJ - 1. );
-    answer.at(1, 6) = answer.at(1, 6) - K *invF.at(1, 1) * invF.at(2, 1) * ( lnJ - 1. );
-    answer.at(1, 7) = answer.at(1, 7) + K * ( invF.at(1, 1) * invF.at(2, 3) - invF.at(2, 1) * invF.at(1, 3) * lnJ );
-    answer.at(1, 8) = answer.at(1, 8) - K *invF.at(1, 1) * invF.at(1, 3) * ( lnJ - 1. );
-    answer.at(1, 9) = answer.at(1, 9) - K *invF.at(1, 1) * invF.at(1, 2) * ( lnJ - 1. );
-
-
-
-
-    answer.at(2, 1) = answer.at(2, 1) + K * ( invF.at(1, 1) * invF.at(2, 2) - invF.at(1, 2) * invF.at(2, 1) * lnJ );
-    answer.at(2, 2) = answer.at(2, 2) - K *invF.at(2, 2) * invF.at(2, 2) * ( lnJ - 1. );
-    answer.at(2, 3) = answer.at(2, 3) + K * ( invF.at(2, 2) * invF.at(3, 3) - invF.at(2, 3) * invF.at(3, 2) * lnJ );
-    answer.at(2, 4) = answer.at(2, 4) - K *invF.at(2, 2) * invF.at(3, 2) * ( lnJ - 1. );
-    answer.at(2, 5) = answer.at(2, 5) + K * ( invF.at(2, 2) * invF.at(3, 1) - invF.at(2, 1) * invF.at(3, 2) * lnJ );
-    answer.at(2, 6) = answer.at(2, 6) - K *invF.at(2, 1) * invF.at(2, 2) * ( lnJ - 1. );
-    answer.at(2, 7) = answer.at(2, 7) - K *invF.at(2, 2) * invF.at(2, 3) * ( lnJ - 1. );
-    answer.at(2, 8) = answer.at(2, 8) + K * ( invF.at(1, 3) * invF.at(2, 2) - invF.at(1, 2) * invF.at(2, 3) * lnJ );
-    answer.at(2, 9) = answer.at(2, 9) - K *invF.at(1, 2) * invF.at(2, 2) * ( lnJ - 1. );
-
-
-
-
-    answer.at(3, 1) = answer.at(3, 1) + K * ( invF.at(1, 1) * invF.at(3, 3) - invF.at(1, 3) * invF.at(3, 1) * lnJ );
-    answer.at(3, 2) = answer.at(3, 2) + K * ( invF.at(2, 2) * invF.at(3, 3) - invF.at(2, 3) * invF.at(3, 2) * lnJ );
-    answer.at(3, 3) = answer.at(3, 3) - K *invF.at(3, 3) * invF.at(3, 3) * ( lnJ - 1. );
-    answer.at(3, 4) = answer.at(3, 4) - K *invF.at(3, 2) * invF.at(3, 3) * ( lnJ - 1. );
-    answer.at(3, 5) = answer.at(3, 5) - K *invF.at(3, 1) * invF.at(3, 3) * ( lnJ - 1. );
-    answer.at(3, 6) = answer.at(3, 6) + K * ( invF.at(2, 1) * invF.at(3, 3) - invF.at(3, 1) * invF.at(2, 3) * lnJ );
-    answer.at(3, 7) = answer.at(3, 7) - K *invF.at(2, 3) * invF.at(3, 3) * ( lnJ - 1. );
-    answer.at(3, 8) = answer.at(3, 8) - K *invF.at(1, 3) * invF.at(3, 3) * ( lnJ - 1. );
-    answer.at(3, 9) = answer.at(3, 9) + K * ( invF.at(1, 2) * invF.at(3, 3) - invF.at(1, 3) * invF.at(3, 2) * lnJ );
-
-
-
-
-    answer.at(4, 1) = answer.at(4, 1) + K * ( invF.at(1, 1) * invF.at(3, 2) - invF.at(1, 2) * invF.at(3, 1) * lnJ );
-    answer.at(4, 2) = answer.at(4, 2) - K *invF.at(2, 2) * invF.at(3, 2) * ( lnJ - 1. );
-    answer.at(4, 3) = answer.at(4, 3) - K *invF.at(3, 2) * invF.at(3, 3) * ( lnJ - 1. );
-    answer.at(4, 4) = answer.at(4, 4) - K *invF.at(3, 2) * invF.at(3, 2) * ( lnJ - 1. );
-    answer.at(4, 5) = answer.at(4, 5) - K *invF.at(3, 1) * invF.at(3, 2) * ( lnJ - 1. );
-    answer.at(4, 6) = answer.at(4, 6) + K * ( invF.at(2, 1) * invF.at(3, 2) - invF.at(2, 2) * invF.at(3, 1) * lnJ );
-    answer.at(4, 7) = answer.at(4, 7) + K * ( invF.at(2, 3) * invF.at(3, 2) - invF.at(2, 2) * invF.at(3, 3) * lnJ );
-    answer.at(4, 8) = answer.at(4, 8) + K * ( invF.at(1, 3) * invF.at(3, 2) - invF.at(1, 2) * invF.at(3, 3) * lnJ );
-    answer.at(4, 9) = answer.at(4, 9) - K *invF.at(1, 2) * invF.at(3, 2) * ( lnJ - 1. );
-
-
-
-    answer.at(5, 1) = answer.at(5, 1) - K *invF.at(1, 1) * invF.at(3, 1) * ( lnJ - 1. );
-    answer.at(5, 2) = answer.at(5, 2) + K * ( invF.at(2, 2) * invF.at(3, 1) - invF.at(2, 1) * invF.at(3, 2) * lnJ );
-    answer.at(5, 3) = answer.at(5, 3) - K *invF.at(3, 1) * invF.at(3, 3) * ( lnJ - 1. );
-    answer.at(5, 4) = answer.at(5, 4) - K *invF.at(3, 1) * invF.at(3, 2) * ( lnJ - 1. );
-    answer.at(5, 5) = answer.at(5, 5) - K *invF.at(3, 1) * invF.at(3, 1) * ( lnJ - 1. );
-    answer.at(5, 6) = answer.at(5, 6) - K *invF.at(2, 1) * invF.at(3, 1) * ( lnJ - 1. );
-    answer.at(5, 7) = answer.at(5, 7) + K * ( invF.at(3, 1) * invF.at(2, 3) - invF.at(2, 1) * invF.at(3, 3) * lnJ );
-    answer.at(5, 8) = answer.at(5, 8) + K * ( invF.at(1, 3) * invF.at(3, 1) - invF.at(1, 1) * invF.at(3, 3) * lnJ );
-    answer.at(5, 9) = answer.at(5, 9) + K * ( invF.at(1, 2) * invF.at(3, 1) - invF.at(1, 1) * invF.at(3, 2) * lnJ );
-
-
-
-
-    answer.at(6, 1) = answer.at(6, 1) - K *invF.at(1, 1) * invF.at(2, 1) * ( lnJ - 1. );
-    answer.at(6, 2) = answer.at(6, 2) - K *invF.at(2, 1) * invF.at(2, 2) * ( lnJ - 1. );
-    answer.at(6, 3) = answer.at(6, 3) + K * ( invF.at(2, 1) * invF.at(3, 3) - invF.at(3, 1) * invF.at(2, 3) * lnJ );
-    answer.at(6, 4) = answer.at(6, 4) + K * ( invF.at(2, 1) * invF.at(3, 2) - invF.at(2, 2) * invF.at(3, 1) * lnJ );
-    answer.at(6, 5) = answer.at(6, 5) - K *invF.at(2, 1) * invF.at(3, 1) * ( lnJ - 1. );
-    answer.at(6, 6) = answer.at(6, 6) - K *invF.at(2, 1) * invF.at(2, 1) * ( lnJ - 1. );
-    answer.at(6, 7) = answer.at(6, 7) - K *invF.at(2, 1) * invF.at(2, 3) * ( lnJ - 1. );
-    answer.at(6, 8) = answer.at(6, 8) + K * ( invF.at(2, 1) * invF.at(1, 3) - invF.at(1, 1) * invF.at(2, 3) * lnJ );
-    answer.at(6, 9) = answer.at(6, 9) + K * ( invF.at(1, 2) * invF.at(2, 1) - invF.at(1, 1) * invF.at(2, 2) * lnJ );
-
-
-
-
-
-    answer.at(7, 1) = answer.at(7, 1) + K * ( invF.at(1, 1) * invF.at(2, 3) - invF.at(2, 1) * invF.at(1, 3) * lnJ );
-    answer.at(7, 2) = answer.at(7, 2) - K *invF.at(2, 2) * invF.at(2, 3) * ( lnJ - 1. );
-    answer.at(7, 3) = answer.at(7, 3) - K *invF.at(2, 3) * invF.at(3, 3) * ( lnJ - 1. );
-    answer.at(7, 4) = answer.at(7, 4) + K * ( invF.at(2, 3) * invF.at(3, 2) - invF.at(2, 2) * invF.at(3, 3) * lnJ );
-    answer.at(7, 5) = answer.at(7, 5) + K * ( invF.at(3, 1) * invF.at(2, 3) - invF.at(2, 1) * invF.at(3, 3) * lnJ );
-    answer.at(7, 6) = answer.at(7, 6) - K *invF.at(2, 1) * invF.at(2, 3) * ( lnJ - 1. );
-    answer.at(7, 7) = answer.at(7, 7) - K *invF.at(2, 3) * invF.at(2, 3) * ( lnJ - 1. );
-    answer.at(7, 8) = answer.at(7, 8) - K *invF.at(1, 3) * invF.at(2, 3) * ( lnJ - 1. );
-    answer.at(7, 9) = answer.at(7, 9) + K * ( invF.at(1, 2) * invF.at(2, 3) - invF.at(1, 3) * invF.at(2, 2) * lnJ );
-
-
-
-
-    answer.at(8, 1) = answer.at(8, 1) - K *invF.at(1, 1) * invF.at(1, 3) * ( lnJ - 1. );
-    answer.at(8, 2) = answer.at(8, 2) + K * ( invF.at(1, 3) * invF.at(2, 2) - invF.at(1, 2) * invF.at(2, 3) * lnJ );
-    answer.at(8, 3) = answer.at(8, 3) - K *invF.at(1, 3) * invF.at(3, 3) * ( lnJ - 1. );
-    answer.at(8, 4) = answer.at(8, 4) + K * ( invF.at(1, 3) * invF.at(3, 2) - invF.at(1, 2) * invF.at(3, 3) * lnJ );
-    answer.at(8, 5) = answer.at(8, 5) + K * ( invF.at(1, 3) * invF.at(3, 1) - invF.at(1, 1) * invF.at(3, 3) * lnJ );
-    answer.at(8, 6) = answer.at(8, 6) + K * ( invF.at(2, 1) * invF.at(1, 3) - invF.at(1, 1) * invF.at(2, 3) * lnJ );
-    answer.at(8, 7) = answer.at(8, 7) - K *invF.at(1, 3) * invF.at(2, 3) * ( lnJ - 1. );
-    answer.at(8, 8) = answer.at(8, 8) - K *invF.at(1, 3) * invF.at(1, 3) * ( lnJ - 1. );
-    answer.at(8, 9) = answer.at(8, 9) - K *invF.at(1, 2) * invF.at(1, 3) * ( lnJ - 1. );
-
-
-
-
-
-    answer.at(9, 1) = answer.at(9, 1) - K *invF.at(1, 1) * invF.at(1, 2) * ( lnJ - 1. );
-    answer.at(9, 2) = answer.at(9, 2) - K *invF.at(1, 2) * invF.at(2, 2) * ( lnJ - 1. );
-    answer.at(9, 3) = answer.at(9, 3) + K * ( invF.at(1, 2) * invF.at(3, 3) - invF.at(1, 3) * invF.at(3, 2) * lnJ );
-    answer.at(9, 4) = answer.at(9, 4) - K *invF.at(1, 2) * invF.at(3, 2) * ( lnJ - 1. );
-    answer.at(9, 5) = answer.at(9, 5) + K * ( invF.at(1, 2) * invF.at(3, 1) - invF.at(1, 1) * invF.at(3, 2) * lnJ );
-    answer.at(9, 6) = answer.at(9, 6) + K * ( invF.at(1, 2) * invF.at(2, 1) - invF.at(1, 1) * invF.at(2, 2) * lnJ );
-    answer.at(9, 7) = answer.at(9, 7) + K * ( invF.at(1, 2) * invF.at(2, 3) - invF.at(1, 3) * invF.at(2, 2) * lnJ );
-    answer.at(9, 8) = answer.at(9, 8) - K *invF.at(1, 2) * invF.at(1, 3) * ( lnJ - 1. );
-    answer.at(9, 9) = answer.at(9, 9) - K *invF.at(1, 2) * invF.at(1, 2) * ( lnJ - 1. );
-    
-
-
-
-    FloatMatrix test(answer);
-    test.subtract(answer1);
-    answer = answer1;
 }
 
 

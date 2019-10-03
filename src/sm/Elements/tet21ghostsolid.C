@@ -48,6 +48,7 @@
 #include "boundaryload.h"
 #include "neumannmomentload.h"
 #include "dof.h"
+#include "mathfem.h"
 
 #ifdef __FM_MODULE
 #include "fluiddynamicmaterial.h"

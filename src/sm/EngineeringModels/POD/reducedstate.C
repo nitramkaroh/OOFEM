@@ -36,6 +36,7 @@
 #include "floatarray.h"
 #include "error.h"
 #include "datastream.h"
+#include "mathfem.h"
 
 namespace oofem {
 

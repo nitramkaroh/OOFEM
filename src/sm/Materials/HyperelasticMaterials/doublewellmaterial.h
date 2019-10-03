@@ -38,52 +38,31 @@
 #include "../sm/Materials/structuralmaterial.h"
 #include "../sm/Materials/structuralms.h"
 
-///@name Input fields for MooneyRivlinMaterial
+///@name Input fields for DoubleWellMaterial
 //@{
 #define _IFT_DoubleWellMaterial_Name "doublewellmaterial"
 #define _IFT_DoubleWellMaterial_alpha "alpha"
-#define _IFT_DoubleWellMaterial_gamma "gamma"
 #define _IFT_DoubleWellMaterial_eps "eps"
 //@}
 
 namespace oofem {
 /**
- * This class implements Double well material.
+ * This class implements Double Well Material.
  *
  * @author Martin Horák, nitramkaroh@seznam.cz
- * @todo change this
- * References: R.W. Ogden: Non-Linear Elastic Deformations,
- * de Souza Neto, Peric, Owen: Computational Methods for Plasticity: Theory and Applications
- *
- * Free energy is considered as:
- * @f[
- * \rho_0 \psi = C_1(\bar{I}_1 - 3) + C_2(\bar{I}_2-3) + \frac{1}{2} K[ln(J)]^2
- * @f]
- * @f$ C_1 @f$, @f$ C_2 @f$, and @f$K@f$ are material parameters.
- *
- * @f$ \bar{I}_1 = J^{-2/3}I_1 @f$, where @f$I_1@f$ is the first invariant of @f$ \boldsymbol{C} @f$.
- *
- * @f$ \bar{I}_2 = J^{-4/3}I_2 @f$, where @f$I_2@f$ is the second invariant of @f$ \boldsymbol{C} @f$.
- *
- * Compressible Neo-Hookean model is obtained by setting @f$C_2 = 0@f$
+ * 
  */
 class DoubleWellMaterial : public StructuralMaterial
 {
 protected:
     // Material parameters
     double alpha;
-    double gamma;
-
     double eps;
-    FloatMatrix tC1, tC2;
-
+    FloatMatrix tC1_0, tC2_0;
 
 public:
+    DoubleWellMaterial(int n, Domain *d);
 
-    DoubleWellMaterial(int n, Domain * d);
-
-
-    
     virtual IRResultType initializeFrom(InputRecord *ir);
 
     virtual void give3dMaterialStiffnessMatrix(FloatMatrix &answer,
@@ -101,10 +80,15 @@ public:
 
     virtual const char *giveInputRecordName() const { return _IFT_DoubleWellMaterial_Name; }
     virtual const char *giveClassName() const { return "DoubleWellMaterial"; }
-    MaterialStatus *CreateStatus(GaussPoint *gp) const;
+    int giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType type, TimeStep *tStep);
+    virtual MaterialStatus *CreateStatus(GaussPoint *gp) const;
+    
  protected:
-        void compute_dC_dF(FloatMatrix &dCdF,const FloatArray &vF);
-	virtual int giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType type, TimeStep *tStep);
+    void compute_dC_dF(FloatMatrix &dCdF,const FloatArray &vF);
+    FloatMatrix &givetC1(TimeStep *tStep);
+    FloatMatrix &givetC2(TimeStep *tStep);
+
+    
 };
 
 } // end namespace oofem

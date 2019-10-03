@@ -510,8 +510,22 @@ RankineMat :: give1dStressStiffMtrx(FloatMatrix &answer, MatResponseMode mode, G
     } else if ( mode == SecantStiffness ) {
         double om = status->giveTempDamage();
         answer.times(1.0 - om);
-    } else {
-        OOFEM_ERROR("unknown type of stiffness (secant stiffness not implemented for 1d)");
+    } else if (mode == TangentStiffness) {
+        double kappa = status->giveCumulativePlasticStrain();
+	// increment of cumulative plastic strain as an indicator of plastic loading
+	double tempKappa = status->giveTempCumulativePlasticStrain();
+	double omega = status->giveTempDamage();
+	if ( tempKappa <= kappa ) { // elastic loading - elastic stiffness plays the role of tangent stiffness
+	  answer.times(1 - omega);
+	  return;
+	}
+	// === plastic loading ===
+	const FloatArray &stressVector = status->giveTempEffectiveStress();
+	double stress = stressVector.at(1);
+	answer.resize(1, 1);
+	answer.at(1, 1) = ( 1 - omega ) * E * H0 / ( E + H0 ) - computeDamageParamPrime(tempKappa) * E / ( E + H0 ) * stress * signum(stress);
+    }    else {
+      OOFEM_ERROR("unknown type of stiffness (secant stiffness not implemented for 1d)");
     }
 }
 
@@ -761,6 +775,12 @@ void RankineMatStatus :: initTempStatus()
         plasticStrain.zero();
     }
 
+    if ( effStress.giveSize() == 0 ) {
+        effStress.resize( StructuralMaterial :: giveSizeOfVoigtSymVector( gp->giveMaterialMode() ) );
+        effStress.zero();
+    }
+
+    tempEffStress = effStress;
     tempDamage = damage;
     tempPlasticStrain = plasticStrain;
     tempKappa = kappa;
