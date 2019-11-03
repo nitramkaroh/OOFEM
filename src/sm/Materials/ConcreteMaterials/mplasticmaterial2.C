@@ -435,13 +435,18 @@ huhu: //label for goto
 				//this->giveDomain()->giveEngngModel()->setAnalysisCrash(true);
 				//break;
                                 OOFEM_WARNING("Internal Consistency error: all combinations of yield functions tried, no consistent return");
+				this->giveDomain()->giveEngngModel()->setAnalysisCrash(true);
+				return;
+
 				
                             }
 
 #else
 			    //this->giveDomain()->giveEngngModel()->setAnalysisCrash(true);
 			    //break;
-			    OOFEM_WARNING("Internal Consistency error: all combinations of yield functions tried, no consistent return");
+			    this->giveDomain()->giveEngngModel()->setAnalysisCrash(true);
+			    return;
+			    //OOFEM_WARNING("Internal Consistency error: all combinations of yield functions tried, no consistent return");
 				
 			    //                            OOFEM_ERROR("Internal Consistency error: all combinations of yield functions tried, no consistent return");
 #endif
@@ -743,7 +748,10 @@ huhu: //label for goto
                         }
 
 #else
-                        OOFEM_ERROR("Internal Consistency error: all combinations of yield functions tried, no consistent return");
+			this->giveDomain()->giveEngngModel()->setAnalysisCrash(true);
+			return;
+
+			//                        OOFEM_ERROR("Internal Consistency error: all combinations of yield functions tried, no consistent return");
 #endif
                     }
 
@@ -784,12 +792,12 @@ huhu: //label for goto
 
                                     //OOFEM_ERROR("Internal Consistency error: all combinations of yield functions tried, no consistent return");
 				    this->giveDomain()->giveEngngModel()->setAnalysisCrash(true);
-				    break;
+				    return;
                                 }
 
 #else
 				this->giveDomain()->giveEngngModel()->setAnalysisCrash(true);
-				break;
+				return;
                                 OOFEM_ERROR("Internal Consistency error: all combinations of yield functions tried, no consistent return");
 #endif
                             }

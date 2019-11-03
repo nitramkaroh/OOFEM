@@ -61,12 +61,12 @@ Beam2Beam2dAnalyticalContactElement :: computeStiffnessMatrix(FloatMatrix &answe
     if(contact_type == CT_None) {
       answer.clear();
     } else if(contact_type == CT_Beam1_Tip_Beam2) {
-      this->computeStiffnessMatrix_TipContact(answer, lengthBeam1, lengthBeam2);
+      this->computeStiffnessMatrix_TipContact(answer, lengthBeam1, lengthBeam2 - overlap);
     } else if(contact_type == CT_Beam2_Tip_Beam1) {
-      this->computeStiffnessMatrix_TipContact(answer, lengthBeam2, lengthBeam1);
+      this->computeStiffnessMatrix_TipContact(answer, lengthBeam1 - overlap, lengthBeam2);
     } else if(contact_type == CT_Overlap) {
       answer.clear();
-      //      this->computeStiffnessMatrix_OverlapingContact();
+      this->computeStiffnessMatrix_OverlapingContact(answer, totalLength);
     } else {
       OOFEM_ERROR("Unknown contact type");
     }
@@ -78,8 +78,18 @@ Beam2Beam2dAnalyticalContactElement :: computeStiffnessMatrix(FloatMatrix &answe
 void
 Beam2Beam2dAnalyticalContactElement :: computeStiffnessMatrix_TipContact(FloatMatrix &answer, double l1, double l2)
 {
-      answer = {{0, 1, -l1, 0, -1, -l2},{0, -l1, l1 * l1, 0, l1, l1*l2},{0,  -1, l1, 0, 1, l2},	{0, -l2, l1 * l2, 0, l2, l2*l2}};
+  answer = {{0, 0, 0, 0, 0, 0}, {0, 1, -l1, 0, -1, -l2},{0, -l1, l1 * l1, 0, l1, l1*l2},{0, 0, 0, 0, 0, 0}, {0,  -1, l1, 0, 1, l2}, {0, -l2, l1 * l2, 0, l2, l2*l2}};
       answer.times(3*E*Iy/(l1*l1*l1 + l2*l2*l2) );     
+}
+
+void
+Beam2Beam2dAnalyticalContactElement :: computeStiffnessMatrix_OverlapingContact(FloatMatrix &answer, double L)
+{
+  double EI = E*Iy;
+  double L3 = L * L * L;
+  double L2 = L * L;
+  
+  answer = {{0, 0, 0, 0, 0, 0}, {0, 12*EI/L3, -6*EI/L2, 0, -12*EI/L3, -6*EI/L2},{0, -6*EI/L2, 4*EI/L, 0, 6*EI/L2, 2*EI/L},{0, 0, 0, 0, 0, 0}, {0, -12*EI/L3, 6*EI/L2, 0, 12*EI/L3, 6*EI/L2}, {0, -6*EI/L2, 2*EI/L, 0, 6*EI/L2, 4*EI/L}};
 }
 
 
@@ -94,11 +104,11 @@ Beam2Beam2dAnalyticalContactElement :: giveInternalForcesVector(FloatArray &answ
   if(contact_type == CT_None) {
     answer.clear();
   } else if(contact_type == CT_Beam1_Tip_Beam2) {
-    this->giveInternalForcesVector_TipContact(answer, lengthBeam1, lengthBeam2, tStep);
+    this->giveInternalForcesVector_Contact(answer, lengthBeam1, lengthBeam2 - overlap, tStep);
   } else if(contact_type == CT_Beam2_Tip_Beam1) {
-    this->giveInternalForcesVector_TipContact(answer, lengthBeam2, lengthBeam1, tStep);
+    this->giveInternalForcesVector_Contact(answer, lengthBeam1 - overlap, lengthBeam2, tStep);
   } else if(contact_type == CT_Overlap) {
-    this->giveInternalForcesVector_OverlapingContact(answer, lengthBeam1, lengthBeam2, totalLength, tStep);
+    this->giveInternalForcesVector_Contact(answer, lengthBeam1 - xc, lengthBeam2 - overlap + xc , tStep);
   } else {
     OOFEM_ERROR("Unknown contact type");
   }
@@ -107,28 +117,14 @@ Beam2Beam2dAnalyticalContactElement :: giveInternalForcesVector(FloatArray &answ
 
 
 void
-Beam2Beam2dAnalyticalContactElement :: giveInternalForcesVector_TipContact(FloatArray &answer, double l1, double l2, TimeStep *tStep)
+Beam2Beam2dAnalyticalContactElement :: giveInternalForcesVector_Contact(FloatArray &answer, double l1, double l2, TimeStep *tStep)
 {
-    double w1 = this->giveNode(1)->giveDofWithID(2)->giveUnknown(VM_Total, tStep);
-    double phi1 = this->giveNode(1)->giveDofWithID(5)->giveUnknown(VM_Total, tStep);
-    double w2 = this->giveNode(2)->giveDofWithID(2)->giveUnknown(VM_Total, tStep);
-    double phi2 = this->giveNode(2)->giveDofWithID(5)->giveUnknown(VM_Total, tStep);
+    // compute position after deformation
+    double w1, phi1, w2, phi2;
+    this->giveLocalDofs(w1, phi1, w2, phi2, tStep);
     
-    double F = 3 * E * Iy * (w2 * w1 + phi1 * l1 + phi2 * l2) / ( l1 * l1 *l1 + l2 * l2 * l2);
+    double F = 3 * E * Iy * (w2 - w1 + phi1 * l1 + phi2 * l2) / ( l1 * l1 *l1 + l2 * l2 * l2);
     answer = {0, -F, F* l1, 0, F, F * l2}; 
-}
-
-
-void
-Beam2Beam2dAnalyticalContactElement :: giveInternalForcesVector_OverlapingContact(FloatArray &answer, double l1, double l2, double L, TimeStep *tStep)
-{
-    double w1 = this->giveNode(1)->giveDofWithID(2)->giveUnknown(VM_Total, tStep);
-    double phi1 = this->giveNode(1)->giveDofWithID(5)->giveUnknown(VM_Total, tStep);
-    double w2 = this->giveNode(2)->giveDofWithID(2)->giveUnknown(VM_Total, tStep);
-    double phi2 = this->giveNode(2)->giveDofWithID(5)->giveUnknown(VM_Total, tStep);
-    
-    double F = 6 * E * Iy * ( L * ( phi1 + phi2 ) + 2. * (w1 - w2)) / ( L * L * L );
-    answer = {0, -F, F * l1, 0, F, F * l2}; 
 }
 
 
@@ -137,35 +133,54 @@ void
 Beam2Beam2dAnalyticalContactElement :: checkContact(double l1, double l2, double o, double &xc, TimeStep *tStep, ContactType &contact_type)
 {
     double rotationAngle;
-    xc = 0;
-    this->checkTipContact(rotationAngle, l1, l2 - o, tStep);
-    if(rotationAngle <= 0)
-      contact_type = CT_Beam1_Tip_Beam2;
-    else {
-      this->checkTipContact(rotationAngle, l1 - o, l2, tStep);
-      if(rotationAngle >= 0){
-	contact_type = CT_Beam2_Tip_Beam1;
-      } else {
-	if(this->checkOverlapingContact(l1,l2, o, xc, tStep)) {
-	  contact_type = CT_Overlap;
+    FloatArray x, x1, x2;
+    // checking beam positions
+    x1 = *this->giveNode(1)->giveCoordinates();
+    x2 = *this->giveNode(2)->giveCoordinates();
+    x = x2 + b2;
+    double sign = -n1.dotProduct(x-x1);
+    if(sign == 0) {
+      sign  = 1;
+    } else {
+      sign /= fabs(sign);
+    }
+    // compute position after deformation
+    double w1, phi1, w2, phi2;
+    this->giveLocalDofs(w1, phi1, w2, phi2, tStep);
+    // check two contact positions
+    double cond1 = sign * ( phi1 * lengthBeam1 + phi2 * ( lengthBeam2 - overlap ) + w2 - w1 );
+    double cond2 = sign * ( phi2 * lengthBeam2 + phi1 * ( lengthBeam1 - overlap ) + w2 - w1 );
+    if (cond1 <= 0 && cond2 <= 0) {
+      contact_type = CT_None;
+    } else {
+      xc = 0;
+      this->checkTipContact(rotationAngle, l1, l2 - o, tStep);
+      if(rotationAngle <= 0)
+	contact_type = CT_Beam1_Tip_Beam2;
+      else {
+	this->checkTipContact(rotationAngle, l1 - o, l2, tStep);
+	if(rotationAngle >= 0){
+	  contact_type = CT_Beam2_Tip_Beam1;
 	} else {
-	  contact_type = CT_None;
+	  if(this->checkOverlapingContact(l1,l2, o, xc, tStep)) {
+	    contact_type = CT_Overlap;
+	  }
 	}
       }
     }
-
 }
 
+
+
+  
   
 void
 Beam2Beam2dAnalyticalContactElement :: checkTipContact(double &answer, double l1, double l2, TimeStep *tStep)
 {
 
-  double w1 = this->giveNode(1)->giveDofWithID(2)->giveUnknown(VM_Total, tStep);
-  double phi1 = this->giveNode(1)->giveDofWithID(5)->giveUnknown(VM_Total, tStep);
-  double w2 = this->giveNode(2)->giveDofWithID(2)->giveUnknown(VM_Total, tStep);
-  double phi2 = this->giveNode(2)->giveDofWithID(5)->giveUnknown(VM_Total, tStep);
-  double F = 3 * E * Iy * (w2 * w1 + phi1 * l1 + phi2 * l2) / ( l1 * l1 *l1 + l2 * l2 * l2);
+  double w1, phi1, w2, phi2;
+  this->giveLocalDofs(w1, phi1, w2, phi2, tStep);
+  double F = 3 * E * Iy * (w2 - w1 + phi1 * l1 + phi2 * l2) / ( l1 * l1 *l1 + l2 * l2 * l2);
   answer = F * l1 * l1 / 2 / E / Iy - phi1 - F * l2 * l2 / 2 / E / Iy + phi2;
 
 }
@@ -176,9 +191,9 @@ bool
 Beam2Beam2dAnalyticalContactElement :: checkOverlapingContact(double l1, double l2, double overlap, double &xc, TimeStep *tStep)
 {
 
-  double w1 = this->giveNode(1)->giveDofWithID(2)->giveUnknown(VM_Total, tStep);
+  double w1 = this->giveNode(1)->giveDofWithID(3)->giveUnknown(VM_Total, tStep);
   double phi1 = this->giveNode(1)->giveDofWithID(5)->giveUnknown(VM_Total, tStep);
-  double w2 = this->giveNode(2)->giveDofWithID(2)->giveUnknown(VM_Total, tStep);
+  double w2 = this->giveNode(2)->giveDofWithID(3)->giveUnknown(VM_Total, tStep);
   double phi2 = this->giveNode(2)->giveDofWithID(5)->giveUnknown(VM_Total, tStep);
 
   double n = 2. * overlap * overlap * phi1 - overlap * l1* phi1 - l1 * l1 * phi1 - 4. * overlap * l2 * phi1 + l1 * l2 * phi1 + 2. * l2 * l2 * phi1 + overlap * overlap * phi2 + overlap * l1 * phi2 - 2. * l1 * l1 * phi2 - 2. * overlap * l2 * phi2 - l1 * l2* phi2 + l2 * l2 * phi2  + 3. * overlap * w1 + 3. * l1* w1 - 3. * l2 * w1 - 3. * overlap * w2 - 3. * l1 * w2 + 3 * l2 * w2;
@@ -193,9 +208,51 @@ Beam2Beam2dAnalyticalContactElement :: checkOverlapingContact(double l1, double 
 
 
       
+void
+Beam2Beam2dAnalyticalContactElement :: giveLocalDofs(double &w1, double &phi1, double &w2, double &phi2, TimeStep *tStep)
+{
+
+  FloatArray global_Dofs(6), local_Dofs;
+  global_Dofs.at(1) = this->giveNode(1)->giveDofWithID(1)->giveUnknown(VM_Total, tStep);
+  global_Dofs.at(2) = this->giveNode(1)->giveDofWithID(3)->giveUnknown(VM_Total, tStep);
+  global_Dofs.at(3) = this->giveNode(1)->giveDofWithID(5)->giveUnknown(VM_Total, tStep);
+  global_Dofs.at(4) = this->giveNode(2)->giveDofWithID(3)->giveUnknown(VM_Total, tStep);
+  global_Dofs.at(5) = this->giveNode(2)->giveDofWithID(3)->giveUnknown(VM_Total, tStep);
+  global_Dofs.at(6) = this->giveNode(2)->giveDofWithID(5)->giveUnknown(VM_Total, tStep);
+
+  FloatMatrix R;
+  this->computeGtoLRotationMatrix(R);
+  local_Dofs.beProductOf(R, global_Dofs);
+  w1 = local_Dofs.at(2);
+  phi1 = local_Dofs.at(3);
+  w2 = local_Dofs.at(5);
+  phi2 = local_Dofs.at(6);
+
+    
+}
+
+bool
+Beam2Beam2dAnalyticalContactElement :: computeGtoLRotationMatrix(FloatMatrix &answer)
+{
+
+   answer.resize(6, 6);
+   answer.zero();
+  
+   answer.at(1, 1) =  b1.at(1) / lengthBeam1;
+   answer.at(1, 2) =  b1.at(3) / lengthBeam1;
+   answer.at(2, 1) =  -b1.at(3) / lengthBeam1;
+   answer.at(2, 2) =  b1.at(1) / lengthBeam1;
+   answer.at(3, 3) =  1.;
+   answer.at(4, 4) =  b2.at(1) / lengthBeam2;
+   answer.at(4, 5) =  b2.at(3) / lengthBeam2;
+   answer.at(5, 4) = -b2.at(3) / lengthBeam2;
+   answer.at(5, 5) =  b2.at(1) / lengthBeam2;
+   answer.at(6, 6) =  1.;
+   return true;
+}
 
 
-
+  
 IRResultType
 Beam2Beam2dAnalyticalContactElement :: initializeFrom(InputRecord *ir)
 {
@@ -216,22 +273,28 @@ Beam2Beam2dAnalyticalContactElement :: initializeFrom(InputRecord *ir)
 void
 Beam2Beam2dAnalyticalContactElement ::  postInitialize() 
 {
-    lengthBeam1  = sqrt(b1.at(1) * b1.at(1) + b1.at(2) * b1.at(2));
-    lengthBeam2  = sqrt(b1.at(1) * b1.at(1) + b1.at(2) * b1.at(2));
+    lengthBeam1  = sqrt(b1.at(1) * b1.at(1) + b1.at(3) * b1.at(3));
+    lengthBeam2  = sqrt(b2.at(1) * b2.at(1) + b2.at(3) * b2.at(3));
+
+    FloatArray x1, x2, dx;
+    x1 = *this->giveNode(1)->giveCoordinates();
+    x2 = *this->giveNode(2)->giveCoordinates();
+    dx = x2 - x1;
+    totalLength =  sqrt(dx.at(1) * dx.at(1) + dx.at(3) * dx.at(3));
+
+    n1 = { -b1.at(3) / lengthBeam1, 0, b1.at(1) / lengthBeam1 };
+    n2 = { -b2.at(3) / lengthBeam2, 0, b2.at(1) / lengthBeam2 };
+
+    //@todo: check this
+    overlap = b1.dotProduct(x1 + b1 - x2 - b2)/lengthBeam1;
     
-    double dx      = this->giveNode(2)->giveCoordinate(1) - this->giveNode(1)->giveCoordinate(1);
-    double dy      = this->giveNode(2)->giveCoordinate(3) - this->giveNode(1)->giveCoordinate(3);
-    totalLength =  sqrt(dx * dx + dy * dy);
-
-    //@todo: modify the overlap calculation
-    overlap = lengthBeam1 + lengthBeam2 - totalLength;
-
-    FloatArray lc(1);
-    Iy   = this->giveCrossSection()->give(CS_InertiaMomentY,  lc, this);
     /*FloatMatrix d;
     this->computeConstitutiveMatrixAt(d, ElasticStiffness, integrationRulesArray [ 0 ]->getIntegrationPoint(0), tStep);
     E = d.at(1,1);*/
-    E = 1;
+    E = 30.e6;
+    FloatArray lc(1);
+    Iy   = this->giveCrossSection()->give(CS_InertiaMomentY,  lc, this);
+
 }
 
 

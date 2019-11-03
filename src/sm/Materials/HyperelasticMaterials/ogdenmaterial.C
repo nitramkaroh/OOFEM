@@ -72,7 +72,7 @@ OgdenMaterial :: giveSecondPKStressVector_3d(FloatMatrix &answer, const FloatMat
       Si.times(mu.at(i) * Ja );
       answer.add(Si);
     }
-    
+
     // compute jacobian and its logarithm
     lnJ = log(J);
     answer.add(K * lnJ, invC);
@@ -85,7 +85,7 @@ OgdenMaterial :: giveFirstPKStressVector_3d(FloatArray &answer, GaussPoint *gp, 
 // returns 9 components of the first piola kirchhoff stress corresponding to the given deformation gradinet
 
 {
-  FloatArray eVals, vS;
+    FloatArray eVals, vS;
     FloatMatrix P, F, S, C, eVecs;
     //store deformation gradient into matrix
     F.beMatrixForm(vF);
@@ -101,8 +101,9 @@ OgdenMaterial :: giveFirstPKStressVector_3d(FloatArray &answer, GaussPoint *gp, 
     // update gp
     StructuralMaterialStatus *status = static_cast< StructuralMaterialStatus * >( this->giveStatus(gp) );
     status->letTempFVectorBe(vF);
-    status->letTempPVectorBe(answer);
     status->letTempStressVectorBe(vS);
+    status->letTempPVectorBe(answer);
+
 }
 
 
@@ -118,7 +119,7 @@ OgdenMaterial :: give3dMaterialStiffnessMatrix_dPdF(FloatMatrix &answer,
     double J, lnJ;
     FloatArray vF, eVals;
     FloatMatrix P, F, S, C, invC, iCiC, dSdE;
-    FloatMatrix eVecs, invF, invFt, d2I1dF2, d2I2dF2, dinvF_dF, iFtxiFt, dInvF_dF;
+    FloatMatrix eVecs;
     
     //deformation gradient from the status
     vF = status->giveTempFVector();
@@ -154,36 +155,23 @@ OgdenMaterial :: give3dMaterialStiffnessMatrix_dPdF(FloatMatrix &answer,
       Sdev = powC;
       Sdev.subtract(I1aInvC);
       this->compute_dyadic_product_reduced(SiC, Sdev, invC);
-
-      FloatMatrix test;
-      this->compute_dyadic_product(test, Sdev, invC);
       //
       FloatMatrix iCpowC, dCm_dC;
       this->compute_dyadic_product_reduced(iCpowC, invC, powC);
       this->compute_dCm_dC(dCm_dC, (alpha.at(i) - 2.) / 2., eVals, eVecs);
-
-      FloatMatrix dC1_dC;
-      this->compute_dCm_dC(dC1_dC, -1, eVals, eVecs);
-
-      
+      //     
       dSdE.add( 2. * mu.at(i) * Ja, dCm_dC);
       dSdE.add( -mu.at(i) * alpha.at(i) * Ja / 3., iCpowC);
       dSdE.add( 2. * mu.at(i)  * Ja * I1a, iCiC);
       dSdE.add( -alpha.at(i) * mu.at(i) * Ja / 3., SiC);
     }
-
-    
-    this->give_dPdF_from(dSdE, answer, gp, _3dMat);
-    
-    
-    invF.beInverseOf(F);
-    invFt.beTranspositionOf(invF);
-    this->compute_dInvFt_dF(dInvF_dF, invF);
-    answer.add(K * lnJ, dInvF_dF);
-  
-    this->compute_dyadic_product(iFtxiFt, invFt, invFt);
-    answer.add(K, iFtxiFt);   
-
+    // volumetric part
+    dSdE.add(- 2. * K * lnJ, iCiC);
+    FloatMatrix iCxiC;
+    this->compute_dyadic_product_reduced(iCxiC, invC, invC);
+    dSdE.add(K, iCxiC);   
+    // transform the second elasticity tensor to the first elasticity tensor    
+    this->give_dPdF_from(dSdE, answer, gp, _3dMat);  
 }
 
 

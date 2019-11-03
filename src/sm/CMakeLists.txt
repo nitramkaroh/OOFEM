@@ -243,6 +243,7 @@ set (sm_material
     Materials/RheoChainMaterials/eurocode2creep.C
     Materials/HyperelasticMaterials/mooneyrivlin.C
     Materials/HyperelasticMaterials/ogdenmaterial.C
+    Materials/HyperelasticMaterials/ogdennematicelastomermaterial.C
     Materials/HyperelasticMaterials/neohookean.C
     Materials/HyperelasticMaterials/doublewellmaterial.C    
     Materials/structuralfe2material.C

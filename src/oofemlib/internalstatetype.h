@@ -164,6 +164,7 @@ namespace oofem {
     ENUM_ITEM_WITH_VALUE(IST_CrackIndex, 114) \
     ENUM_ITEM_WITH_VALUE(IST_EigenStrainTensor, 115) \
     ENUM_ITEM_WITH_VALUE(IST_RegularizingEnergy, 116) \
+    ENUM_ITEM_WITH_VALUE(IST_NematicElastomerPhase, 117)	   \
     ENUM_ITEM_WITH_VALUE(IST_MicromorphicStrainNorm, 1112) \
     ENUM_ITEM_WITH_VALUE(IST_MicromorphicStress, 1113) \
     ENUM_ITEM_WITH_VALUE(IST_MicromorphicStrain, 1114) \

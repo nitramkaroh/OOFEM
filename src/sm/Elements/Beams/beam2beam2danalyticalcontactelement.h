@@ -55,6 +55,9 @@ class Beam2Beam2dAnalyticalContactElement : public Beam2d
 protected:
   FloatArray b1;
   FloatArray b2;
+  FloatArray n1;
+  FloatArray n2;
+  
   double lengthBeam1;
   double lengthBeam2;
   double totalLength;
@@ -82,15 +85,16 @@ public:
     void giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord = 0) override;
     void  postInitialize() override;
     IRResultType initializeFrom(InputRecord *ir) override;
+    bool computeGtoLRotationMatrix(FloatMatrix &answer) override;
  protected:
     void checkContact(double l1, double l2, double o, double &xc, TimeStep *tStep, ContactType &ct);
     bool checkOverlapingContact(double l1, double l2, double overlap, double &xc, TimeStep *tStep);
     void checkTipContact(double &answer, double l1, double l2, TimeStep *tStep);
-    
-    void giveInternalForcesVector_OverlapingContact(FloatArray &answer, double l1, double l2, double L, TimeStep *tStep);
-    void giveInternalForcesVector_TipContact(FloatArray &answer, double l1, double l2, TimeStep *tStep);
-    void computeStiffnessMatrix_TipContact(FloatMatrix &answer, double l1, double l2);
 
+    void giveInternalForcesVector_Contact(FloatArray &answer, double l1, double l2, TimeStep *tStep);
+    void computeStiffnessMatrix_TipContact(FloatMatrix &answer, double l1, double l2);
+    void computeStiffnessMatrix_OverlapingContact(FloatMatrix &answer, double L);
+    void giveLocalDofs(double &w1, double &phi1, double &w2, double &phi2, TimeStep *tStep);
 
 };
 } // end namespace oofem

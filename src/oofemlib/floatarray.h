@@ -401,11 +401,11 @@ public:
 
     /**Returns index (between 1 and Size) of minimum element in the array
      */
-    int giveIndexMinElem(void);
+    int giveIndexMinElem(void) const;
 
     /**Returns index (between 1 and Size) of maximum element in the array
      */
-    int giveIndexMaxElem(void);
+    int giveIndexMaxElem(void) const;
     /**Returns index (between 1 and Size) of element having maximal absolute value in the array
      */
     int giveIndexMaxAbsElem(void);

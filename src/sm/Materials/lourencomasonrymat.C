@@ -726,20 +726,24 @@ void LourencoMasonryMat :: computeReducedHardeningVarsLamGradient(FloatMatrix &a
 int
 LourencoMasonryMat :: giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType type, TimeStep *tStep)
 {
-    //MaterialStatus *status = this->giveStatus(gp);
-    if ( type == IST_DamageScalar ) {
-        answer.resize(1);
-        answer.zero();
-        ///@todo Actually export the relevant damage value here!
-        //answer.at(1) = status->giveDamage();
-        return 1;
-    } else if ( type == IST_DamageTensor ) {
-        answer.resize(6);
-        answer.zero();
-        //answer.at(1) = answer.at(2) = answer.at(3) = status->giveDamage();
-        return 1;
+
+    MPlasticMaterial2Status *status = static_cast< MPlasticMaterial2Status * >( this->giveStatus(gp) );
+    if ( type == IST_CumPlasticStrain ) {
+      FloatArray strainSpaceHardeningVariables;
+      strainSpaceHardeningVariables = status->giveStrainSpaceHardeningVarsVector();
+      answer.resize(1);
+      answer.zero();
+      answer.at(1) = strainSpaceHardeningVariables.at(1);
+      return 1;
+    } else if ( type == IST_CumPlasticStrain_2 ) {
+      FloatArray strainSpaceHardeningVariables;
+      strainSpaceHardeningVariables = status->giveStrainSpaceHardeningVarsVector();
+      answer.resize(1);
+      answer.zero();
+      answer.at(1) = strainSpaceHardeningVariables.at(2);
+      return 1;
     } else {
-        return MPlasticMaterial2 :: giveIPValue(answer, gp, type, tStep);
+      return MPlasticMaterial2 :: giveIPValue(answer, gp, type, tStep);
     }
 }
 

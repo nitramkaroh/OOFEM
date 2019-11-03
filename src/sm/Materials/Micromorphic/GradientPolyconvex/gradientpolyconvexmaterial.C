@@ -40,6 +40,7 @@
 #include "error.h"
 #include "classfactory.h"
 #include "../sm/Materials/HyperelasticMaterials/doublewellmaterial.h"
+#include "../sm/Materials/HyperelasticMaterials/ogdennematicelastomermaterial.h"
 
 
 namespace oofem {
@@ -74,6 +75,8 @@ GradientPolyconvexMaterial :: initializeFrom(InputRecord *ir)
     
     if ( hyperElasticMaterialType == 0 ) {
       hyperelasticMaterial = new DoubleWellMaterial(this->giveNumber(), this->giveDomain());
+    } else if ( hyperElasticMaterialType == 1 ) {
+      hyperelasticMaterial = new OgdenNematicElastomerMaterial(this->giveNumber(), this->giveDomain());
     } else {
       OOFEM_WARNING("Unknown hyperelasticmaterial type %d", hyperElasticMaterialType);
       return IRRT_BAD_FORMAT;

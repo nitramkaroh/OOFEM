@@ -159,6 +159,12 @@ MooneyRivlinMaterial :: give3dMaterialStiffnessMatrix_dPdF(FloatMatrix &answer,
     answer.add(d2I2dF2);
     answer.add(iFtxiFt);
     answer.add(dInvF_dF);
+
+
+    FloatMatrix KK;
+    KK.add(iFtxiFt);
+    KK.add(dInvF_dF);
+    
     
 
     

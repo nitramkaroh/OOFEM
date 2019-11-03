@@ -745,8 +745,10 @@ public:
     void compute_tensor_cross_product_tensor(FloatMatrix &answer, const FloatArray &a);
     void compute_tensor_cross_product_tensor(FloatMatrix &answer, const FloatMatrix &a);
     void compute_dCm_dC(FloatMatrix &answer, double m, const FloatArray &lam, const FloatMatrix &N);
+    void compute_dCm_dC(FloatMatrix &answer, double m, const FloatArray &lam, const FloatMatrix &N, const FloatArray &coeff);
 
     void computeMatrixPower(FloatMatrix &answer, const FloatArray &eVals, const FloatMatrix &eVecs, double m );
+    void computeMatrixPower(FloatMatrix &answer, const FloatArray &eVals, const FloatMatrix &eVecs, double m, const FloatArray &coeff );
 
 
 

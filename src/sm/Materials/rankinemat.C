@@ -44,6 +44,7 @@
 #include "contextioerr.h"
 #include "datastream.h"
 #include "classfactory.h"
+#include "engngm.h"
 
 namespace oofem {
 REGISTER_Material(RankineMat);
@@ -108,7 +109,7 @@ RankineMat :: initializeFrom(InputRecord *ir)
         IR_GIVE_FIELD(ir, ep, _IFT_RankineMat_ep);
         ep = ep - sig0 / E; // user input is strain at peak stress sig0 and is converted to plastic strain at peak stress sig0
         md = 1. / log(50. * E * ep / sig0); // exponent used on the 1st plasticity branch
-    } else {
+    }  else {
         OOFEM_WARNING("Plasticity hardening type number  %d is unknown", plasthardtype);
         return IRRT_BAD_FORMAT;
     }
@@ -131,6 +132,8 @@ RankineMat :: initializeFrom(InputRecord *ir)
         IR_GIVE_FIELD(ir, param3, _IFT_RankineMat_param3);
         IR_GIVE_FIELD(ir, param4, _IFT_RankineMat_param4);
         IR_GIVE_FIELD(ir, param5, _IFT_RankineMat_param5);
+    } else if ( damlaw == 3 ) {
+        IR_GIVE_FIELD(ir, param1, _IFT_RankineMat_param1); // coefficients in damage law
     } else {
         OOFEM_WARNING("Damage law number  %d is unknown", damlaw);
         return IRRT_BAD_FORMAT;
@@ -308,8 +311,11 @@ RankineMat :: performPlasticityReturn(GaussPoint *gp, const FloatArray &totalStr
             do {
                 i = i + 1;
                 if ( i > 1000 ) {
-                    printf("kappa, ftrial: %g %g\n", kappa, ftrial);
+		  this->giveDomain()->giveEngngModel()->setAnalysisCrash(true);
+		  break;
+		  /*                    printf("kappa, ftrial: %g %g\n", kappa, ftrial);
                     OOFEM_ERROR("no convergence of regular stress return algorithm");
+		  */
                 }
 
                 double ddKappa = f / ( E + evalPlasticModulus(tempKappa) );
@@ -334,10 +340,13 @@ RankineMat :: performPlasticityReturn(GaussPoint *gp, const FloatArray &totalStr
             int i = 1;
             do {
                 if ( i++ > 50 ) {
-                    finalStress.computePrincipalValDir(sigPrinc, nPrinc);
+		  this->giveDomain()->giveEngngModel()->setAnalysisCrash(true);
+		  break;
+		  /*                    finalStress.computePrincipalValDir(sigPrinc, nPrinc);
                     sigPrinc.pY();
                     printf("kappa, ftrial: %g %g\n", kappa, ftrial);
                     OOFEM_ERROR("no convergence of regular stress return algorithm");
+		  */
                 }
 
                 H = evalPlasticModulus(tempKappa);
@@ -365,11 +374,15 @@ RankineMat :: performPlasticityReturn(GaussPoint *gp, const FloatArray &totalStr
                 double C = alpha +  H * ( 1. + sqrt(2.) ) / 2.;
                 i = 1;
                 do {
-                    if ( i++ > 20 ) {
-                        finalStress.computePrincipalValDir(sigPrinc, nPrinc);
+                    if ( i++ > 40 ) {
+		      this->giveDomain()->giveEngngModel()->setAnalysisCrash(true);
+		      break;
+                        /*finalStress.computePrincipalValDir(sigPrinc, nPrinc);
                         sigPrinc.pY();
                         printf("kappa, ftrial: %g %g\n", kappa, ftrial);
+			
                         OOFEM_ERROR("no convergence of vertex stress return algorithm");
+			*/
                     }
 
                     dkap1 += f / C;
@@ -443,7 +456,13 @@ RankineMat :: computeDamageParam(double tempKappa)
             tempDam = 1.0 - exp( -param1 * pow( ( tempKappa - ep ) / ep, param2 ) );
         } else if ( damlaw == 2 && tempKappa > ep ) {
             tempDam = 1.0 - param5 *exp( -param1 *pow ( ( tempKappa - ep ) / ep, param2 ) ) - ( 1. - param5 ) * exp( -param3 * pow( ( tempKappa - ep ) / ep, param4 ) );
-        }
+        } else if ( damlaw == 3 && tempKappa > ep) {
+	  tempDam = 1.0 - sig0 / ( sig0 + H0 * tempKappa ) * exp( -param1 * tempKappa );
+	}
+    }
+
+    if(tempDam >= 1) {
+      tempDam = 0.999999;
     }
 
     return tempDam;
@@ -460,7 +479,9 @@ RankineMat :: computeDamageParamPrime(double tempKappa)
             tempDam = param1 * param2 * pow( ( tempKappa - ep ) / ep, param2 - 1 ) / ep *exp( -param1 *pow ( ( tempKappa - ep ) / ep, param2 ) );
         } else if ( damlaw == 2 && tempKappa >= ep ) {
             tempDam = param5 * param1 * param2 * pow( ( tempKappa - ep ) / ep, param2 - 1 ) / ep *exp( -param1 *pow ( ( tempKappa - ep ) / ep, param2 ) ) + ( 1. - param5 ) * param3 * param4 * pow( ( tempKappa - ep ) / ep, param4 - 1 ) / ep *exp( -param3 *pow ( ( tempKappa - ep ) / ep, param4 ) );
-        }
+        } else if ( damlaw == 3 && tempKappa > ep) {
+	  tempDam = sig0 / ( sig0 + H0 * tempKappa ) * ( param1 + H0 / ( sig0 + H0 * tempKappa ) ) * exp( -param1 * tempKappa );
+	}
     }
 
     return tempDam;

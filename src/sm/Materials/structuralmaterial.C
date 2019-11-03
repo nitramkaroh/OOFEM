@@ -3323,6 +3323,127 @@ StructuralMaterial :: compute_dCm_dC(FloatMatrix &answer, double m, const FloatA
   answer.resizeWithData(6,6);
 }
 
+
+
+void
+StructuralMaterial :: compute_dCm_dC(FloatMatrix &answer, double m, const FloatArray &lam, const FloatMatrix &N, const FloatArray &coeff)
+{   
+
+  FloatArray  d(3), c(3);
+
+  c.at(1) = coeff.at(1) * pow(lam.at(1),  m);
+  c.at(2) = coeff.at(2) * pow(lam.at(2),  m);
+  c.at(3) = coeff.at(3) * pow(lam.at(3),  m);
+
+  d.at(1)= coeff.at(1) * m * pow(lam.at(1), m - 1.);
+  d.at(2)= coeff.at(2) * m * pow(lam.at(2), m - 1.);
+  d.at(3)= coeff.at(3) * m * pow(lam.at(3), m - 1.);
+  
+  FloatMatrix theta(3,3);
+  
+ 
+  // compute auxiliary variables 
+  // the computation differes depends on if the eigenvalues of C are equal or not
+  if(lam.at(1) != lam.at(2)) {
+    if(lam.at(2) != lam.at(3)) {
+      if(lam.at(1) != lam.at(3)) {
+	// all eigenvalues are different
+	for(int i = 1; i <= 3; i++) {
+	  for(int j = 1; j <= 3; j++) {
+	    if(i == j) {
+	      continue;
+	    } else {
+	      theta.at(i,j) = (c.at(i) - c.at(j))/(lam.at(i) - lam.at(j));
+	    }
+	  }
+	}
+      } else { //l1 == l3 && l1 != l2
+	for(int i = 1; i <= 3; i++) {
+	  for(int j = 1; j <= 3; j++) {
+	    if( i == j ) {
+	      continue;
+	    } else {
+	      if((i == 1 && j == 3) || (i == 3 && j == 1) ) {
+		theta.at(i,j) = 1./2.*d.at(i);
+	      } else {
+		theta.at(i,j) = (c.at(i) - c.at(j))/(lam.at(i) - lam.at(j));
+	      }
+	    }
+	  }
+	}	  
+      }
+    } else { //l2 == l3 && l1 != l2
+      for(int i = 1; i <= 3; i++) {
+	for(int j = 1; j <= 3; j++) {
+	  if( i == j ) {
+	    continue;
+	  } else {
+	    if((i == 2 && j == 3) || (i == 3 && j == 2) ) {
+	      theta.at(i,j) = 1./2.*d.at(i);
+	    } else {
+	      theta.at(i,j) = (c.at(i) - c.at(j))/(lam.at(i) - lam.at(j));
+	    }
+	  }
+	}
+      } 
+    }
+  } else if(lam.at(1) != lam.at(3)) { // l1 == l2  && l1 != l3
+    for(int i = 1; i <= 3; i++) {
+      for(int j = 1; j <= 3; j++) {
+	if( i == j ) {
+	  continue;
+	} else {
+	  if((i == 1 && j == 2) || (i == 2 && j == 1) ) {
+	    theta.at(i,j) = 1./2.*d.at(i);
+	  } else {
+	    theta.at(i,j) = (c.at(i) - c.at(j))/(lam.at(i) - lam.at(j));
+	  }
+	}
+      }
+    } 
+  } else {  // l1 == l2 == l3
+    for(int i = 1; i <= 3; i++) {
+      for(int j = 1; j <= 3; j++) {
+	theta.at(i,j) = 1./2. * d.at(i);
+      }
+    }
+  }
+  
+  
+  FloatMatrix M(9,9);
+  
+  for (int i = 1; i <= 3; i++) {
+    for (int j = 1; j <= 3; j++) {
+      for (int k = 1; k <= 3; k++) {
+	for (int l = 1; l <=3; l++) {
+	  M.at(giveVI(i,j),giveVI(k,l)) = N.at(k,i)*N.at(l,j) + N.at(k,j)*N.at(l,i);
+	}
+      }
+    }
+  }
+    
+  answer.resize(9,9);
+  for (int k = 1; k <= 3; k++) {
+    for (int l = 1; l <= 3; l++) {
+      for (int m = 1; m <=3; m++) {
+	for (int n = 1; n<=3; n++) {
+	  for (int i = 1; i <= 3; i++) {
+	    answer.at(giveVI(k,l),giveVI(m,n)) += 0.5 * d.at(i) * N.at(k,i) * N.at(l,i) * M.at(giveVI(i,i),giveVI(m,n));
+	    for (int j  = 1; j <= 3; j++) {
+	      if(j != i) {
+		answer.at(giveVI(k,l),giveVI(m,n)) += 0.5 * theta.at(i,j)*N.at(k,i)*N.at(l,j)*M.at(giveVI(i,j),giveVI(m,n));
+	      }
+	    }
+	  }
+	}	    
+      }
+    }
+  }
+  answer.resizeWithData(6,6);
+}
+
+
+
 void
 StructuralMaterial :: computeMatrixPower(FloatMatrix &answer, const FloatArray &eVals, const FloatMatrix &eVecs, double m )
 {
@@ -3331,6 +3452,20 @@ StructuralMaterial :: computeMatrixPower(FloatMatrix &answer, const FloatArray &
     for ( int i = 1; i <= 3; i++ ) {
       for ( int j = 1; j <= 3; j++ ) {
 	answer.at(i, j) = pow(eVals.at(1),m) * eVecs.at(i, 1) * eVecs.at(j, 1) + pow(eVals.at(2),m) *eVecs.at(i, 2) * eVecs.at(j, 2) + pow(eVals.at(3),m) *eVecs.at(i, 3) * eVecs.at(j, 3);  
+      }
+    }
+    
+}
+
+
+void
+StructuralMaterial :: computeMatrixPower(FloatMatrix &answer, const FloatArray &eVals, const FloatMatrix &eVecs, double m, const FloatArray &coeff )
+{
+
+    answer.resize(3, 3);
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	answer.at(i, j) = coeff.at(1) * pow(eVals.at(1),m) * eVecs.at(i, 1) * eVecs.at(j, 1) + coeff.at(2) * pow(eVals.at(2),m) *eVecs.at(i, 2) * eVecs.at(j, 2) + coeff.at(3) * pow(eVals.at(3),m) *eVecs.at(i, 3) * eVecs.at(j, 3);  
       }
     }
     

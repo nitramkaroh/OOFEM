@@ -69,6 +69,7 @@ protected:
   int hyperElasticMaterialType;
   enum HMT {
         HMT_DoubleWellMaterial=0,
+	HMT_OgdenNematicMaterial=1,
   };
 
 
