@@ -89,7 +89,8 @@ enum InterfaceType {
     MicromorphicMaterialExtensionInterfaceType,
     SecondGradientMaterialExtensionInterfaceType,
 
-    MixedPressureMaterialExtensionInterfaceType
+    MixedPressureMaterialExtensionInterfaceType,
+    EnhancedAssumedStrainElementExtensionInterfaceType
     
 
 };

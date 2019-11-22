@@ -39,8 +39,10 @@
 #include "mathfem.h"
 #include "error.h"
 #include "classfactory.h"
+#include "../sm/Materials/isolinearelasticmaterial.h"
 #include "../sm/Materials/HyperelasticMaterials/doublewellmaterial.h"
 #include "../sm/Materials/HyperelasticMaterials/ogdennematicelastomermaterial.h"
+
 
 
 namespace oofem {
@@ -72,10 +74,12 @@ GradientPolyconvexMaterial :: initializeFrom(InputRecord *ir)
     
     hyperElasticMaterialType = 0;
     IR_GIVE_OPTIONAL_FIELD(ir, hyperElasticMaterialType, _IFT_GradientPolyconvexMaterial_hmt);
-    
+
     if ( hyperElasticMaterialType == 0 ) {
-      hyperelasticMaterial = new DoubleWellMaterial(this->giveNumber(), this->giveDomain());
+      hyperelasticMaterial = new IsotropicLinearElasticMaterial(this->giveNumber(), this->giveDomain());
     } else if ( hyperElasticMaterialType == 1 ) {
+      hyperelasticMaterial = new DoubleWellMaterial(this->giveNumber(), this->giveDomain());
+    } else if ( hyperElasticMaterialType == 2 ) {
       hyperelasticMaterial = new OgdenNematicElastomerMaterial(this->giveNumber(), this->giveDomain());
     } else {
       OOFEM_WARNING("Unknown hyperelasticmaterial type %d", hyperElasticMaterialType);

@@ -242,6 +242,7 @@ protected:
     friend class FbarElementExtensionInterface;
     friend class BaseMicromorphicElement;
     friend class BaseSecondGradientElement;
+    friend class EnhancedAssumedStrainElementExtensionInterfacex;
 };
 } // end namespace oofem
 #endif // nlstructuralelement_h

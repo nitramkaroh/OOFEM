@@ -105,6 +105,9 @@ set (sm_element
     Elements/MixedPressure/basemixedpressureelement.C
     Elements/MixedPressure/PlaneStrain/qtrplanestrainp1.C
     Elements/MixedPressure/PlaneStrain/quad1planestrainp1.C
+    #Enhaced strain elements
+    Elements/EnhancedStrain/enhancedassumestrainelementinterface.C
+    Elements/EnhancedStrain/PlaneStrain/quad1planestrain4eas.C
     #Micromorphic continua
     Elements/Micromorphic/basemicromorphicelement.C
     Elements/Micromorphic/basesecondgradientelement.C

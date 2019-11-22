@@ -68,8 +68,9 @@ protected:
   StructuralMaterial *hyperelasticMaterial;
   int hyperElasticMaterialType;
   enum HMT {
-        HMT_DoubleWellMaterial=0,
-	HMT_OgdenNematicMaterial=1,
+      HMT_StVenantKirchhoff=1,
+      HMT_DoubleWellMaterial=1,
+      HMT_OgdenNematicMaterial=2,
   };
 
 

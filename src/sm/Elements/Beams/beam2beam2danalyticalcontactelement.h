@@ -62,7 +62,7 @@ protected:
   double lengthBeam2;
   double totalLength;
   double overlap;
-  double E;
+  double E = -1;
   double Iy;
 
 
@@ -95,6 +95,8 @@ public:
     void computeStiffnessMatrix_TipContact(FloatMatrix &answer, double l1, double l2);
     void computeStiffnessMatrix_OverlapingContact(FloatMatrix &answer, double L);
     void giveLocalDofs(double &w1, double &phi1, double &w2, double &phi2, TimeStep *tStep);
+    void printOutputAt(FILE *File, TimeStep *tStep);
+    double initYoungModulus( TimeStep *tStep);
 
 };
 } // end namespace oofem

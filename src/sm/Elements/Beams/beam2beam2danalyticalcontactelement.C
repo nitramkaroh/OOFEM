@@ -57,7 +57,11 @@ Beam2Beam2dAnalyticalContactElement :: computeStiffnessMatrix(FloatMatrix &answe
 {
     double xc;
     ContactType contact_type;
-    this->checkContact(lengthBeam1, lengthBeam2, overlap, xc, tStep, contact_type);  
+    this->checkContact(lengthBeam1, lengthBeam2, overlap, xc, tStep, contact_type);
+    if(E == -1) {
+      E = this->initYoungModulus(tStep);
+    }
+    
     if(contact_type == CT_None) {
       answer.clear();
     } else if(contact_type == CT_Beam1_Tip_Beam2) {
@@ -85,6 +89,7 @@ Beam2Beam2dAnalyticalContactElement :: computeStiffnessMatrix_TipContact(FloatMa
 void
 Beam2Beam2dAnalyticalContactElement :: computeStiffnessMatrix_OverlapingContact(FloatMatrix &answer, double L)
 {
+  
   double EI = E*Iy;
   double L3 = L * L * L;
   double L2 = L * L;
@@ -97,7 +102,9 @@ Beam2Beam2dAnalyticalContactElement :: computeStiffnessMatrix_OverlapingContact(
 void
 Beam2Beam2dAnalyticalContactElement :: giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord)
 {
-
+  if(E == -1) {
+      E = this->initYoungModulus(tStep);
+    }
   double xc;
   ContactType contact_type;
   this->checkContact(lengthBeam1, lengthBeam2, overlap, xc, tStep, contact_type);  
@@ -216,7 +223,7 @@ Beam2Beam2dAnalyticalContactElement :: giveLocalDofs(double &w1, double &phi1, d
   global_Dofs.at(1) = this->giveNode(1)->giveDofWithID(1)->giveUnknown(VM_Total, tStep);
   global_Dofs.at(2) = this->giveNode(1)->giveDofWithID(3)->giveUnknown(VM_Total, tStep);
   global_Dofs.at(3) = this->giveNode(1)->giveDofWithID(5)->giveUnknown(VM_Total, tStep);
-  global_Dofs.at(4) = this->giveNode(2)->giveDofWithID(3)->giveUnknown(VM_Total, tStep);
+  global_Dofs.at(4) = this->giveNode(2)->giveDofWithID(1)->giveUnknown(VM_Total, tStep);
   global_Dofs.at(5) = this->giveNode(2)->giveDofWithID(3)->giveUnknown(VM_Total, tStep);
   global_Dofs.at(6) = this->giveNode(2)->giveDofWithID(5)->giveUnknown(VM_Total, tStep);
 
@@ -243,10 +250,10 @@ Beam2Beam2dAnalyticalContactElement :: computeGtoLRotationMatrix(FloatMatrix &an
    answer.at(2, 1) =  -b1.at(3) / lengthBeam1;
    answer.at(2, 2) =  b1.at(1) / lengthBeam1;
    answer.at(3, 3) =  1.;
-   answer.at(4, 4) =  b2.at(1) / lengthBeam2;
-   answer.at(4, 5) =  b2.at(3) / lengthBeam2;
-   answer.at(5, 4) = -b2.at(3) / lengthBeam2;
-   answer.at(5, 5) =  b2.at(1) / lengthBeam2;
+   answer.at(4, 4) = -b2.at(1) / lengthBeam2;
+   answer.at(4, 5) = -b2.at(3) / lengthBeam2;
+   answer.at(5, 4) =  b2.at(3) / lengthBeam2;
+   answer.at(5, 5) = -b2.at(1) / lengthBeam2;
    answer.at(6, 6) =  1.;
    return true;
 }
@@ -269,6 +276,17 @@ Beam2Beam2dAnalyticalContactElement :: initializeFrom(InputRecord *ir)
     return IRRT_OK;
 }
 
+double
+Beam2Beam2dAnalyticalContactElement :: initYoungModulus( TimeStep *tStep)
+{
+
+    FloatMatrix d;
+    GaussPoint *gp = NULL;
+    this->giveStructuralCrossSection()->giveStiffnessMatrix_1d(d, ElasticStiffness, gp, tStep);
+    return d.at(1,1);
+}
+
+
 
 void
 Beam2Beam2dAnalyticalContactElement ::  postInitialize() 
@@ -287,17 +305,33 @@ Beam2Beam2dAnalyticalContactElement ::  postInitialize()
 
     //@todo: check this
     overlap = b1.dotProduct(x1 + b1 - x2 - b2)/lengthBeam1;
-    
-    /*FloatMatrix d;
-    this->computeConstitutiveMatrixAt(d, ElasticStiffness, integrationRulesArray [ 0 ]->getIntegrationPoint(0), tStep);
-    E = d.at(1,1);*/
-    E = 30.e6;
+   
     FloatArray lc(1);
     Iy   = this->giveCrossSection()->give(CS_InertiaMomentY,  lc, this);
 
 }
 
 
+
+  void
+Beam2Beam2dAnalyticalContactElement :: printOutputAt(FILE *File, TimeStep *tStep)
+{
+  Beam2d :: printOutputAt(File, tStep);
+  ContactType contact_type;
+  double xc;
+  this->checkContact(lengthBeam1, lengthBeam2, overlap, xc, tStep, contact_type);  
+  if(contact_type == CT_None) {
+    fprintf(File, "no contact\n");
+  } else if (contact_type == CT_Beam1_Tip_Beam2) {
+    fprintf(File, "tip of beam1 on beam2 contact\n");
+  }  else if (contact_type == CT_Beam2_Tip_Beam1) {
+    fprintf(File, "tip of beam2 on beam1 contact\n");
+  } else if (contact_type == CT_Overlap) {
+    fprintf(File, "overlapping contact\n");
+  }
+    
+}
+  
   
 
 } // end namespace oofem

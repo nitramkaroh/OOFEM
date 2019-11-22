@@ -62,26 +62,24 @@ Quad1PlaneStrain4EAS :: computeEnhancedBmatrixAt(GaussPoint *gp, FloatMatrix &an
 // evaluated at gp.
 {
     
-    double ksi, eta;    
-	std::vector<FloatMatrix> E;
+    std::vector<FloatMatrix> E;
 
-	answer.resize(4,4);
-	answer.zero();
+    answer.resize(4,4);
+    answer.zero();
 
-    ksi = (*gp->giveCoordinates()).at(1);
-    eta = (*gp->giveCoordinates()).at(2);
-
-	this-> computeEnhancedModesAt(E, gp);
     
-	FloatArray parametricCentroid;
-	this->giveElementParametricCentroid(parametricCentroid);
-	double j0 = this->interp.giveTransformationJacobian(parametricCentroid, FEIElementGeometryWrapper(this));
-	double j = this->interp.giveTransformationJacobian(*gp->giveCoordinates(), FEIElementGeometryWrapper(this));
-	FloatMatrix J0, invJ0;
-	this->interp.giveJacobianMatrixAt(J0,parametricCentroid,FEIElementGeometryWrapper(this));
-	invJ0.beInverseOf(J0);
 
-	FloatMatrix H;
+    this-> computeEnhancedModesAt(E, gp);
+    
+    FloatArray parametricCentroid;
+    this->giveElementParametricCentroid(parametricCentroid);
+    double j0 = this->giveInterpolation()->giveTransformationJacobian(parametricCentroid, FEIElementGeometryWrapper(this));
+    double j = this->giveInterpolation()->giveTransformationJacobian(gp->giveNaturalCoordinates(), FEIElementGeometryWrapper(this));
+    FloatMatrix J0, invJ0;
+    this->giveInterpolation()->giveJacobianMatrixAt(J0,parametricCentroid,FEIElementGeometryWrapper(this));
+    invJ0.beInverseOf(J0);
+    
+    FloatMatrix H;
 
 	for (int i = 0; i < E.size(); i++)
 	{
@@ -116,10 +114,10 @@ Quad1PlaneStrain4EAS :: computeEnhancedBHmatrixAt(GaussPoint *gp, FloatMatrix &a
     
 	FloatArray parametricCentroid;
 	this->giveElementParametricCentroid(parametricCentroid);
-	double j0 = this->interp.giveTransformationJacobian(parametricCentroid, FEIElementGeometryWrapper(this));
-	double j = this->interp.giveTransformationJacobian(*gp->giveCoordinates(), FEIElementGeometryWrapper(this));
+	double j0 = this->giveInterpolation()->giveTransformationJacobian(parametricCentroid, FEIElementGeometryWrapper(this));
+	double j = this->giveInterpolation()->giveTransformationJacobian(gp->giveNaturalCoordinates(), FEIElementGeometryWrapper(this));
 	FloatMatrix J0, invJ0;
-	this->interp.giveJacobianMatrixAt(J0,parametricCentroid,FEIElementGeometryWrapper(this));
+	this->giveInterpolation()->giveJacobianMatrixAt(J0,parametricCentroid,FEIElementGeometryWrapper(this));
 	invJ0.beInverseOf(J0);
 
 	
@@ -147,8 +145,8 @@ Quad1PlaneStrain4EAS :: computeEnhancedModesAt(std::vector<FloatMatrix> &answer,
 	E.resize(2,2);
 	E.zero();
 
-    ksi = (*gp->giveCoordinates()).at(1);
-    eta = (*gp->giveCoordinates()).at(2);
+    ksi = (gp->giveNaturalCoordinates()).at(1);
+    eta = (gp->giveNaturalCoordinates()).at(2);
 
 	E.at(1,1) = ksi;
 	answer.push_back(E);

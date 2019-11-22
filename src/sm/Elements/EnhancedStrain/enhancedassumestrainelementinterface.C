@@ -33,10 +33,13 @@
  */
 
 
-#include "enhancedassumestrainelementinterface.h"
+#include "../sm/Elements/EnhancedStrain/enhancedassumestrainelementinterface.h"
+
 #include "domain.h"
-#include "structuralcrosssection.h"
-#include "structuralms.h"
+#include "engngm.h"
+
+#include "../sm/CrossSections/structuralcrosssection.h"
+#include "../sm/Materials/structuralms.h"
 
 		  
 
@@ -56,14 +59,14 @@ EnhancedAssumedStrainElementExtensionInterface :: computeStiffnessMatrixGamma(Fl
 {
 	
 	StructuralCrossSection *cs = elem->giveStructuralCrossSection();    
-	answer.resize(this->computeNumberOfEnhancedDofs(), elem->computeNumberOfDofs(EID_MomentumBalance) );
+	answer.resize(this->computeNumberOfEnhancedDofs(), elem->computeNumberOfDofs() );
 	
 	FloatMatrix G, D, DB, B;
 
 	int nlGeometry;
 	NLStructuralElement* nlElem = static_cast< NLStructuralElement * > ( elem );
 	if( nlElem ) {
-		nlGeometry = nlElem->nlGeometry;
+		nlGeometry = nlElem->giveGeometryMode();
 	} else {
 		nlGeometry = 0;
 	}
@@ -75,12 +78,12 @@ EnhancedAssumedStrainElementExtensionInterface :: computeStiffnessMatrixGamma(Fl
 		this->computeEnhancedBmatrixAt(gp, G,elem);
 		elem->computeConstitutiveMatrixAt(D, mode, gp, tStep);
 	} else if ( nlGeometry == 1 ) {
-		if ( elem->domain->giveEngngModel()->giveFormulation() == AL ) { // Material stiffness dC/de
-			nlElem->computeBHmatrixAt(gp, B);
+      if ( elem->giveDomain()->giveEngngModel()->giveFormulation() == AL ) { // Material stiffness dC/de
+	//	nlElem->computeBHmatrixAt(gp, B);
 			this->computeEnhancedBHmatrixAt(gp, G,nlElem);
-			cs->giveStiffnessMatrix_dCde(D, mode, gp, tStep);
+			//		cs->giveStiffnessMatrix_dCde(D, mode, gp, tStep);
 		} else { // Material stiffness dP/dF
-			nlElem->computeBHmatrixAt(gp, B);
+	//nlElem->computeBHmatrixAt(gp, B);
 			this->computeEnhancedBHmatrixAt(gp, G,nlElem);
 			cs->giveStiffnessMatrix_dPdF(D, mode, gp, tStep);
 		}
@@ -105,7 +108,8 @@ EnhancedAssumedStrainElementExtensionInterface :: computeStiffnessMatrixH(FloatM
 	int nlGeometry;
 	NLStructuralElement* nlElem = static_cast< NLStructuralElement * > ( elem );
 	if( nlElem ) {
-		nlGeometry = nlElem->nlGeometry;
+	  nlGeometry = nlElem->giveGeometryMode();
+
 	} else {
 		nlGeometry = 0;
 	}
@@ -115,13 +119,13 @@ EnhancedAssumedStrainElementExtensionInterface :: computeStiffnessMatrixH(FloatM
 		this->computeEnhancedBmatrixAt(gp, G,elem);
 		elem->computeConstitutiveMatrixAt(D, mode, gp, tStep);
 	} else if ( nlGeometry == 1 ) {
-		if ( elem->domain->giveEngngModel()->giveFormulation() == AL ) { // Material stiffness dC/de
+	  /*if ( elem->domain->giveEngngModel()->giveFormulation() == AL ) { // Material stiffness dC/de
 			this->computeEnhancedBHmatrixAt(gp, G,nlElem);
 			cs->giveStiffnessMatrix_dCde(D, mode, gp, tStep);
 		} else { // Material stiffness dP/dF
 			this->computeEnhancedBHmatrixAt(gp, G,nlElem);
 			cs->giveStiffnessMatrix_dPdF(D, mode, gp, tStep);
-		}
+			}*/
 	}
 	double dV = elem->computeVolumeAround(gp);
 	DG.beProductOf(D, G);
@@ -136,23 +140,20 @@ EnhancedAssumedStrainElementExtensionInterface :: computeStiffnessCorrection(Flo
 {
 	FloatMatrix H, h, Gamma, gamma, invH, junk;
     answer.resize( this->computeNumberOfEnhancedDofs(), this->computeNumberOfEnhancedDofs() );
-	Gamma.resize( this->computeNumberOfEnhancedDofs(), elem->computeNumberOfDofs(EID_MomentumBalance) );
+	Gamma.resize( this->computeNumberOfEnhancedDofs(), elem->computeNumberOfDofs() );
 	H.resize( this->computeNumberOfEnhancedDofs(), this->computeNumberOfEnhancedDofs() );
     
 	if ( !elem->isActivated(tStep) ) {
         return;
     }
 
-    if ( elem->numberOfIntegrationRules == 1 ) {        
-        IntegrationRule *iRule = elem->integrationRulesArray [ elem->giveDefaultIntegrationRule() ];
-        for ( int j = 0; j < iRule->giveNumberOfIntegrationPoints(); j++ ) {
-            GaussPoint *gp = iRule->getIntegrationPoint(j);
-			this->computeStiffnessMatrixH(h, mode, gp, tStep,elem);
-			H.add(h);
-			this->computeStiffnessMatrixGamma(gamma, mode, gp, tStep,elem);
-			Gamma.add(gamma);            
+	for ( GaussPoint *gp: *elem->giveIntegrationRule(0) ) {
+	  this->computeStiffnessMatrixH(h, mode, gp, tStep,elem);
+	  H.add(h);
+	  this->computeStiffnessMatrixGamma(gamma, mode, gp, tStep,elem);
+	  Gamma.add(gamma);            
         }        
-    }
+
 	invH.beInverseOf(H);
 	junk.beTProductOf(Gamma,H);
 	answer.beProductOf(junk,Gamma);	
@@ -180,45 +181,38 @@ EnhancedAssumedStrainElementExtensionInterface ::  giveInternalForcesCorrectionV
 	int nlGeometry;
 	NLStructuralElement* nlElem = static_cast< NLStructuralElement * > ( elem );
 	if( nlElem ) {
-		nlGeometry = nlElem->nlGeometry;
+		nlGeometry = nlElem->giveGeometryMode();
+
 	} else {
 		nlGeometry = 0;
 	}
 
 		
 	  
-
+	this->giveTempInvStiffnessMatrixH(invH);
+	this->giveTempStiffnessMatrixGamma(Gamma);
 	
-    if (elem-> numberOfIntegrationRules == 1 ) {        
-        IntegrationRule *iRule = elem->integrationRulesArray [ elem->giveDefaultIntegrationRule() ];
-		this->giveTempInvStiffnessMatrixH(invH);
-		this->giveTempStiffnessMatrixGamma(Gamma);
-
-        for ( int j = 0; j < iRule->giveNumberOfIntegrationPoints(); j++ ) {
-            GaussPoint *gp = iRule->getIntegrationPoint(j);
-			Material *mat = gp->giveMaterial();
-	
-			     
-			
-			if ( nlGeometry == 0 ) {
-				this->computeEnhancedBmatrixAt(gp, B,elem);
-                vStress = static_cast< StructuralMaterialStatus * >( mat->giveStatus(gp) )->giveStressVector();
-			} else if ( nlGeometry == 1 ) {  
-				if ( elem->domain->giveEngngModel()->giveFormulation() == AL ) { // Cauchy stress
-					vStress = static_cast< StructuralMaterialStatus * >( mat->giveStatus(gp) )->giveCVector();
-                    this->computeEnhancedBmatrixAt(gp, B,elem);
-				} else { // First Piola-Kirchhoff stress
-					vStress = static_cast< StructuralMaterialStatus * >( mat->giveStatus(gp) )->givePVector();
-					this->computeEnhancedBHmatrixAt(gp, B,nlElem);
-				}
-			}
-			if ( vStress.giveSize() == 0 ) {
-				break;
-			}
-			double dV  = elem->computeVolumeAround(gp);
-			h_int.plusProduct(B, vStress, dV);
-		}
-	}        
+	for ( GaussPoint *gp: *elem->giveIntegrationRule(0) ) {
+	  Material *mat = gp->giveMaterial();
+	  if ( nlGeometry == 0 ) {
+	    this->computeEnhancedBmatrixAt(gp, B,elem);
+	    vStress = static_cast< StructuralMaterialStatus * >( mat->giveStatus(gp) )->giveStressVector();
+	  } else if ( nlGeometry == 1 ) {  
+	    /*if ( elem->domain->giveEngngModel()->giveFormulation() == AL ) { // Cauchy stress
+	      vStress = static_cast< StructuralMaterialStatus * >( mat->giveStatus(gp) )->giveCVector();
+	      this->computeEnhancedBmatrixAt(gp, B,elem);
+	    } else { // First Piola-Kirchhoff stress
+	      vStress = static_cast< StructuralMaterialStatus * >( mat->giveStatus(gp) )->givePVector();
+	      this->computeEnhancedBHmatrixAt(gp, B,nlElem);
+	      }*/
+	  }
+	  if ( vStress.giveSize() == 0 ) {
+	    break;
+	  }
+	  double dV  = elem->computeVolumeAround(gp);
+	  h_int.plusProduct(B, vStress, dV);
+	}
+       
 	FloatArray junk;
 	junk.beProductOf(invH,h_int);
 	answer.beTProductOf(Gamma,junk);
@@ -233,7 +227,7 @@ EnhancedAssumedStrainElementExtensionInterface ::computeEnhancedDisplacementVect
 	//this->giveInternalForcesCorrectionVector(h_int);
 	this->giveTempInvStiffnessMatrixH(invH);
 	this->giveTempStiffnessMatrixGamma(Gamma);
-	elem->computeVectorOf(EID_MomentumBalance, VM_Incremental, tStep, deltaDisplacement);
+	elem->computeVectorOf(VM_Incremental, tStep, deltaDisplacement);
 	FloatArray junk;
 	junk.beProductOf(Gamma,deltaDisplacement);
 	deltaEnhancedDisplacement.beProductOf(invH,junk);

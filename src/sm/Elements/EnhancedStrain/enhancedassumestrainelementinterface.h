@@ -39,7 +39,7 @@
 #include "floatarray.h"
 #include "floatmatrix.h"
 #include "matresponsemode.h"
-#include "nlstructuralelement.h"
+#include "../sm/Elements/nlstructuralelement.h"
 
 
 
