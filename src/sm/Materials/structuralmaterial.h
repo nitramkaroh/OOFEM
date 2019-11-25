@@ -729,6 +729,7 @@ public:
     void compute_d2I2_Cdev_dF2(FloatMatrix &answer, const FloatMatrix &F);
     void compute_d2I1_Cdev_dF2_and_d2I2_Cdev_dF2(FloatMatrix &d2I1dF2, FloatMatrix &d2I2dF2, const FloatMatrix &F);
     void compute_dyadic_product(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b);
+    void compute_dyadic_product(FloatMatrix &answer, const FloatArray &a, const FloatArray &b);
     void compute_dyadic_product_reduced(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b);
     void compute_sym_dyadic_product(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b);
     void compute_sym_dyadic_product_reduced(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b);

@@ -51,7 +51,6 @@ namespace oofem {
 GradientPolyconvexMaterial :: GradientPolyconvexMaterial(int n, Domain *d) :StructuralMaterial(n, d), MicromorphicMaterialExtensionInterface(d)
 {
   Hk = Ak = 0.;
-  gamma = 1.e-5;
   
 }
 
@@ -69,7 +68,7 @@ GradientPolyconvexMaterial :: initializeFrom(InputRecord *ir)
     IR_GIVE_FIELD(ir, Hk, _IFT_MicromorphicMaterialExtensionInterface_Hk);
     IR_GIVE_FIELD(ir, Ak, _IFT_MicromorphicMaterialExtensionInterface_Ak);
     
-    gamma = 1;
+    gamma = 0;
     IR_GIVE_OPTIONAL_FIELD(ir, gamma, _IFT_GradientPolyconvexMaterial_gamma );
     
     hyperElasticMaterialType = 0;
@@ -138,8 +137,18 @@ GradientPolyconvexMaterial :: giveFiniteStrainGeneralizedStressVectors_3d(FloatA
     
     this->compute_2order_tensor_cross_product(vPm, s, vF);
     vP.subtract(vPm);
+
+
+    FloatMatrix F;
+    F.beMatrixForm(vF);
+    double J = F.giveDeterminant();
+
+    FloatArray vPv;
+    vPv = vCofF;
+    vPv.times(gamma * log(J) / J);
+
+    vP.add(vPv);  
     
-   
     status->letTempMicromorphicVarBe(micromorphicVar);
     status->letTempMicromorphicVarGradBe(micromorphicVarGrad);
 
@@ -193,6 +202,23 @@ GradientPolyconvexMaterial :: giveMicromorphicMatrix_dSigdUgrad(FloatMatrix &ans
     answer.add(xFxF);
     answer.subtract(xS);
 
+
+    FloatMatrix F, xCofF, cF_x_cF;
+    F.beMatrixForm(vF);
+    FloatArray vCofF;
+    // compute cofactor using tensor cross product
+    this->compute_2order_tensor_cross_product(vCofF, vF, vF);
+    vCofF.times(0.5);  
+
+    double J = F.giveDeterminant();
+    this->compute_tensor_cross_product_tensor( xCofF, vCofF);
+    xCofF.times( gamma * log(J)/ J);
+    
+    compute_dyadic_product(cF_x_cF, vCofF, vCofF);
+    cF_x_cF.times(gamma * (1- log(J)) / J / J);
+
+    answer.add(xCofF);
+    answer.add(cF_x_cF);
 
     
 

@@ -32,7 +32,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include "quad1planestrain4eas.h"
+#include "quad1planestrain5eas.h"
 #include "floatmatrix.h"
 #include "gausspoint.h"
 #include "floatarray.h"
@@ -44,11 +44,11 @@
 
 namespace oofem {
 
-REGISTER_Element( Quad1PlaneStrain4EAS );
+REGISTER_Element( Quad1PlaneStrain5EAS );
 
 
 
-Quad1PlaneStrain4EAS :: Quad1PlaneStrain4EAS(int n, Domain *aDomain) :
+Quad1PlaneStrain5EAS :: Quad1PlaneStrain5EAS(int n, Domain *aDomain) :
     Quad1PlaneStrain(n, aDomain),EnhancedAssumedStrainElementExtensionInterface(aDomain)
 {
 }
@@ -56,7 +56,7 @@ Quad1PlaneStrain4EAS :: Quad1PlaneStrain4EAS(int n, Domain *aDomain) :
 
 
 void
-Quad1PlaneStrain4EAS :: computeEnhancedBmatrixAt(GaussPoint *gp, FloatMatrix &answer,StructuralElement *elem)
+Quad1PlaneStrain5EAS :: computeEnhancedBmatrixAt(GaussPoint *gp, FloatMatrix &answer,StructuralElement *elem)
 //
 // Returns the [4x4] enhanced strain - enhanceddisplacement matrix of the receiver,
 // evaluated at gp.
@@ -64,7 +64,7 @@ Quad1PlaneStrain4EAS :: computeEnhancedBmatrixAt(GaussPoint *gp, FloatMatrix &an
     
     std::vector<FloatMatrix> E;
 
-    answer.resize(4,4);
+    answer.resize(4,5);
     answer.zero();
 
     
@@ -98,7 +98,7 @@ Quad1PlaneStrain4EAS :: computeEnhancedBmatrixAt(GaussPoint *gp, FloatMatrix &an
 
 
 void
-Quad1PlaneStrain4EAS :: computeEnhancedBHmatrixAt(GaussPoint *gp, FloatMatrix &answer,NLStructuralElement *elem)
+Quad1PlaneStrain5EAS :: computeEnhancedBHmatrixAt(GaussPoint *gp, FloatMatrix &answer,NLStructuralElement *elem)
 // Returns the [5x8] displacement gradient matrix {BH} of the receiver,
 // evaluated at aGaussPoint.
 // @todo not checked if correct
@@ -106,7 +106,7 @@ Quad1PlaneStrain4EAS :: computeEnhancedBHmatrixAt(GaussPoint *gp, FloatMatrix &a
 	  
 	
 
-	answer.resize(5,4);
+	answer.resize(5,5);
 	answer.zero();
 	
 	std::vector<FloatMatrix> E;
@@ -137,7 +137,7 @@ Quad1PlaneStrain4EAS :: computeEnhancedBHmatrixAt(GaussPoint *gp, FloatMatrix &a
 
 	
 void 
-Quad1PlaneStrain4EAS :: computeEnhancedModesAt(std::vector<FloatMatrix> &answer, GaussPoint* gp)
+Quad1PlaneStrain5EAS :: computeEnhancedModesAt(std::vector<FloatMatrix> &answer, GaussPoint* gp)
 {
 	double ksi, eta;    
 	FloatMatrix E;
@@ -162,10 +162,15 @@ Quad1PlaneStrain4EAS :: computeEnhancedModesAt(std::vector<FloatMatrix> &answer,
 	E.zero();
 	E.at(2,1) = ksi;
 	answer.push_back(E);
-	
 
 
-	
+
+	E.zero();
+	E.at(1,1) = ksi * eta;
+	E.at(1,2) = 0.5 * (ksi * ksi - eta * eta);
+	E.at(2,1) = E.at(1,2);
+	E.at(2,2) = -ksi * eta;
+	answer.push_back(E);	
 
 }
 
