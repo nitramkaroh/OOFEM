@@ -49,6 +49,7 @@
 #include "mathfem.h"
 
 #include "../sm/Elements/meandilelementinterface.h"
+#include "../sm/Elements/EnhancedStrain/enhancedassumestrainelementinterface.h"
 
 namespace oofem {
 NLStructuralElement :: NLStructuralElement(int n, Domain *aDomain) :
@@ -235,6 +236,15 @@ NLStructuralElement :: giveInternalForcesVector(FloatArray &answer, TimeStep *tS
       return;
     }
     //}
+
+    // Correction of internal forces due to enhancedDisplacement
+    EnhancedAssumedStrainElementExtensionInterface *easInterface = static_cast< EnhancedAssumedStrainElementExtensionInterface * >( this->giveInterface(EnhancedAssumedStrainElementExtensionInterfaceType) );
+    if ( easInterface ) {
+      FloatArray ifCorrectionVector;
+      easInterface->giveInternalForcesCorrectionVector(ifCorrectionVector,tStep,this);
+      answer.add(ifCorrectionVector);		
+    }
+
 }
 
 
@@ -491,7 +501,16 @@ NLStructuralElement :: computeStiffnessMatrix(FloatMatrix &answer,
 	    answer.plusProductUnsym(B, DB, dV);
 	  }
         }
-	
+
+	// Correction of stiffness matrix due to enhancedDisplacement
+	EnhancedAssumedStrainElementExtensionInterface *easInterface = static_cast< EnhancedAssumedStrainElementExtensionInterface * >( this->giveInterface(EnhancedAssumedStrainElementExtensionInterfaceType) );
+	if ( easInterface ) {
+	  FloatMatrix stiffnessCorrection;
+	  easInterface->computeStiffnessCorrection(stiffnessCorrection,rMode, tStep, this);
+	  answer.add(stiffnessCorrection);
+	  
+	}
+
       } else { /// @todo Verify that it works with large deformations
         if ( this->domain->giveEngngModel()->giveFormulation() == AL ) {
 	  OOFEM_ERROR("Updated lagrangian not supported yet");
