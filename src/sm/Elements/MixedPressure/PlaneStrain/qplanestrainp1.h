@@ -72,10 +72,13 @@ public:
     virtual void giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord) { BaseMixedPressureElement :: giveInternalForcesVector(answer, tStep, useUpdatedGpRecord); }
 
 
-    virtual int giveNumberOfPressureDofs() { return 3; }
-    virtual int giveNumberOfDisplacementDofs() { return 12; }
-    virtual int giveNumberOfDofs() { return 15; }
+    virtual int giveNumberOfPressureDofs() { return 4; }
+    virtual int giveNumberOfDisplacementDofs() { return 16; }
+    virtual int giveNumberOfDofs() { return 20; }
     virtual void postInitialize();
+    virtual void updateInternalState(TimeStep *tStep)
+    { BaseMixedPressureElement :: updateInternalState(tStep);}
+    
 };
 } // end namespace oofem
 #endif // quad2planestrainp1_h
