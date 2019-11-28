@@ -242,7 +242,7 @@ NLStructuralElement :: giveInternalForcesVector(FloatArray &answer, TimeStep *tS
     if ( easInterface ) {
       FloatArray ifCorrectionVector;
       easInterface->giveInternalForcesCorrectionVector(ifCorrectionVector,tStep,this);
-      answer.add(ifCorrectionVector);		
+      answer.subtract(ifCorrectionVector);		
     }
 
 }
@@ -507,7 +507,7 @@ NLStructuralElement :: computeStiffnessMatrix(FloatMatrix &answer,
 	if ( easInterface ) {
 	  FloatMatrix stiffnessCorrection;
 	  easInterface->computeStiffnessCorrection(stiffnessCorrection,rMode, tStep, this);
-	  answer.add(stiffnessCorrection);
+	  answer.subtract(stiffnessCorrection);
 	  
 	}
 

@@ -155,7 +155,7 @@ EnhancedAssumedStrainElementExtensionInterface :: computeStiffnessCorrection(Flo
         }        
 
 	invH.beInverseOf(H);
-	junk.beTProductOf(Gamma,H);
+	junk.beTProductOf(Gamma,invH);
 	answer.beProductOf(junk,Gamma);	
 
 	this->setTempInvStiffnessMatrixH(invH);
@@ -196,7 +196,7 @@ EnhancedAssumedStrainElementExtensionInterface ::  giveInternalForcesCorrectionV
 	  Material *mat = gp->giveMaterial();
 	  if ( nlGeometry == 0 ) {
 	    this->computeEnhancedBmatrixAt(gp, B,elem);
-	    vStress = static_cast< StructuralMaterialStatus * >( mat->giveStatus(gp) )->giveStressVector();
+	    vStress = static_cast< StructuralMaterialStatus * >( mat->giveStatus(gp) )->giveTempStressVector();
 	  } else if ( nlGeometry == 1 ) {  
 	    /*if ( elem->domain->giveEngngModel()->giveFormulation() == AL ) { // Cauchy stress
 	      vStress = static_cast< StructuralMaterialStatus * >( mat->giveStatus(gp) )->giveCVector();
@@ -216,7 +216,6 @@ EnhancedAssumedStrainElementExtensionInterface ::  giveInternalForcesCorrectionV
 	FloatArray junk;
 	junk.beProductOf(invH,h_int);
 	answer.beTProductOf(Gamma,junk);
-	answer.negated();
 }
 
 void
