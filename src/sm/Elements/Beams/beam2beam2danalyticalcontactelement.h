@@ -86,6 +86,7 @@ public:
     void  postInitialize() override;
     IRResultType initializeFrom(InputRecord *ir) override;
     bool computeGtoLRotationMatrix(FloatMatrix &answer) override;
+    void updateYourself(TimeStep *tStep);
  protected:
     void checkContact(double l1, double l2, double o, double &xc, TimeStep *tStep, ContactType &ct);
     bool checkOverlapingContact(double l1, double l2, double overlap, double &xc, TimeStep *tStep);
@@ -97,6 +98,7 @@ public:
     void giveLocalDofs(double &w1, double &phi1, double &w2, double &phi2, TimeStep *tStep);
     void printOutputAt(FILE *File, TimeStep *tStep);
     double initYoungModulus( TimeStep *tStep);
+    
 
 };
 } // end namespace oofem

@@ -302,8 +302,7 @@ Beam2Beam2dAnalyticalContactElement ::  postInitialize()
 
     n1 = { -b1.at(3) / lengthBeam1, 0, b1.at(1) / lengthBeam1 };
     n2 = { -b2.at(3) / lengthBeam2, 0, b2.at(1) / lengthBeam2 };
-
-    //@todo: check this
+    
     overlap = b1.dotProduct(x1 + b1 - x2 - b2)/lengthBeam1;
    
     FloatArray lc(1);
@@ -331,7 +330,52 @@ Beam2Beam2dAnalyticalContactElement :: printOutputAt(FILE *File, TimeStep *tStep
   }
     
 }
-  
+
+
+void Beam2Beam2dAnalyticalContactElement :: updateYourself(TimeStep *tStep)
+// Updates the overlap at the end of the step
+{
+    Beam2d :: updateYourself(tStep);
+
+    FloatArray global_Dofs(6);
+    global_Dofs.at(1) = this->giveNode(1)->giveDofWithID(1)->giveUnknown(VM_Total, tStep);
+    global_Dofs.at(2) = this->giveNode(1)->giveDofWithID(3)->giveUnknown(VM_Total, tStep);
+    global_Dofs.at(3) = this->giveNode(1)->giveDofWithID(5)->giveUnknown(VM_Total, tStep);
+    global_Dofs.at(4) = this->giveNode(2)->giveDofWithID(1)->giveUnknown(VM_Total, tStep);
+    global_Dofs.at(5) = this->giveNode(2)->giveDofWithID(3)->giveUnknown(VM_Total, tStep);
+    global_Dofs.at(6) = this->giveNode(2)->giveDofWithID(5)->giveUnknown(VM_Total, tStep);
+
+    FloatArray u1, u2;
+    u1 = { global_Dofs.at(1), 0, global_Dofs.at(2)};
+    u2 = { global_Dofs.at(4), 0, global_Dofs.at(5)};
+
+    FloatArray x1, x2;
+    x1 = {this->giveNode(1)->giveCoordinate(1), 0, this->giveNode(1)->giveCoordinate(3)};
+    x2 = {this->giveNode(2)->giveCoordinate(1), 0, this->giveNode(2)->giveCoordinate(3)};
+    x1.add(u1);
+    x2.add(u2);
+
+    FloatArray b1_updated(b1), b2_updated(b2);
+    
+    b1_updated.at(1) -= global_Dofs.at(3) * b1.at(2);
+    b1_updated.at(3) += global_Dofs.at(3) * b1.at(1);
+
+    b2_updated.at(1) += global_Dofs.at(6) * b2.at(2);
+    b2_updated.at(3) -= global_Dofs.at(6) * b2.at(1);
+    
+       
+
+    
+    overlap = b1_updated.dotProduct(x1 + b1_updated - x2 - b2_updated)/lengthBeam1;
+    
+    
+      
+
+
+}
+
+
+
   
 
 } // end namespace oofem
