@@ -32,65 +32,104 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "Elements/PlaneStrain/quad1planestrainp1.h"
+#include "Elements/MixedPressure/PlaneStrain/quad1planestrainp0.h"
+#include "node.h"
+#include "gausspoint.h"
+#include "gaussintegrationrule.h"
+#include "floatmatrix.h"
+#include "floatarray.h"
+#include "intarray.h"
+#include "crosssection.h"
+#include "classfactory.h"
+#include "fei2dquadconst.h"
+#include "masterdof.h"
 
 namespace oofem {
-REGISTER_Element(Quad1PlaneStrainP1);
+REGISTER_Element(Quad1PlaneStrainP0);
 
-FEI2dQuadLin Quad1PlaneStrainP1 :: interp(1, 2);
+FEI2dQuadConst Quad1PlaneStrainP0 :: interpolation(1, 2);
 
-Quad1PlaneStrainP1 :: Quad1PlaneStrainP1(int n, Domain *aDomain) :Quad1PlaneStrain(int n, Domain *aDomain) :
+Quad1PlaneStrainP0 :: Quad1PlaneStrainP0(int n, Domain *aDomain) :Quad1PlaneStrain(n, aDomain)
 {
-  displacementDofsOrdering = {1,2,4,5,7,8,10,11};
-  pressureDofsOrdering = {3,6,9,12};
+  displacementDofsOrdering = {1,2,3,4,5,7,8};
+  pressureDofsOrdering = {9};
+  this->pressureNode.reset( new ElementDofManager(1, aDomain, this) );
+  this->pressureNode->appendDof( new MasterDof(this->pressureNode.get(), P_f) );
+
 
 }
 
 
-Quad1PlaneStrain :: ~Quad1PlaneStrainP1()
-{ }
 
-
-FEInterpolation *Quad1PlaneStrainP1 :: giveInterpolation() const { return & interp; }
-
-
-void
-Quad1PlaneStrainP1 :: computeDeviatoricVolumetricBmatrices(FloatMatrix &Bdev, FloatMatrix &Bvol, GaussPoint *gp, TimeStep *tStep, NlStructuralElement *eleme)
-{
-  
  
-
-}
-
 void 
-Quad1PlaneStrainP1 :: computePressureNMatrixAt(GaussPoint *gp,FloatMatrix &answer)
+Quad1PlaneStrainP0 :: computePressureNMatrixAt(GaussPoint *gp,FloatArray &answer)
 {
     FloatArray n;
-    this->interpolation.evalN( n, gp->giveNaturalCoordinates(), FEIElementGeometryWrapper(this) );
-    answer.beNMatrixOf(n, 1);
+    this->interpolation.evalN( answer, gp->giveNaturalCoordinates(), FEIElementGeometryWrapper(this) );
 }
-  
+
 
 void
-Quad1PlaneStrainP1 :: giveDofManDofIDMask(int inode, IntArray &answer) const
+Quad1PlaneStrainP0 :: computeVolumetricBmatrixAt(GaussPoint *gp, FloatArray &answer, NLStructuralElement *elem)
 {
-  answer = {D_u, D_v, P_f};
+    answer.resize(8);
+    FloatMatrix dN;
+    elem->giveInterpolation()->evaldNdx( dN, gp->giveNaturalCoordinates(), FEIElementGeometryWrapper(this) );
+    for ( int j = 0, k = 0; j < 4; j++, k += 2 ) {
+            answer(k)     = dN(j, 0);
+            answer(k + 1) = dN(j, 1);
+        }
 }
-
+   
 
 void
-Quad1PlaneStrainP1 :: giveDofManDofIDMask_u(IntArray &answer)
+Quad1PlaneStrainP0 :: giveDofManDofIDMask(int inode, IntArray &answer) const
 {
   answer = {D_u, D_v};
 }
 
 
 void
-Quad1PlaneStrainP1 :: giveDofManDofIDMask_m(IntArray &answer)
+Quad1PlaneStrainP0 :: giveDofManDofIDMask_u(IntArray &answer)
+{
+  answer = {D_u, D_v};
+}
+
+
+void
+Quad1PlaneStrainP0 :: giveDofManDofIDMask_p(IntArray &answer)
 {
   answer = {P_f};
 }
+
+
+void Quad1PlaneStrainP0 :: giveInternalDofManDofIDMask(int i, IntArray &answer) const
+{
+  answer = {P_f};
+}
+
   
 
+  
+  
+DofManager *
+Quad1PlaneStrainP0 :: giveInternalDofManager(int i) const
+{
+  return pressureNode.get();
+}
+
+
+   
+  
+void
+Quad1PlaneStrainP0 ::  postInitialize() 
+{
+  BaseMixedPressureElement :: postInitialize();
+  Quad1PlaneStrain :: postInitialize();
+}
+
+  
+  
 
 } // end namespace oofem

@@ -760,7 +760,9 @@ StructuralElement :: computeStrainVector(FloatArray &answer, GaussPoint *gp, Tim
     }
 
     this->computeBmatrixAt(gp, b);
-    this->computeVectorOf(VM_Total, tStep, u);
+    this->computeVectorOf({D_u, D_v, D_w}, VM_Total, tStep, u);
+
+    //    this->computeVectorOf(VM_Total, tStep, u);
 
     // subtract initial displacements, if defined
     if ( initialDisplacements ) {

@@ -36,17 +36,22 @@
 #define quad1planestrainp0_h
 
 #include "../sm/Elements/PlaneStrain/quad1planestrain.h"
-#include "../sm/Elements/Micromorphic/basemixedpressureelement.h"
+#include "../sm/Elements/MixedPressure/basemixedpressureelement.h"
+#include "elementinternaldofman.h"
 
-#define _IFT_PlaneStrain_Name "planestrainmicropolar"
+#define _IFT_Quad1PlaneStrainP0_Name "quad1planestrainp0"
 
 namespace oofem {
-class FEI2dQuadLin;
+class FEI2dQuadConst;
 
-class Quad1PlaneStrainP0 : public Quad1PlaneStrain, public BaseMicromorphicElement
+
+class Quad1PlaneStrainP0 : public Quad1PlaneStrain, public BaseMixedPressureElement
 {
 protected:
-    static FEI2dQuadLin interpolation;
+    static FEI2dQuadConst interpolation;
+    
+    std :: unique_ptr< ElementDofManager > pressureNode;
+
 
 public:
     Quad1PlaneStrainP0(int n, Domain * d);
@@ -55,9 +60,9 @@ public:
  protected:
 
 
-    virtual void computePressureNMatrixAt(GaussPoint *gp, FloatMatrix &N);
-    virtual void computeDeviatoricVolumetricBMatrices(FloatMatrix &Bdev, FloatMatrix &Bvol, GaussPoint *gp, NLStructuralElement *element);
-
+    virtual void computePressureNMatrixAt(GaussPoint *gp, FloatArray &N);
+    void computeVolumetricBmatrixAt(GaussPoint *gp, FloatArray &answer, NLStructuralElement *elem);
+    
     virtual NLStructuralElement *giveElement() { return this; }
  public:
     virtual const char *giveInputRecordName() const { return _IFT_Quad1PlaneStrainP0_Name; }
@@ -65,15 +70,25 @@ public:
 
     virtual void giveDofManDofIDMask(int inode, IntArray &answer) const;
     virtual void giveDofManDofIDMask_u(IntArray &answer);
-    virtual void giveDofManDofIDMask_m(IntArray &answer);
+    virtual void giveDofManDofIDMask_p(IntArray &answer);
 
     virtual void computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode mode, TimeStep *tStep){BaseMixedPressureElement :: computeStiffnessMatrix(answer, mode, tStep);}
     virtual void giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord){BaseMixedPressureElement :: giveInternalForcesVector(answer, tStep, useUpdatedGpRecord);}
 
 
-    virtual int giveNumberOfPressureDofs(){return 4;}
+    virtual int giveNumberOfPressureDofs(){return 1;}
     virtual int giveNumberOfDisplacementDofs(){return 8;}
-    virtual int giveNumberOfDofs(){return 12;}
+    virtual int giveNumberOfDofs(){return 9;}
+
+    void postInitialize() ;
+    DofManager * giveInternalDofManager(int i) const;
+    void giveInternalDofManDofIDMask(int i, IntArray &answer) const;
+      
+      
+    virtual int giveNumberOfInternalDofManagers() const { return 1; }
+	
+
+
 
 };
 } // end namespace oofem

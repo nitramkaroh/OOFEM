@@ -89,7 +89,33 @@ BaseMixedPressureElement :: giveLocationArrayOfDofIDs(IntArray &locationArray_u,
 	itt++;
       }
       k += dMan->giveNumberOfDofs( );
+    }
+
+    for ( int i = 1; i <= el->giveNumberOfInternalDofManagers(); i++ ) {
+      DofManager *dMan = el->giveInternalDofManager( i );
+      int itt = 1;
+      for(int j = 1; j <= dofIdArray_u.giveSize( ); j++) {
+	if(dMan->hasDofID( (DofIDItem) dofIdArray_u.at( j ) )) {
+	  //  Dof *d = dMan->giveDofWithID( dofIdArray_u.at( j ) );
+	  locationArray_u.followedBy( k + itt);
+	  itt++;
+	}
+
       }
+      for(int j = 1; j <= dofIdArray_p.giveSize( ); j++) {
+	if (dMan->hasDofID( (DofIDItem) dofIdArray_p.at( j ) )) {
+	  //Dof *d = dMan->giveDofWithID( dofIdArray_m.at( j ) );
+	  locationArray_p.followedBy( k + itt);
+	  itt++;
+	}
+
+      }
+      k += dMan->giveNumberOfDofs( );
+    }
+    
+    
+
+    
 }
 
  

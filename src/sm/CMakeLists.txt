@@ -104,6 +104,7 @@ set (sm_element
     #Mixed pressure elements
     Elements/MixedPressure/basemixedpressureelement.C
     Elements/MixedPressure/PlaneStrain/qtrplanestrainp1.C
+    Elements/MixedPressure/PlaneStrain/quad1planestrainp0.C
     Elements/MixedPressure/PlaneStrain/quad1planestrainp1.C
     Elements/MixedPressure/PlaneStrain/qplanestrainp1.C
     #Enhaced strain elements
