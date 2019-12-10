@@ -59,6 +59,7 @@ OgdenNematicElastomerMaterial :: giveFirstPKStressVector_3d(FloatArray &answer, 
     F.beMatrixForm(vF);
     //
     C.beTProductOf(F, F);
+    C = {{0.821617043172827,   0.000000000000004, 0},{0.000000000000004,   0.999999999999997,0},{0,0,0.9999999999}};
     // compute eigen values and eigen vectors of C
     C.jaco_(eVals, eVecs, 15);
     // phase of nematic elastomer
@@ -234,6 +235,7 @@ OgdenNematicElastomerMaterial :: give3dMaterialStiffnessMatrix_dPdF(FloatMatrix 
     //store deformation gradient into matrix
     F.beMatrixForm(vF);
     //
+    C = {{0.821617043172827,   0.000000000000004, 0},{0.000000000000004,   0.999999999999997,0},{0,0,1}};
     C.beTProductOf(F, F);
     // compute eigen values and eigen vectors of C
     C.jaco_(eVals, eVecs, 15);

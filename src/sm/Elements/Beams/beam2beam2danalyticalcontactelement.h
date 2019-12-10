@@ -62,6 +62,7 @@ protected:
   double lengthBeam2;
   double totalLength;
   double overlap;
+  double overlap_init;
   double E = -1;
   double Iy;
 
@@ -95,7 +96,7 @@ public:
     void giveInternalForcesVector_Contact(FloatArray &answer, double l1, double l2, TimeStep *tStep);
     void computeStiffnessMatrix_TipContact(FloatMatrix &answer, double l1, double l2);
     void computeStiffnessMatrix_OverlapingContact(FloatMatrix &answer, double L);
-    void giveLocalDofs(double &w1, double &phi1, double &w2, double &phi2, TimeStep *tStep);
+    void giveLocalDofs(FloatArray &ld, TimeStep *tStep);
     void printOutputAt(FILE *File, TimeStep *tStep);
     double initYoungModulus( TimeStep *tStep);
     

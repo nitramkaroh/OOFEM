@@ -237,7 +237,7 @@ BaseMixedPressureElement :: giveInternalForcesVector_p(FloatArray &answer, TimeS
       double eps_V = Bvol.dotProduct(d_u);
       mixedPressureMat->giveInverseOfBulkModulus(kappa, TangentStiffness, gp, tStep);
       factor = eps_V + pressure*kappa;      
-      answer.times(dV*factor);
+      answer.add(dV*factor);
     }
 }
   

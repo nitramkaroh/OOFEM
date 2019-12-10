@@ -128,7 +128,12 @@ Beam2Beam2dAnalyticalContactElement :: giveInternalForcesVector_Contact(FloatArr
 {
     // compute position after deformation
     double w1, phi1, w2, phi2;
-    this->giveLocalDofs(w1, phi1, w2, phi2, tStep);
+    FloatArray localDofs;
+    this->giveLocalDofs(localDofs, tStep);
+    w1 = localDofs.at(2);
+    phi1 = localDofs.at(3);
+    w2 = localDofs.at(5);
+    phi2 = localDofs.at(6);
     
     double F = 3 * E * Iy * (w2 - w1 + phi1 * l1 + phi2 * l2) / ( l1 * l1 *l1 + l2 * l2 * l2);
     answer = {0, -F, F* l1, 0, F, F * l2}; 
@@ -139,25 +144,44 @@ Beam2Beam2dAnalyticalContactElement :: giveInternalForcesVector_Contact(FloatArr
 void
 Beam2Beam2dAnalyticalContactElement :: checkContact(double l1, double l2, double o, double &xc, TimeStep *tStep, ContactType &contact_type)
 {
+
+    // compute position after deformation
+    double w1, phi1, w2, phi2;
+    FloatArray localDofs;
+    this->giveLocalDofs(localDofs, tStep);
+    w1 = localDofs.at(2);
+    phi1 = localDofs.at(3);
+    w2 = localDofs.at(5);
+    phi2 = localDofs.at(6);
+
+ 
     double rotationAngle;
     FloatArray x, x1, x2;
-    // checking beam positions
+    // checking beam positions in the actual configuration
     x1 = *this->giveNode(1)->giveCoordinates();
+    x1.at(1) += this->giveNode(1)->giveDofWithID(1)->giveUnknown(VM_Total, tStep);
+    x1.at(3) += this->giveNode(1)->giveDofWithID(3)->giveUnknown(VM_Total, tStep);
     x2 = *this->giveNode(2)->giveCoordinates();
-    x = x2 + b2;
+    x2.at(1) += this->giveNode(2)->giveDofWithID(1)->giveUnknown(VM_Total, tStep);
+    x2.at(3) += this->giveNode(2)->giveDofWithID(3)->giveUnknown(VM_Total, tStep);
+
+
+    FloatArray b2_updated(b2);
+    b2_updated.at(1) += phi2 * b2.at(2);
+    b2_updated.at(3) -= phi2 * b2.at(1);
+
+    x = x2 + b2_updated;
+
     double sign = -n1.dotProduct(x-x1);
     if(sign == 0) {
       sign  = 1;
     } else {
       sign /= fabs(sign);
     }
-    // compute position after deformation
-    double w1, phi1, w2, phi2;
-    this->giveLocalDofs(w1, phi1, w2, phi2, tStep);
     // check two contact positions
     double cond1 = sign * ( phi1 * lengthBeam1 + phi2 * ( lengthBeam2 - overlap ) + w2 - w1 );
     double cond2 = sign * ( phi2 * lengthBeam2 + phi1 * ( lengthBeam1 - overlap ) + w2 - w1 );
-    if (cond1 <= 0 && cond2 <= 0) {
+    if ( overlap < 0 || (cond1 <= 0 && cond2 <= 0) ) {
       contact_type = CT_None;
     } else {
       xc = 0;
@@ -186,7 +210,13 @@ Beam2Beam2dAnalyticalContactElement :: checkTipContact(double &answer, double l1
 {
 
   double w1, phi1, w2, phi2;
-  this->giveLocalDofs(w1, phi1, w2, phi2, tStep);
+  FloatArray localDofs;
+  this->giveLocalDofs(localDofs, tStep);
+  w1 = localDofs.at(2);
+  phi1 = localDofs.at(3);
+  w2 = localDofs.at(5);
+  phi2 = localDofs.at(6);
+  
   double F = 3 * E * Iy * (w2 - w1 + phi1 * l1 + phi2 * l2) / ( l1 * l1 *l1 + l2 * l2 * l2);
   answer = F * l1 * l1 / 2 / E / Iy - phi1 - F * l2 * l2 / 2 / E / Iy + phi2;
 
@@ -216,10 +246,10 @@ Beam2Beam2dAnalyticalContactElement :: checkOverlapingContact(double l1, double 
 
       
 void
-Beam2Beam2dAnalyticalContactElement :: giveLocalDofs(double &w1, double &phi1, double &w2, double &phi2, TimeStep *tStep)
+Beam2Beam2dAnalyticalContactElement :: giveLocalDofs(FloatArray &localDofs, TimeStep *tStep)
 {
 
-  FloatArray global_Dofs(6), local_Dofs;
+  FloatArray global_Dofs(6);
   global_Dofs.at(1) = this->giveNode(1)->giveDofWithID(1)->giveUnknown(VM_Total, tStep);
   global_Dofs.at(2) = this->giveNode(1)->giveDofWithID(3)->giveUnknown(VM_Total, tStep);
   global_Dofs.at(3) = this->giveNode(1)->giveDofWithID(5)->giveUnknown(VM_Total, tStep);
@@ -229,11 +259,7 @@ Beam2Beam2dAnalyticalContactElement :: giveLocalDofs(double &w1, double &phi1, d
 
   FloatMatrix R;
   this->computeGtoLRotationMatrix(R);
-  local_Dofs.beProductOf(R, global_Dofs);
-  w1 = local_Dofs.at(2);
-  phi1 = local_Dofs.at(3);
-  w2 = local_Dofs.at(5);
-  phi2 = local_Dofs.at(6);
+  localDofs.beProductOf(R, global_Dofs);
 
     
 }
@@ -303,7 +329,7 @@ Beam2Beam2dAnalyticalContactElement ::  postInitialize()
     n1 = { -b1.at(3) / lengthBeam1, 0, b1.at(1) / lengthBeam1 };
     n2 = { -b2.at(3) / lengthBeam2, 0, b2.at(1) / lengthBeam2 };
     
-    overlap = b1.dotProduct(x1 + b1 - x2 - b2)/lengthBeam1;
+    overlap_init = b1.dotProduct(x1 + b1 - x2 - b2)/lengthBeam1;
    
     FloatArray lc(1);
     Iy   = this->giveCrossSection()->give(CS_InertiaMomentY,  lc, this);
@@ -336,7 +362,7 @@ void Beam2Beam2dAnalyticalContactElement :: updateYourself(TimeStep *tStep)
 // Updates the overlap at the end of the step
 {
     Beam2d :: updateYourself(tStep);
-
+    /*
     FloatArray global_Dofs(6);
     global_Dofs.at(1) = this->giveNode(1)->giveDofWithID(1)->giveUnknown(VM_Total, tStep);
     global_Dofs.at(2) = this->giveNode(1)->giveDofWithID(3)->giveUnknown(VM_Total, tStep);
@@ -367,9 +393,12 @@ void Beam2Beam2dAnalyticalContactElement :: updateYourself(TimeStep *tStep)
 
     
     overlap = b1_updated.dotProduct(x1 + b1_updated - x2 - b2_updated)/lengthBeam1;
-    
-    
+*/    
       
+
+    FloatArray localDofs;
+    this->giveLocalDofs(localDofs, tStep);
+    overlap = overlap_init + localDofs.at(1) - localDofs.at(4);
 
 
 }

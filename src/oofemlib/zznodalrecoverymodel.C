@@ -172,7 +172,7 @@ ZZNodalRecoveryModel :: recoverValues(Set elementSet, InternalStateType type, Ti
                 sol.at(eq + j) = rhs.at(i, j) / lhs.at(i);
             } else {
                 missingDofManContribution = true;
-                unresolvedDofMans.insert( regionNodalNumbers.at(i) );
+                unresolvedDofMans.insert( regionNodalNumbers.at(i) + 1 );
                 sol.at(eq + j) = 0.0;
             }
         }
