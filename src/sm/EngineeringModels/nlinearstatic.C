@@ -634,7 +634,6 @@ void
 NonLinearStatic :: giveInitialGuess(int di, TimeStep *tStep)
 {
 
-
     if ( this->initialGuessType == IG_Tangent ) {
 #ifdef VERBOSE
       OOFEM_LOG_RELEVANT("Computing initial guess\n");

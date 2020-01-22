@@ -292,7 +292,7 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
         } else {
 	  linSolver->solve(k, rhs, ddX);
 	  
-	  if(nite == 1) {
+	  if(nite < 6 ) {
 	    // If desired by the user, the solution is (slightly) perturbed, so that various symmetries can be broken.
 	    // This is useful e.g. to trigger localization in a homogeneous material under uniform stress without
 	    // the need to introduce material imperfections. The problem itself remains symmetric but the iterative

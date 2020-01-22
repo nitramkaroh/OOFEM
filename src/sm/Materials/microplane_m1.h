@@ -36,7 +36,7 @@
 #define microplane_m1_h
 
 // by commenting this out we can switch back to the old implementation (2D version not inheriting from MicroplaneMaterial)
-#define microplane_m1_new_implementation
+//#define microplane_m1_new_implementation
 
 #ifdef microplane_m1_new_implementation
 // ========================= new implementation =========================

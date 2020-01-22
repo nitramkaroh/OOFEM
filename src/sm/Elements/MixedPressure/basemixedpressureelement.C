@@ -229,15 +229,15 @@ BaseMixedPressureElement :: giveInternalForcesVector_p(FloatArray &answer, TimeS
       // Compute nodal internal forces at nodes as f = B^T*Stress dV
       double dV  = elem->computeVolumeAround(gp);
       this->computePressure(pressure, gp, tStep);
-      //      this->computePressureNMatrixAt(gp, N_p);
       this->computeVolumetricBmatrixAt(gp, Bvol, elem);
       this->giveDofManDofIDMask_u( IdMask_u );
       elem->computeVectorOf(IdMask_u, VM_Total, tStep, d_u);
 
       double eps_V = Bvol.dotProduct(d_u);
       mixedPressureMat->giveInverseOfBulkModulus(kappa, TangentStiffness, gp, tStep);
-      factor = eps_V + pressure*kappa;      
-      answer.add(dV*factor);
+      factor = eps_V + pressure*kappa;
+      this->computePressureNMatrixAt(gp, N_p);
+      answer.add(- dV * factor, N_p);
     }
 }
   
@@ -397,7 +397,7 @@ BaseMixedPressureElement :: computeStiffnessMatrix_pp(FloatMatrix &answer, MatRe
         this->computePressureNMatrixAt(gp, N_p);
 	FloatMatrix mN_p(N_p, true);
         dV = elem->computeVolumeAround(gp);
-	answer.plusProductUnsym(mN_p,mN_p,-dV*kappa);
+	answer.plusProductUnsym(mN_p, mN_p, -dV * kappa);
 
     }
 }

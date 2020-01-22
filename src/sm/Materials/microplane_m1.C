@@ -297,7 +297,11 @@ M1Material :: giveRealStressVector_PlaneStress(FloatArray &answer,
         sigmaN.resize(nmp);
         sigmaN.zero();
     }
-    deps.beDifferenceOf( totalStrain, status->giveStrainVector() );
+
+    FloatArray strain_n;
+    StructuralMaterial :: giveReducedSymVectorForm(strain_n, status->giveStrainVector(), _PlaneStress);
+
+    deps.beDifferenceOf( totalStrain, strain_n );
 
     for ( int imp = 1; imp <= nmp; imp++ ) {
         depsN = N.at(imp, 1) * deps.at(1) + N.at(imp, 2) * deps.at(2) + N.at(imp, 3) * deps.at(3);

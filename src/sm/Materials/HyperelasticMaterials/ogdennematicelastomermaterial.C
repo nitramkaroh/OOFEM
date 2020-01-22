@@ -59,7 +59,8 @@ OgdenNematicElastomerMaterial :: giveFirstPKStressVector_3d(FloatArray &answer, 
     F.beMatrixForm(vF);
     //
     C.beTProductOf(F, F);
-    C = {{0.821617043172827,   0.000000000000004, 0},{0.000000000000004,   0.999999999999997,0},{0,0,0.9999999999}};
+    //C = {{1.045484854062473,  -0.359353606863740, 0 }, {-0.359353606863740,    0.897820929698215, 0}, {0, 0, 1.}};
+    //    C = {{0.821617043172827,   0.000000000000004, 0},{0.000000000000004,   0.999999999999997,0},{0,0,0.9999999999}};
     // compute eigen values and eigen vectors of C
     C.jaco_(eVals, eVecs, 15);
     // phase of nematic elastomer
@@ -235,7 +236,7 @@ OgdenNematicElastomerMaterial :: give3dMaterialStiffnessMatrix_dPdF(FloatMatrix 
     //store deformation gradient into matrix
     F.beMatrixForm(vF);
     //
-    C = {{0.821617043172827,   0.000000000000004, 0},{0.000000000000004,   0.999999999999997,0},{0,0,1}};
+    //C = {{0.821617043172827,   0.000000000000004, 0},{0.000000000000004,   0.999999999999997,0},{0,0,1}};
     C.beTProductOf(F, F);
     // compute eigen values and eigen vectors of C
     C.jaco_(eVals, eVecs, 15);
@@ -491,15 +492,35 @@ OgdenNematicElastomerMaterial :: giveIPValue(FloatArray &answer, GaussPoint *gp,
       int minIndex = eVals.giveIndexMinElem();
       int maxIndex = eVals.giveIndexMaxElem();
       answer.resize(1);
-      if(1./sqrt(eVals.at(minIndex)) <= pow(a,1./6.)) {
+      if( 1./sqrt(eVals.at(minIndex)) <= pow(a,1./6.)) {
 	answer.at(1) = 0;
       } else if(1./sqrt(eVals.at(minIndex)) >= pow(a, -0.5) * eVals.at(maxIndex)) {
 	answer.at(1) = 1;
       } else {
 	answer.at(1) = 2;
       }
-      answer.at(1) = 1./sqrt(eVals.at(minIndex)) - sqrt(a) * eVals.at(maxIndex);
+      answer.at(1) = 1/sqrt(eVals.at(minIndex)) - pow(a, -0.5) * eVals.at(maxIndex);
       return 1;
+    } else if ( type == IST_NematicElastomerOrientation ) {
+      StructuralMaterialStatus *status = static_cast< StructuralMaterialStatus * >( this->giveStatus(gp) );
+      FloatArray vF, eVals;
+      FloatMatrix F, C, eVecs;
+      //deformation gradient from the status
+      vF = status->giveTempFVector();
+      //store deformation gradient into matrix
+      F.beMatrixForm(vF);
+      //
+      C.beTProductOf(F, F);
+      // compute eigen values and eigen vectors of C
+      C.jaco_(eVals, eVecs, 15);
+      int maxIndex = eVals.giveIndexMaxElem();
+      answer.resize(3);
+      for (int i = 1; i <= 3; i++) {
+	answer.at(i) = eVecs.at(i, maxIndex);
+      }
+      return 3;
+
+      
     } else {
       return OgdenMaterial :: giveIPValue(answer, gp, type, tStep);
     }
