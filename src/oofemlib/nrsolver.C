@@ -359,9 +359,10 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
 	if(followerLoadFlag) {
 	  engngModel->updateComponent(tStep, ExternalRhs, domain);
 	  RT = R;
-	  if ( R0 ) {
+	  //@todo: check this; if it is turn on it leads to inccorect result!
+	  /*if ( R0 ) {
 	    RT.add(* R0);
-	  }
+	    }*/
 	}
         tStep->incrementStateCounter(); // update solution state counter
         tStep->incrementSubStepNumber();

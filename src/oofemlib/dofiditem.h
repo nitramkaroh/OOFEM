@@ -94,7 +94,10 @@ namespace oofem {
       /*Microstrain penalty degree of freedom, within this formulation, the srain gradient or coupled stress theory can be implemented with C0 elements*/ \
       ENUM_ITEM_WITH_VALUE(M_P, 44)					\
       /*Micromorphic cumulative strain degree of freedom, within this formulation, the Aifantis gradient plasticity can be implemented with C0 elements*/ \
-      ENUM_ITEM_WITH_VALUE(M_MP, 45)	
+      ENUM_ITEM_WITH_VALUE(M_MP, 45)                                     \
+      /*Electric potential degree of freedom*/                           \
+     ENUM_ITEM_WITH_VALUE(E_phi, 46)
+  
 
   
 /**

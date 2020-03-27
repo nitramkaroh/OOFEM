@@ -3022,6 +3022,177 @@ StructuralMaterial :: compute_sym_dyadic_product_reduced(FloatMatrix &answer, co
 
 
 
+
+void
+StructuralMaterial :: compute_lower_dyadic_product(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b)
+{
+
+    answer.resize(9, 9);
+    answer.zero();
+    
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  for ( int l = 1; l <= 3; l++ ) {
+	    answer.at( giveVI(i, j), giveVI(k, l) ) = a.at(i,k) * b.at(j,l);
+	  }
+	}
+      }
+    }
+}
+
+
+
+void
+StructuralMaterial :: compute_upper_dyadic_product(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b)
+{
+
+    answer.resize(9, 9);
+    answer.zero();
+    
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  for ( int l = 1; l <= 3; l++ ) {
+	    answer.at( giveVI(i, j), giveVI(k, l) ) = a.at(i,l) * b.at(j,k);
+	  }
+	}
+      }
+    }
+}
+
+
+void
+StructuralMaterial :: compute_3order_dyadic_product(FloatMatrix &answer, const FloatArray &aa, const FloatMatrix &mb)
+{
+    answer.resize(9, 3);
+    answer.zero();
+    
+    for ( int i = 1; i <= 3; i++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  for ( int l = 1; l <= 3; l++ ) {
+	    answer.at( giveVI(i, k), l ) = aa.at(i) * mb.at( k, l );
+	  }
+	}
+    }
+}
+
+void
+StructuralMaterial :: compute_3order_dyadic_product(FloatMatrix &answer, const FloatMatrix &ma, const FloatArray &ab)
+{
+    answer.resize(9, 3);
+    answer.zero();
+    
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  answer.at( giveVI(i, j), k ) = ma.at(i, j) * ab.at(k);
+	}
+      }
+    }
+    
+}
+
+
+void
+StructuralMaterial :: compute_dot_product(FloatMatrix &answer, const FloatMatrix &a, const FloatArray &b, int index)
+{
+
+    answer.resize(9, 3);
+    answer.zero();
+
+    if(a.giveNumberOfRows() != 9 || a.giveNumberOfColumns() != 9) {
+      OOFEM_ERROR("This method works only for 9x9 matrices")
+    }
+    
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  for ( int l = 1; l <= 3; l++ ) {
+	    if(index == 1) {
+	      answer.at( giveVI(i, j), k ) += a.at(giveVI(i, j),giveVI(k, l)) * b.at(i);
+	    } else if(index == 2) {
+	      answer.at( giveVI(i, j), k ) += a.at(giveVI(i, j),giveVI(k, l)) * b.at(j);
+	    } else if(index == 3) {
+	      answer.at( giveVI(i, j), k ) += a.at(giveVI(i, j),giveVI(k, l)) * b.at(k);
+	    } else if(index == 4) {
+	      answer.at( giveVI(i, j), k ) += a.at(giveVI(i, j),giveVI(k, l)) * b.at(l);
+	    } else {
+	      OOFEM_ERROR("Index out of scope")
+	    }
+	  }
+	}
+      }
+    }
+
+}
+
+void
+StructuralMaterial :: give_3order_tensor_39(FloatMatrix &answer, const FloatMatrix &source)
+{
+ 
+    if(source.giveNumberOfRows() != 9 || source.giveNumberOfColumns() != 3) {
+      OOFEM_ERROR("3rd order tensor expected, i.e., 9x3 matrix");
+    }
+    answer.resize(3,9);
+    answer.zero();
+    
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  answer.at( i, giveVI(j, k) ) = source.at(giveVI(i, j), k);
+	}
+      }
+    }
+}
+
+
+void
+StructuralMaterial :: give_3order_tensor_93(FloatMatrix &answer, const FloatMatrix &source)
+{
+ 
+    if(source.giveNumberOfRows() != 3 || source.giveNumberOfColumns() != 9) {
+      OOFEM_ERROR("3rd order tensor expected, i.e., 3x9 matrix");
+    }
+    answer.resize(9,3);
+    answer.zero();
+    
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  answer.at(giveVI(i, j), k) = source.at( i, giveVI(j, k) );
+	}
+      }
+    }
+}
+
+void
+StructuralMaterial :: give_3order_tensor_switch(FloatMatrix &answer, const FloatMatrix &source, int ia, int ib)
+{
+ 
+    if(source.giveNumberOfRows() != 9 || source.giveNumberOfColumns() != 3) {
+      OOFEM_ERROR("3rd order tensor expected, i.e., 9x3 matrix");
+    }
+    answer.resize(9,3);
+    answer.zero();
+    
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  if(ia == 1 && ib == 2) {
+	    answer.at( giveVI(i, j), k ) = source.at(giveVI(j, i), k);
+	  } else if(ia == 1 && ib == 3) {
+	    answer.at( giveVI(i, j), k ) = source.at(giveVI(k, j), i);
+	  } else if(ia == 2 && ib == 3) {
+	    answer.at( giveVI(i, j), k ) = source.at(giveVI(i, k), j);
+	  }
+	}
+      }
+    }
+}
+
+
+
 void
 StructuralMaterial :: compute_2order_tensor_cross_product(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b)
 {
@@ -3107,6 +3278,62 @@ StructuralMaterial :: compute_2order_tensor_cross_product(FloatMatrix &answer, c
 }
 
 
+
+void
+StructuralMaterial :: compute_3order_tensor_cross_product_32(FloatMatrix &answer, const FloatMatrix &ma, const FloatMatrix &mb)
+{
+
+    answer.resize(9,3);
+    answer.zero();
+
+
+    FloatMatrix lc;
+    lc.beLeviCivitaTensor();
+   
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int m = 1; m <= 3; m++ ) {
+	for ( int n = 1; n <= 3; n++ ) {
+	  for ( int k = 1; k <= 3; k++ ) {
+	    for ( int l = 1; l <= 3; l++ ) {
+	      for ( int p = 1; p <= 3; p++ ) {
+		for ( int q = 1; q <= 3; q++ ) {
+		  answer.at( giveVI( i, m ), n ) += lc.at( giveVI( m, k ), p ) * lc.at( giveVI( n, l ), q ) * ma.at( giveVI(k, l), i ) * mb.at(p, q);
+		}
+	      }
+	    }
+	  }
+	}
+      }
+    }
+}
+
+void
+StructuralMaterial :: compute_3order_tensor_cross_product_23(FloatMatrix &answer, const FloatMatrix &ma, const FloatMatrix &mb)
+{
+
+    answer.resize(9,3);
+    answer.zero();
+
+
+    FloatMatrix lc;
+    lc.beLeviCivitaTensor();
+   
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int m = 1; m <= 3; m++ ) {
+	for ( int n = 1; n <= 3; n++ ) {
+	  for ( int k = 1; k <= 3; k++ ) {
+	    for ( int l = 1; l <= 3; l++ ) {
+	      for ( int p = 1; p <= 3; p++ ) {
+		for ( int q = 1; q <= 3; q++ ) {
+		  answer.at( giveVI( i, m ), n ) += lc.at( giveVI( m, k ), p ) * lc.at( giveVI( n, l ), q ) * ma.at(k, l) * mb.at( giveVI(p, q), i );
+		}
+	      }
+	    }
+	  }
+	}
+      }
+    }
+}
 
 
 void

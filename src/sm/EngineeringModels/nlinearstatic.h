@@ -66,6 +66,7 @@ enum NonLinearStatic_stiffnessMode {
 enum NonLinearStatic_controlType {
     nls_indirectControl = 0, ///< A generalized norm of displacement and loading vectors is controlled. In current implementation, the CALM solver is used, the reference load vector is FIXED.
     nls_directControl = 1,   ///< Describes the direct control where load or displacement (or both) are controlled.
+    nls_arclength = 2,   ///< Describes the direct control where load or displacement (or both) are controlled.
 };
 
 /**

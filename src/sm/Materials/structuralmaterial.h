@@ -733,12 +733,30 @@ public:
     void compute_dyadic_product_reduced(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b);
     void compute_sym_dyadic_product(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b);
     void compute_sym_dyadic_product_reduced(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b);
+
+    void compute_upper_dyadic_product(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b);
+    void compute_lower_dyadic_product(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b);
+
+    void compute_3order_dyadic_product(FloatMatrix &answer, const FloatArray &aa, const FloatMatrix &mb);
+
+    void compute_3order_dyadic_product(FloatMatrix &answer, const FloatMatrix &ma, const FloatArray &ab);
+
+    void compute_dot_product(FloatMatrix &answer, const FloatMatrix &a, const FloatArray &b, int index);
+
+    
     void computeNumerical_d2I1_Cdev_dF2(FloatMatrix &stiff1, FloatMatrix &stiff2, const FloatMatrix &F);
 
     void compute_2order_tensor_cross_product(FloatMatrix &answer, const FloatArray &a, const FloatArray &b);
     void compute_2order_tensor_cross_product(FloatArray &answer, const FloatArray &a, const FloatArray &b);
     void compute_2order_tensor_cross_product(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b);
+    void compute_3order_tensor_cross_product_32(FloatMatrix &answer, const FloatMatrix &ma, const FloatMatrix &mb);
+    void compute_3order_tensor_cross_product_23(FloatMatrix &answer, const FloatMatrix &ma, const FloatMatrix &mb);
 
+    void give_3order_tensor_93(FloatMatrix &answer, const FloatMatrix &source);
+    void give_3order_tensor_39(FloatMatrix &answer, const FloatMatrix &source);
+    void give_3order_tensor_switch(FloatMatrix &answer, const FloatMatrix &source, int ia, int ib);
+    
+    
     void compute_4order_tensor_cross_product(FloatMatrix &answer, const FloatArray &a, const FloatMatrix &b);
     void compute_4order_tensor_cross_product(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b);
 

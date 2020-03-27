@@ -90,7 +90,9 @@ enum InterfaceType {
     SecondGradientMaterialExtensionInterfaceType,
 
     MixedPressureMaterialExtensionInterfaceType,
-    EnhancedAssumedStrainElementExtensionInterfaceType
+    EnhancedAssumedStrainElementExtensionInterfaceType,
+
+    ElectroMechanicalMaterialExtensionInterfaceType
     
 
 };

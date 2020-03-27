@@ -42,6 +42,7 @@
 #include "sparsenonlinsystemnm.h"
 #include "nrsolver.h"
 #include "calmls.h"
+#include "arclength.h"
 #include "outputmanager.h"
 #include "datastream.h"
 #include "classfactory.h"
@@ -124,7 +125,17 @@ NumericalMethod *NonLinearStatic :: giveNumericalMethod(MetaStep *mStep)
         }
 
         this->nMethod = new NRSolver(this->giveDomain(1), this);
-    } else {
+    } else if ( mode == nls_arclength ) {
+        if ( nMethod ) {
+            if ( dynamic_cast< ArcLength * >(nMethod) ) {
+                return nMethod;
+            } else {
+                delete nMethod;
+            }
+        }
+
+        this->nMethod = new ArcLength(this->giveDomain(1), this);
+    }else {
         OOFEM_ERROR("unsupported controlMode");
     }
 
@@ -372,7 +383,7 @@ NonLinearStatic :: updateLoadVectors(TimeStep *tStep)
     MetaStep *mstep = this->giveMetaStep( tStep->giveMetaStepNumber() );
     bool isLastMetaStep = ( tStep->giveNumber() == mstep->giveLastStepNumber() );
 
-    if ( controlMode == nls_indirectControl ) {
+    if ( controlMode == nls_indirectControl || controlMode == nls_arclength ) {
         //if ((tStep->giveNumber() == mstep->giveLastStepNumber()) && ir->hasField("fixload")) {
         if ( isLastMetaStep ) {
             if ( !mstep->giveAttributesRecord()->hasField(_IFT_NonLinearStatic_donotfixload) ) {

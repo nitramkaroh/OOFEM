@@ -170,7 +170,8 @@ Beam2Beam2dAnalyticalContactElement :: checkContact(double l1, double l2, double
     b2_updated.at(1) += phi2 * b2.at(2);
     b2_updated.at(3) -= phi2 * b2.at(1);
 
-    x = x2 + b2_updated;
+    //x = x2 + b2_updated;
+    x = x2 + b2;
 
     double sign = -n1.dotProduct(x-x1);
     if(sign == 0) {

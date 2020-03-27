@@ -138,10 +138,9 @@ set (sm_element
     #Elements/Micromorphic/GradientPolyconvex/planestraingradpolyconvex.C
     #Second-gradient continua
     Elements/Micromorphic/Straindivergence/planestrainstraindivergence.C
-
-
-
-    #qplanstrssphf.C
+    #Electro-mechanical elements
+    Elements/ElectroMechanics/baseelectromechanicalelement.C
+    Elements/ElectroMechanics/3D/lspaceelectromechanicalelement.C
     )
 
 set (sm_interface_elements
@@ -169,6 +168,7 @@ set (sm_crosssection
     CrossSections/structuralinterfacecrosssection.C
     CrossSections/variablecrosssection.C
     CrossSections/warpingcrosssection.C
+    CrossSections/ElectroMechanics/simpleelectromechanicalcrosssection.C
     )
 
 set (sm_emodel
@@ -251,7 +251,7 @@ set (sm_material
     Materials/HyperelasticMaterials/ogdenmaterial.C
     Materials/HyperelasticMaterials/ogdennematicelastomermaterial.C
     Materials/HyperelasticMaterials/neohookean.C
-    Materials/HyperelasticMaterials/doublewellmaterial.C    
+    Materials/HyperelasticMaterials/doublewellmaterial.C
     Materials/structuralfe2material.C
     Materials/rcsd.C 
     Materials/rcsde.C 
@@ -321,10 +321,9 @@ set (sm_material
     # Second-gradient materials
     Materials/Micromorphic/secondgradientms.C
     Materials/Micromorphic/secondgradientmaterialextensioninterface.C
-
-
-
-
+    # Electro-mechanics
+    Materials/HyperelasticMaterials/ElectroMechanics/mooneyrivlin_idealdielectric.C    
+    Materials/ElectroMechanics/electromechanicalms.C
     )
 
 if (USE_PYTHON)
