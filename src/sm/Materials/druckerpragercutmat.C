@@ -175,6 +175,9 @@ DruckerPragerCutMat :: computeReducedSSGradientMatrix(FloatMatrix &gradientMatri
     case _3dMat:
         gradientMatrix.resize(6, 6);
         break;
+    case _PlaneStress:
+      gradientMatrix.resize(6, 6);
+      break;
     case _PlaneStrain:
         gradientMatrix.resize(4, 4);
         break;
@@ -237,7 +240,12 @@ DruckerPragerCutMat :: computeReducedElasticModuli(FloatMatrix &answer,
                                                    GaussPoint *gp,
                                                    TimeStep *tStep)
 {  /* Returns elastic moduli in reduced stress-strain space*/
+  if(gp->giveMaterialMode() == _PlaneStress) {
+    this->giveLinearElasticMaterial()->give3dMaterialStiffnessMatrix(answer, ElasticStiffness, gp, tStep);
+
+  } else { 
     this->giveLinearElasticMaterial()->giveStiffnessMatrix(answer, ElasticStiffness, gp, tStep);
+  }
 }
 
 //answer is dkappa (cumulative plastic strain), flow rule
@@ -282,15 +290,28 @@ DruckerPragerCutMat :: computeDamage(GaussPoint *gp, const FloatArray &strainSpa
 //Computes second mixed derivative of loading function with respect to stress and hardening vars.
 void DruckerPragerCutMat :: computeReducedSKGradientMatrix(FloatMatrix &gradientMatrix, int isurf, GaussPoint *gp, const FloatArray &fullStressVector, const FloatArray &strainSpaceHardeningVariables)
 {
-    int size = StructuralMaterial :: giveSizeOfVoigtSymVector( gp->giveMaterialMode() );
-    gradientMatrix.resize(size, 1); //six stresses in 3D and one kappa
-    gradientMatrix.zero();
+  int size;
+  MaterialMode mode = gp->giveMaterialMode();
+  if(mode != _PlaneStress) {
+    size = StructuralMaterial :: giveSizeOfVoigtSymVector( mode );
+  } else {
+    size = StructuralMaterial :: giveSizeOfVoigtSymVector( _3dMat );
+  }
+  gradientMatrix.resize(size, 1); //six stresses in 3D and one kappa
+  gradientMatrix.zero();
 }
 
 // computes dKappa_i/dsig_j gradient matrix
 void DruckerPragerCutMat :: computeReducedHardeningVarsSigmaGradient(FloatMatrix &answer, GaussPoint *gp, const IntArray &activeConditionMap, const FloatArray &fullStressVector, const FloatArray &strainSpaceHardeningVars, const FloatArray &dlambda)
 {
-    int size = StructuralMaterial :: giveSizeOfVoigtSymVector( gp->giveMaterialMode() );
+
+  int size;
+  MaterialMode mode = gp->giveMaterialMode();
+  if(mode != _PlaneStress) {
+    size = StructuralMaterial :: giveSizeOfVoigtSymVector( mode );
+  } else {
+    size = StructuralMaterial :: giveSizeOfVoigtSymVector( _3dMat );
+  }
     answer.resize(1, size);
     answer.zero();
 }
@@ -309,24 +330,4 @@ void DruckerPragerCutMat :: computeReducedHardeningVarsLamGradient(FloatMatrix &
     }
 }
 
-
-int
-DruckerPragerCutMat :: giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType type, TimeStep *tStep)
-{
-    //MaterialStatus *status = this->giveStatus(gp);
-    if ( type == IST_DamageScalar ) {
-        answer.resize(1);
-        answer.zero();
-        ///@todo Actually export the relevant damage value here!
-        //answer.at(1) = status->giveDamage();
-        return 1;
-    } else if ( type == IST_DamageTensor ) {
-        answer.resize(6);
-        answer.zero();
-        //answer.at(1) = answer.at(2) = answer.at(3) = status->giveDamage();
-        return 1;
-    } else {
-        return MPlasticMaterial2 :: giveIPValue(answer, gp, type, tStep);
-    }
-}
 } // end namespace oofem
