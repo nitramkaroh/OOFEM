@@ -196,7 +196,7 @@ DruckerPragerCutMat :: computeReducedSSGradientMatrix(FloatMatrix &gradientMatri
         JTwo = computeSecondStressInvariant(deviatoricStress);
         sqrtJTwo = sqrt(JTwo);
 
-        if ( gp->giveMaterialMode() == _3dMat ) {
+        if ( gp->giveMaterialMode() == _3dMat || gp->giveMaterialMode() == _PlaneStress) {
             for ( int i = 1; i <= 6; i++ ) {
                 for ( int j = i; j <= 6; j++ ) {
                     if ( ( i == 1 && j == 1 ) || ( i == 2 && j == 2 ) || ( i == 3 && j == 3 ) ) {
