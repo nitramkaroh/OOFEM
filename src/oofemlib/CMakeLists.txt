@@ -131,6 +131,7 @@ set (core_dofman
     dofmanager.C
     node.C
     slavenode.C
+    generalslavenode.C
     hangingnode.C
     rigidarmnode.C
     elementinternaldofman.C

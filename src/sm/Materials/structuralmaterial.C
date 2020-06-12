@@ -170,7 +170,7 @@ StructuralMaterial :: giveRealStressVector_StressControl(FloatArray &answer, Gau
     }
 
     // Iterate to find full vE.
-    for ( int k = 0; k < 10; k++ ) { // Allow for a generous 100 iterations.
+    for ( int k = 0; k < 100; k++ ) { // Allow for a generous 100 iterations.
         this->giveRealStressVector_3d(vS, gp, vE, tStep);
         // For debugging the iterations:
         //vE.printYourself("vE");
@@ -178,7 +178,7 @@ StructuralMaterial :: giveRealStressVector_StressControl(FloatArray &answer, Gau
         reducedvS.beSubArrayOf(vS, stressControl);
         // Pick out the (response) stresses for the controlled strains
         answer.beSubArrayOf(vS, strainControl);
-        if ( reducedvS.computeNorm() <= 1e-10 && k >= 5 ) { // Absolute tolerance right now (with at least one iteration)
+	if ( reducedvS.computeNorm() <= 1e-8 * answer.computeNorm() && k >= 1 ) { // Absolute tolerance right now (with at least one iteration)
             ///@todo We need a relative tolerance here!
             /// A relative tolerance like this could work, but if a really small increment is performed it won't work
             /// (it will be limited by machine precision)

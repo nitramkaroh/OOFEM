@@ -153,7 +153,6 @@ protected:
     /// computes dKappa_i/dLambda_j
     virtual void computeReducedHardeningVarsLamGradient(FloatMatrix &answer, GaussPoint *gp, int actSurf, const IntArray &activeConditionMap, const FloatArray &fullStressVector, const FloatArray &strainSpaceHardeningVars, const FloatArray &dlambda);
 
-    virtual int giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType type, TimeStep *tStep);
 };
 } // end namespace oofem
 #endif // druckerpragercatmat_h
