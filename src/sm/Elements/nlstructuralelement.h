@@ -243,6 +243,7 @@ protected:
     friend class BaseMicromorphicElement;
     friend class BaseSecondGradientElement;
     friend class EnhancedAssumedStrainElementExtensionInterfacex;
+    friend class BaseElectroMechanicalElement;
 };
 } // end namespace oofem
 #endif // nlstructuralelement_h
