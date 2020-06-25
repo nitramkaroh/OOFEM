@@ -96,15 +96,14 @@ NlBeam_SM :: initializeFrom(InputRecord *ir)
     this->givePitch();
     this->computeLength();
 
-    x.resize(NIP+1);
-    u.resize(NIP+1);
-    w.resize(NIP+1);
-    phi.resize(NIP+1);
+    this->x.resize(NIP+1);
+    this->u.resize(NIP+1);
+    this->w.resize(NIP+1);
+    this->phi.resize(NIP+1);
 
-
-    vN.resize(NIP+1);
-    vV.resize(NIP+1);
-    vM.resize(NIP+1);
+    this->vN.resize(NIP+1);
+    this->vV.resize(NIP+1);
+    this->vM.resize(NIP+1);
 
     
     return IRRT_OK;
@@ -140,11 +139,11 @@ NlBeam_SM :: integrateAlongBeamAndGetJacobi(const FloatArray &fab, FloatArray &u
   ub.resize(3);
   FloatArray du(3), dw(3), dphi(3), dM(3), dkappa(3), dphi_mid(3), dN_mid(3);
   double Xab = fab.at(1), Zab = fab.at(2), Mab = fab.at(3);
-  vM.at(1) = -Mab + Xab*w.at(1) - Zab * u.at(1);
-  vN.at(1) = -Xab * cos(phi.at(1)) + Zab * sin(phi.at(1));
+   this->vM.at(1) = -Mab + Xab*w.at(1) - Zab * u.at(1);
+   this->vN.at(1) = -Xab * cos(phi.at(1)) + Zab * sin(phi.at(1));
   double dx = beamLength/NIP;
   for (int i=2; i <= NIP+1; i++) {
-    x.at(i) = x.at(i-1) + dx;
+    this->x.at(i) = this->x.at(i-1) + dx;
     double M = -Mab + Xab*w.at(i-1) - Zab * (x.at(i-1) + u.at(i-1));
     dM = {w.at(i-1)+Xab*dw.at(1)-Zab*du.at(1), -x.at(i-1) - u.at(i-1)+Xab*dw.at(2)-Zab*du.at(2), -1.+Xab*dw.at(3) - Zab*du.at(3)};
     double kappa = computeCurvatureFromMoment(M);
@@ -276,11 +275,12 @@ NlBeam_SM :: findLeftEndForces(const FloatArray &u, FloatArray &fab)
   construct_l(ub_loc, u.at(3));
   construct_T(T, u.at(3));
 
-  FloatArray u_b, u_a, u_ba;
+  FloatArray u_b, u_a, u_ba, temp;
   u_a.beSubArrayOf(u, {1,2,3});
   u_b.beSubArrayOf(u, {4,5,6});
   u_ba.beDifferenceOf(u_b, u_a);
-  ub_loc.beProductOf(T,u_ba);
+  temp.beProductOf(T,u_ba);
+  ub_loc.add(temp);
   // transform initial guess to local coordinates
   fab_loc.beProductOf(T, fab);
   // find end forces in the local coordinate syste
@@ -301,7 +301,6 @@ NlBeam_SM :: giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, int u
   answer.resize(6);
   FloatArray u, f_a(3);
   this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, u);
-  //u.at(5) = 0.1;
   // only the first three entries of f are computed
   this->findLeftEndForces(u, this->internalForces);
   answer.at(1) = this->internalForces.at(1);
@@ -341,7 +340,7 @@ NlBeam_SM :: computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode rMode, 
   TtGinv.beTProductOf(T,Ginv);
   // compute product Ttransposed*Ginverse*T and store it in the upper stiffness block 
   FloatMatrix aux;
-  aux.beProductTOf(TtGinv, T);
+  aux.beProductOf(TtGinv, T);
   answer.setSubMatrix(aux, 1,1);
   answer.times(-1);
   answer.setSubMatrix(aux, 1,4);
