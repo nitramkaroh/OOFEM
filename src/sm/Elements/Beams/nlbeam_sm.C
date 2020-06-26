@@ -139,8 +139,8 @@ NlBeam_SM :: integrateAlongBeamAndGetJacobi(const FloatArray &fab, FloatArray &u
   ub.resize(3);
   FloatArray du(3), dw(3), dphi(3), dM(3), dkappa(3), dphi_mid(3), dN_mid(3);
   double Xab = fab.at(1), Zab = fab.at(2), Mab = fab.at(3);
-   this->vM.at(1) = -Mab + Xab*w.at(1) - Zab * u.at(1);
-   this->vN.at(1) = -Xab * cos(phi.at(1)) + Zab * sin(phi.at(1));
+  this->vM.at(1) = -Mab + Xab*w.at(1) - Zab * u.at(1);
+  this->vN.at(1) = -Xab * cos(phi.at(1)) + Zab * sin(phi.at(1));
   double dx = beamLength/NIP;
   for (int i=2; i <= NIP+1; i++) {
     this->x.at(i) = this->x.at(i-1) + dx;
@@ -411,14 +411,20 @@ NlBeam_SM :: printOutputAt(FILE *file, TimeStep *tStep)
   }
 
 
-  fprintf( FID, " function [x u w phi N M]= %s \n", functionname.c_str() );
-  
+  fprintf( FID, " function [x z u w phi N M]= %s \n", functionname.c_str() );
 
    fprintf(FID, "x=[");
    for ( double val: x ) {
-     fprintf( FID, "%f,", val );
+     fprintf( FID, "%f,", val * cos(pitch) );
    }   
    fprintf(FID, "];\n");
+   
+   fprintf(FID, "z=[");
+   for ( double val: x ) {
+     fprintf( FID, "%f,", val * sin(pitch) );
+   }   
+   fprintf(FID, "];\n");
+
    
    
    fprintf(FID, "u=[");
