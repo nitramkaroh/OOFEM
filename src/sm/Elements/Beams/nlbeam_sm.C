@@ -81,6 +81,8 @@ NlBeam_SM :: initializeFrom(InputRecord *ir)
     // Numerical parameters
     // 1. number of segments for numerical integration along the beam, default value 100
     IR_GIVE_OPTIONAL_FIELD(ir, NIP, _IFT_NlBeam_SM_NIP);
+    IR_GIVE_FIELD(ir, EA, _IFT_NlBeam_SM_EA);
+    IR_GIVE_FIELD(ir, EI, _IFT_NlBeam_SM_EI);
     /*    // relative tolerance for iterations at the section level
     IR_GIVE_OPTIONAL_FIELD(ir, section_tol, _IFT_FbarElementExtensionInterface_fbarflag);
     // maximum number of iterations at the section level
@@ -251,6 +253,16 @@ NlBeam_SM :: construct_l(FloatArray &l, double phia)
   l.at(2) = beamLength * sin(phia);
 }
 
+
+void
+NlBeam_SM :: construct_l(FloatArray &l, double phia, double L)
+{
+  l.resize(3);
+  l.at(1) = L * (cos(phia)-1.);
+  l.at(2) = L * sin(phia);
+}
+
+
 void
 NlBeam_SM :: construct_lprime(FloatArray &l, const double phia)
 {
@@ -411,6 +423,30 @@ NlBeam_SM :: printOutputAt(FILE *file, TimeStep *tStep)
   }
 
 
+
+  //transform displacements to global coordinate system
+  FloatArray uab, ug(NIP+1), wg(NIP+1), u_l, u_g;
+  this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, uab);
+  ug.at(1) = uab.at(1);
+  wg.at(1) = uab.at(2);
+  double L;
+  double dx = beamLength/NIP;
+  for (int i=2; i <= NIP+1; i++) {
+    L = L + dx;
+    FloatArray l;
+    FloatMatrix T;
+    this->construct_T(T, uab.at(3));
+    this->construct_l(l, uab.at(3), L);
+    u_l = {this->u.at(i), this->w.at(i), 0};
+    u_l.subtract(l);
+    u_g.beTProductOf(T, u_l);
+    ug.at(i) = u_g.at(1) + ug.at(1);
+    wg.at(i) = u_g.at(2) + wg.at(1);    
+  }
+
+  
+  
+
   fprintf( FID, " function [x z u w phi N M]= %s \n", functionname.c_str() );
 
    fprintf(FID, "x=[");
@@ -428,14 +464,14 @@ NlBeam_SM :: printOutputAt(FILE *file, TimeStep *tStep)
    
    
    fprintf(FID, "u=[");
-   for ( double val: u ) {
+   for ( double val: ug ) {
      fprintf( FID, "%f,", val );
    }
    fprintf(FID, "];\n");
    
    
    fprintf(FID, "w=[");
-   for ( double val: w ) {
+   for ( double val: wg ) {
      fprintf( FID, "%f,", val );
    }     
    fprintf(FID, "];\n");
@@ -462,7 +498,8 @@ NlBeam_SM :: printOutputAt(FILE *file, TimeStep *tStep)
 
    
    fprintf(FID, "end\n");
-   
+
+   fclose(FID);
 
 }
   

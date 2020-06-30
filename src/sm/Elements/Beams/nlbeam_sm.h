@@ -44,6 +44,8 @@
 //@{
 #define _IFT_NlBeam_SM_Name "nlbeam_sm"
 #define _IFT_NlBeam_SM_NIP "nip"
+#define _IFT_NlBeam_SM_EA "ea"
+#define _IFT_NlBeam_SM_EI "ei"
 #define _IFT_NlBeam_SM_Beam_Tolerance "btol"
 #define _IFT_NlBeam_SM_Beam_MaxIteration "bmaxit"
 
@@ -66,7 +68,7 @@ protected:
     FloatArray x, u, w, phi;
     FloatMatrix jacobi;
     double beam_tol = 1.e-6, beam_maxit = 100;
-    double EI = 35154, EA = 76500;
+    double EI, EA;
     FloatArray vM, vV, vN;
 public:
     NlBeam_SM(int n, Domain *aDomain);
@@ -105,6 +107,8 @@ protected:
     void construct_T(FloatMatrix &T, const double phia);
     void construct_Tprime(FloatMatrix &T, const double phia);
     void construct_l(FloatArray &l, double phia);
+    void construct_l(FloatArray &l, double phia, double L);
+      
     void construct_lprime(FloatArray &l, const double phia);
     void findLeftEndForces(const FloatArray &u, FloatArray &fab);
     
