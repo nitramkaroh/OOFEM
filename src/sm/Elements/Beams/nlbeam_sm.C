@@ -232,6 +232,9 @@ NlBeam_SM :: construct_T(FloatMatrix &T, const double phia)
   T.at(3,3) = 1.;
 }
 
+
+
+
 /*
 Auxiliary matrix for transformation of stiffness.
 It is obtained by differentiating T with respect to phia.
@@ -425,11 +428,12 @@ NlBeam_SM :: printOutputAt(FILE *file, TimeStep *tStep)
 
 
   //transform displacements to global coordinate system
-  FloatArray uab, ug(NIP+1), wg(NIP+1), u_l, u_g;
+  FloatArray uab, ug(NIP+1), wg(NIP+1), phig(NIP+1), u_l, u_g;
   this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, uab);
   ug.at(1) = uab.at(1);
   wg.at(1) = uab.at(2);
-  double L;
+  phig.at(1) = uab.at(3);
+  double L = 0;
   double dx = beamLength/NIP;
   for (int i=2; i <= NIP+1; i++) {
     L = L + dx;
@@ -441,7 +445,9 @@ NlBeam_SM :: printOutputAt(FILE *file, TimeStep *tStep)
     u_l.subtract(l);
     u_g.beTProductOf(T, u_l);
     ug.at(i) = u_g.at(1) + ug.at(1);
-    wg.at(i) = u_g.at(2) + wg.at(1);    
+    wg.at(i) = u_g.at(2) + wg.at(1);
+    phig.at(i) = this->phi.at(i) + phig.at(1);
+    
   }
 
   
@@ -477,7 +483,7 @@ NlBeam_SM :: printOutputAt(FILE *file, TimeStep *tStep)
    fprintf(FID, "];\n");
    
    fprintf(FID, "phi=[");
-   for ( double val: phi ) {
+   for ( double val: phig ) {
      fprintf( FID, "%f,", val );
    }
    fprintf(FID, "];\n");
