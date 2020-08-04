@@ -156,7 +156,7 @@ void PressureFollowerLoad :: assembleVector(FloatArray &answer, TimeStep *tStep,
 	  e->giveInterpolation()->boundarySurfaceGiveNodes(bNodes, boundary);
 	}
         e->giveBoundaryLocationArray(loc, bNodes, this->dofs, s, & masterdofids);
-        this->computeLoadVectorFromElement(fe, e, boundary, tStep);
+        this->computeLoadVectorFromElement(fe, e, boundary, tStep, mode);
         answer.assemble(fe, loc);
         if ( eNorms ) {
             eNorms->assembleSquared(fe, masterdofids);
@@ -282,7 +282,7 @@ PressureFollowerLoad :: giveSurface_dNdKsi_dNdEta(FloatMatrix &dNdksi, FloatMatr
 
   
 
-void PressureFollowerLoad :: computeLoadVectorFromElement(FloatArray &answer, Element *e, int iSurf, TimeStep *tStep)
+  void PressureFollowerLoad :: computeLoadVectorFromElement(FloatArray &answer, Element *e, int iSurf, TimeStep *tStep, ValueModeType mode)
 {
 
   PressureFollowerLoadElementInterface *pfli = static_cast< PressureFollowerLoadElementInterface * >(e->giveInterface(PressureFollowerLoadElementInterfaceType) );

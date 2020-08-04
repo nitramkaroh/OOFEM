@@ -94,7 +94,7 @@ protected:
     /**
      * Helper function for computing the contributions to the load vector.
      */
-    void computeLoadVectorFromElement(FloatArray &answer, Element *e, int side, TimeStep *tStep);
+    void computeLoadVectorFromElement(FloatArray &answer, Element *e, int side, TimeStep *tStep, ValueModeType mode);
     /**
      * Helper function for computing the tangent (@f$ K = \frac{\mathrm{d}F}{\mathrm{d}u} @f$)
      */

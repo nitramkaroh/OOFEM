@@ -359,12 +359,10 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
 	if(followerLoadFlag) {
 	  engngModel->updateComponent(tStep, ExternalRhs, domain);
 	  RT = R;
-	  //@todo: check this; if it is turn on it leads to inccorect result!
-	  // the following lines are correct, however, currently the pressure follower load support only mode VM_Total, so they are commented for now
-	  /*	  if ( R0 ) {
+	  if ( R0 ) {
 	    RT.add(* R0);
 	  }
-	  */
+	  
 	}
         tStep->incrementStateCounter(); // update solution state counter
         tStep->incrementSubStepNumber();
