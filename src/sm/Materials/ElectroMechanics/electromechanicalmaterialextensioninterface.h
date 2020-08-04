@@ -32,8 +32,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef electromechanicalmaterialextensioninterface_h
-#define electromechanicalmaterialextensioninterface_h
+#ifndef electromechanicalmaterialextensioninterface_3field_h
+#define electromechanicalmaterialextensioninterface_3field_h
 
 #include "interface.h"
 #include "matresponsemode.h"
@@ -86,6 +86,44 @@ public:
     
       
 };
+
+
+
+/**
+ * Material interface for gradient material models.
+ */
+class ElectroMechanicalMaterialExtensionInterface_3Field : public Interface
+{
+protected:
+    Domain *dom;
+
+public:
+    /**
+     * Constructor. Creates material with given number, belonging to given domain.
+     * @param d Domain to which new material will belong.
+     */
+    ElectroMechanicalMaterialExtensionInterface_3Field(Domain *d){    dom = d;}
+    /// Destructor.
+    virtual ~ElectroMechanicalMaterialExtensionInterface_3Field() { }
+
+  
+    virtual void give_FirstPKStressVector_ElectricalFieldVector_3d(FloatArray &P, FloatArray &E, GaussPoint *gp, const FloatArray &F, const FloatArray &D, TimeStep *tStep) = 0;
+
+    virtual void give3dMaterialStiffnessMatrix_dPdF(FloatMatrix &answer,
+                                                    MatResponseMode mode,
+                                                    GaussPoint *gp, TimeStep *tStep) = 0;
+
+    virtual void give3dMaterialStiffnessMatrix_dPdD(FloatMatrix &answer,
+                                                    MatResponseMode mode,
+                                                    GaussPoint *gp, TimeStep *tStep) = 0;
+    virtual void give3dMaterialStiffnessMatrix_dEdD(FloatMatrix &answer,
+                                                    MatResponseMode mode,
+                                                    GaussPoint *gp, TimeStep *tStep) = 0;
+
+    
+      
+};
+ 
 
 }
 #endif

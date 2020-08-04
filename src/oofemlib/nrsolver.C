@@ -253,7 +253,7 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
         applyConstraintsToStiffness(k);
     }
 
-    for ( nite = 1; ; ++nite ) {
+    for ( nite = 0; ; ++nite ) {
         // Compute the residual
         engngModel->updateComponent(tStep, InternalRhs, domain);
 	rhs.beDifferenceOf(RT, F);
@@ -292,15 +292,15 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
         } else {
 	  linSolver->solve(k, rhs, ddX);
 	  
-	  if(nite < 6 ) {
+	  //  if(nite < 6 ) {
 	    // If desired by the user, the solution is (slightly) perturbed, so that various symmetries can be broken.
 	    // This is useful e.g. to trigger localization in a homogeneous material under uniform stress without
 	    // the need to introduce material imperfections. The problem itself remains symmetric but the iterative
 	    // solution is brought to a nonsymmetric state and it gets a chance to converge to a nonsymmetric solution.
 	    // Parameters of the perturbation technique are specified by the user and by default no perturbation is done. 
 	    // Milan Jirasek
-	    SparseNonLinearSystemNM :: applyPerturbation(&ddX);
-	  }
+	  //   SparseNonLinearSystemNM :: applyPerturbation(&ddX);
+	  // }
         }
 
         //
@@ -360,9 +360,9 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
 	  engngModel->updateComponent(tStep, ExternalRhs, domain);
 	  RT = R;
 	  //@todo: check this; if it is turn on it leads to inccorect result!
-	  /*if ( R0 ) {
+	  if ( R0 ) {
 	    RT.add(* R0);
-	    }*/
+	  }
 	}
         tStep->incrementStateCounter(); // update solution state counter
         tStep->incrementSubStepNumber();

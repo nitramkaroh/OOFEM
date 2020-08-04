@@ -47,7 +47,7 @@
 namespace oofem {
   REGISTER_Material(MooneyRivlin_IdealDielectricMaterial);
 
-  MooneyRivlin_IdealDielectricMaterial :: MooneyRivlin_IdealDielectricMaterial(int n, Domain *d):Material(n, d), ElectroMechanicalMaterialExtensionInterface(d)
+  MooneyRivlin_IdealDielectricMaterial :: MooneyRivlin_IdealDielectricMaterial(int n, Domain *d):Material(n, d), ElectroMechanicalMaterialExtensionInterface(d), ElectroMechanicalMaterialExtensionInterface_3Field(d)
 {
     this->hyperelasticMaterial = new MooneyRivlinMaterial(n, d);
 }
@@ -131,13 +131,6 @@ MooneyRivlin_IdealDielectricMaterial :: give3dMaterialStiffnessMatrix_dPdF(Float
     FloatArray vF = status->giveTempFVector();
     FloatArray E = status->giveTempEVector();
 
-    /*vF =    {1.221891592449473,   0.779617537770543,   0.999002719439801,  -6.717729179989782,  -3.042687615552469,  -0.258580829879650,   0.006413560278498,   0.002809182560527,  -0.368482749903886};
-    E = {-1.75430210577009e+03, -4.51896583057985e+03, 3.83320343411416e+04};
-    */
-
-    /*vF = {0.958779245745951, 0.958780151301726, 1.422888917907700, -0.066841289761287, -0.066279079942638, -0.000016866217680,  0.000057470303498,  0.000054404273658, -0.000015964645917};
-    E = {0, 0, 50000};
-    */
     // First Piola-Kirchhoff stress
     double Sigma_J;
     FloatArray vSigma_H;
@@ -398,6 +391,77 @@ MooneyRivlin_IdealDielectricMaterial :: give3dMaterialStiffnessMatrix_dDdE(Float
     
 }
 
+
+  ////////////////////////////////////////////////// Functions for 3-Field formulation
+
+void
+MooneyRivlin_IdealDielectricMaterial :: give3dMaterialStiffnessMatrix_dPdD(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
+{
+  /* ElectroMechanicalMaterialStatus *status = static_cast< ElectroMechanicalMaterialStatus* >( this->giveStatus(gp) );
+    FloatArray vF = status->giveTempFVector();
+    FloatArray D = status->giveTempDVector();
+    FloatMatrix F;
+    F.beMatrixForm(vF);
+    // H stands for cofactor of F
+    FloatArray vH;
+    // compute cofactor using tensor cross product
+    hyperelasticMaterial->compute_2order_tensor_cross_product( vH, vF, vF );
+    vH.times(0.5);
+    // compute deformation gradient
+    double J = 1./3. * vH.dotProduct( vF );
+    // dD_dJ
+    FloatMatrix H, G, Ht;
+    H.beMatrixForm( vH );
+    Ht.beTranspositionOf( H );
+    G.beTProductOf( H, H );
+    FloatArray dD_dJ;
+    dD_dJ.beProductOf( G, E );
+    dD_dJ.times( - epsilon / J / J );
+    // dD_dH
+    FloatMatrix delta(3,3);
+    delta.beUnitMatrix();
+    FloatMatrix dD_dH, dD_dH1, dD_dH2;
+    hyperelasticMaterial->compute_lower_dyadic_product( dD_dH1, delta, H );
+    hyperelasticMaterial->compute_dyadic_product( dD_dH2, Ht, delta );
+    dD_dH1.add(dD_dH2);
+    hyperelasticMaterial->compute_dot_product(dD_dH, dD_dH1, E, 4);
+    dD_dH.times( epsilon / J );
+    //
+    FloatMatrix answer1, answer2;
+    hyperelasticMaterial->compute_3order_dyadic_product( answer1, dD_dJ, H );
+    FloatMatrix Fx;
+    hyperelasticMaterial->compute_tensor_cross_product_tensor( Fx, F );
+    FloatMatrix dD_dH_39;
+    hyperelasticMaterial->give_3order_tensor_39(dD_dH_39, dD_dH);
+    FloatMatrix answer2_39;
+    answer2_39.beProductOf( dD_dH_39, Fx );
+    hyperelasticMaterial->give_3order_tensor_93(answer2, answer2_39);
+    
+    answer.add(answer1);
+    answer.add(answer2);
+  */
+
+}
+
+void
+MooneyRivlin_IdealDielectricMaterial :: give3dMaterialStiffnessMatrix_dEdD(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
+{
+    ElectroMechanicalMaterialStatus *status = static_cast< ElectroMechanicalMaterialStatus* >( this->giveStatus(gp) );
+    
+    FloatArray vF = status->giveTempFVector();
+    FloatMatrix F, C;
+    F.beMatrixForm(vF);
+    double J = F.giveDeterminant();
+    answer.beTProductOf(F,F);
+    answer.times( 1. / epsilon /  J );
+
+}
+
+
+
+
+
+  
 int
 MooneyRivlin_IdealDielectricMaterial :: giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType type, TimeStep *tStep)
 {

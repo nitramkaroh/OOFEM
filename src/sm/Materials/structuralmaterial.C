@@ -4105,10 +4105,14 @@ StructuralMaterial :: giveFullSymVectorForm(FloatArray &answer, const FloatArray
 void
 StructuralMaterial :: giveFullVectorForm(FloatArray &answer, const FloatArray &vec, MaterialMode matMode)
 {
+  if(vec.giveSize() == 9) {
+    answer = vec;
+  } else {
     IntArray indx;
     answer.resize( StructuralMaterial :: giveVoigtVectorMask(indx, matMode) );
     answer.zero();
     answer.assemble(vec, indx);
+  }
 }
 
 

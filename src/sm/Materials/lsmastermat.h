@@ -41,6 +41,7 @@
 #include "dictionary.h"
 #include "floatarray.h"
 #include "floatmatrix.h"
+#include "gaussintegrationrule.h"
 
 ///@name Input fields for LargeStrainMasterMaterial
 //@{
@@ -154,6 +155,8 @@ protected:
     int slaveMat;
    /// 'slave' gauss point
     GaussPoint *slaveGp;
+    /// 'slave' gauss point
+    GaussIntegrationRule *irule;
 
 public:
     LargeStrainMasterMaterialStatus(int n, Domain *d, GaussPoint *g, int s);

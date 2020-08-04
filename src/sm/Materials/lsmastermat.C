@@ -1830,14 +1830,19 @@ LargeStrainMasterMaterial :: giveIPValue(FloatArray &answer, GaussPoint *gp, Int
 {
     Pmatrix.beUnitMatrix();
     FloatArray coords = {0,0,0};
-    slaveGp = new GaussPoint(NULL, 1, coords,1.0, g->giveMaterialMode() );
-    //    slaveGp = new GaussPoint(NULL, 1, coords,1.0, _3dMat );
+
+    irule =  new GaussIntegrationRule(n, g->giveElement());
+    slaveGp = new GaussPoint(irule, 1, coords,1.0, g->giveMaterialMode() );
     
 }
 
 
 LargeStrainMasterMaterialStatus :: ~LargeStrainMasterMaterialStatus()
-{ }
+{
+  delete irule;
+  delete slaveGp;
+  
+}
 
 
 void

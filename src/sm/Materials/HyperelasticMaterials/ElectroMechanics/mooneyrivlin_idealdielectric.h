@@ -54,7 +54,7 @@ namespace oofem {
 /**
  * Electromechanical coupling considering Ideal dielectric Mooney-Rivlin material
  */
-  class MooneyRivlin_IdealDielectricMaterial : public Material, public ElectroMechanicalMaterialExtensionInterface
+  class MooneyRivlin_IdealDielectricMaterial : public Material, public ElectroMechanicalMaterialExtensionInterface, public ElectroMechanicalMaterialExtensionInterface_3Field
 {
 protected:
   MooneyRivlinMaterial *hyperelasticMaterial;
@@ -84,6 +84,9 @@ public:
   
     virtual void give_FirstPKStressVector_ElectricalDisplacementVector_3d(FloatArray &P, FloatArray &D, GaussPoint *gp, const FloatArray &F, const FloatArray &E, TimeStep *tStep);
 
+    virtual void give_FirstPKStressVector_ElectricalFieldVector_3d(FloatArray &P, FloatArray &E, GaussPoint *gp, const FloatArray &F, const FloatArray &D, TimeStep *tStep){;}
+
+    
     virtual void give3dMaterialStiffnessMatrix_dPdF(FloatMatrix &answer,
                                                     MatResponseMode mode,
                                                     GaussPoint *gp, TimeStep *tStep);
@@ -95,6 +98,15 @@ public:
                                                     MatResponseMode mode,
                                                     GaussPoint *gp, TimeStep *tStep);
 
+    virtual void give3dMaterialStiffnessMatrix_dPdD(FloatMatrix &answer,
+                                                    MatResponseMode mode,
+                                                    GaussPoint *gp, TimeStep *tStep);
+	
+    virtual void give3dMaterialStiffnessMatrix_dEdD(FloatMatrix &answer,
+                                                    MatResponseMode mode,
+                                                    GaussPoint *gp, TimeStep *tStep);
+
+    
     
     virtual int giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType type, TimeStep *tStep);
 

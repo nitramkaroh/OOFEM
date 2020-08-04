@@ -181,6 +181,7 @@ void PressureFollowerLoad :: computeTangentFromElement(FloatMatrix &answer, Elem
     IntegrationRule *iRule = pfli->surfaceGiveIntegrationRule(this->giveApproxOrder(), iSurf);
 
     IntArray bNodes;
+    e->giveBoundarySurfaceNodes(bNodes, iSurf);
     double nNodes = bNodes.giveSize();
     FloatMatrix K;
     FloatMatrix testAnswer(4,4);
@@ -210,7 +211,7 @@ void PressureFollowerLoad :: computeTangentFromElement(FloatMatrix &answer, Elem
 	answer.plusProductUnsym(N, dXkdNe, w);
 	
 
-	//pfli->surfaceEvalNumericalStiffMatrixAt(K, dxde, dxdk, 1, gp, tStep);
+	pfli->surfaceEvalNumericalStiffMatrixAt(K, dxde, dxdk, 1, gp, tStep);
 	//answer.add(K);
       }
     } else if ( e->giveSpatialDimension() == 2) {

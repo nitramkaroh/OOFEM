@@ -79,19 +79,35 @@ void StructuralMaterialStatus :: printOutputAt(FILE *File, TimeStep *tStep)
 
     MaterialStatus :: printOutputAt(File, tStep);
 
-    fprintf(File, "  strains ");
-    StructuralMaterial :: giveFullSymVectorForm( helpVec, strainVector, gp->giveMaterialMode() );
-    for ( auto &var : helpVec ) {
+     NLStructuralElement * el = static_cast< NLStructuralElement * >( gp->giveElement());
+    if ( el->giveGeometryMode() == 1) {
+      fprintf(File, "  Deformation gradient ");
+      StructuralMaterial :: giveFullVectorFormF( helpVec, FVector, gp->giveMaterialMode() );
+      for ( auto &var : helpVec ) {
         fprintf( File, " %.4e", var );
-    }
+      }
 
-    fprintf(File, "\n              stresses");
-    StructuralMaterial :: giveFullSymVectorForm( helpVec, stressVector, gp->giveMaterialMode() );
-
-    for ( auto &var : helpVec ) {
+      fprintf(File, "\n              First Piola-Kirchhoff stress");
+      StructuralMaterial :: giveFullVectorForm( helpVec, PVector, gp->giveMaterialMode() );
+      for ( auto &var : helpVec ) {
         fprintf( File, " %.4e", var );
+      }
+    } else {
+      fprintf(File, "  strains ");
+      StructuralMaterial :: giveFullSymVectorForm( helpVec, strainVector, gp->giveMaterialMode() );
+      for ( auto &var : helpVec ) {
+        fprintf( File, " %.4e", var );
+      }
+      
+      fprintf(File, "\n              stresses");
+      StructuralMaterial :: giveFullSymVectorForm( helpVec, stressVector, gp->giveMaterialMode() );
+      
+      for ( auto &var : helpVec ) {
+        fprintf( File, " %.4e", var );
+      }
     }
     fprintf(File, "\n");
+
 }
 
 
