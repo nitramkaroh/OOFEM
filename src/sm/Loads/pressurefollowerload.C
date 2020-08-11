@@ -184,7 +184,7 @@ void PressureFollowerLoad :: computeTangentFromElement(FloatMatrix &answer, Elem
     e->giveBoundarySurfaceNodes(bNodes, iSurf);
     double nNodes = bNodes.giveSize();
     FloatMatrix K;
-    FloatMatrix testAnswer(4,4);
+    FloatMatrix testAnswer(12,12);
     if( e->giveSpatialDimension() == 3) {
       e->giveBoundarySurfaceNodes (bNodes, iSurf);
       for ( GaussPoint *gp : *iRule) {
@@ -209,9 +209,9 @@ void PressureFollowerLoad :: computeTangentFromElement(FloatMatrix &answer, Elem
 	
 	double w = gp->giveWeight();	
 	answer.plusProductUnsym(N, dXkdNe, w);
-	
 
 	pfli->surfaceEvalNumericalStiffMatrixAt(K, dxde, dxdk, 1, gp, tStep);
+	testAnswer.add(K);
 	//answer.add(K);
       }
     } else if ( e->giveSpatialDimension() == 2) {
