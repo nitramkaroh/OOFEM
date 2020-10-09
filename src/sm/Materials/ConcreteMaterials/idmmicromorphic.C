@@ -109,8 +109,8 @@ IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_uu(Floa
 
       FloatArray totalStrain = status->giveTempStrainVector();
       StructuralMaterial :: giveReducedSymVectorForm( reducedStrain, totalStrain, gp->giveMaterialMode() );
-      this->computeDissipationFunctionPrime(dDiss, tempDamage, gp);
-      this->computeDissipationFunctionPrime2(ddDiss, tempDamage, gp);
+      this->computeDissipationFunctionPrime(dDiss, tempDamage, localDamageDrivingVariable, gp);
+      this->computeDissipationFunctionPrime2(ddDiss, tempDamage, localDamageDrivingVariable, gp);
       this->computeEquivalentStrain(equivStrain, reducedStrain, gp, tStep);
       localDamageDrivingVariable = status->giveTempLocalDamageDrivingVariable();
       this->computeDamagePrime(dDamage, localDamageDrivingVariable, gp);
@@ -176,8 +176,8 @@ IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_ud(Floa
       double E = linearElasticMaterial->give('E', gp);
       double storedEnergy = 0.5 * E * equivStrain * equivStrain;
       
-      this->computeDissipationFunctionPrime(dDiss, tempDamage, gp);
-      this->computeDissipationFunctionPrime2(ddDiss, tempDamage, gp);
+      this->computeDissipationFunctionPrime(dDiss, tempDamage, localDamageDrivingVariable, gp);
+      this->computeDissipationFunctionPrime2(ddDiss, tempDamage, localDamageDrivingVariable, gp);
       localDamageDrivingVariable = status->giveTempLocalDamageDrivingVariable();
 
 
@@ -233,8 +233,8 @@ IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_du(Floa
       double localDamageDrivingVariable = status->giveTempLocalDamageDrivingVariable();
       double storedEnergy = 0.5 * E * equivStrain * equivStrain;
    
-      this->computeDissipationFunctionPrime(dDiss, tempDamage, gp);
-      this->computeDissipationFunctionPrime2(ddDiss, tempDamage, gp);
+      this->computeDissipationFunctionPrime(dDiss, tempDamage, localDamageDrivingVariable, gp);
+      this->computeDissipationFunctionPrime2(ddDiss, tempDamage, localDamageDrivingVariable, gp);
       this->computeDamagePrime(dDamage, localDamageDrivingVariable, gp);
       this->computeDamagePrime2(ddDamage, localDamageDrivingVariable, gp);
       // times minus derivative of damage function
@@ -290,8 +290,8 @@ IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_dd_NN(F
       double storedEnergy = 0.5 * E * equivStrain * equivStrain;
 
       
-      this->computeDissipationFunctionPrime(dDiss, tempDamage, gp);
-      this->computeDissipationFunctionPrime2(ddDiss, tempDamage, gp);
+      this->computeDissipationFunctionPrime(dDiss, tempDamage, localDamageDrivingVariable, gp);
+      this->computeDissipationFunctionPrime2(ddDiss, tempDamage, localDamageDrivingVariable, gp);
       this->computeDamagePrime(dDamage, localDamageDrivingVariable, gp);
       this->computeDamagePrime2(ddDamage, localDamageDrivingVariable, gp);      
       answer.at(1,1) *= ( dDamage * dDamage * ddDiss + ddDamage * ( dDiss - storedEnergy ) ) / ( k1 + dDamage * dDamage * ddDiss + ddDamage * ( dDiss - storedEnergy ) );
@@ -398,7 +398,7 @@ IsotropicDamageMaterialMicromorphic :: giveRealStressVectorGradientDamage(FloatA
     storedEnergy = 0.5*E*epsEq*epsEq;    
     //damage = status->giveDamage();
     this->computeDamagePrime(dDamage, damageDrivingVariable, gp);
-    this->computeDissipationFunctionPrime(dDiss, damage, gp);
+    this->computeDissipationFunctionPrime(dDiss, damage, damageDrivingVariable, gp);
     /*damage based version*/
     //    f = storedEnergy + k1 * ( micromorphicDamage - damage) - dDiss;
     this->computeEquivalentStrain(epsEq, strain, gp, tStep);
@@ -474,8 +474,8 @@ IsotropicDamageMaterialMicromorphic :: computeDamageDrivingVariable(double &answ
   
   while(true) {
     index++;
-    this->computeDissipationFunctionPrime(dDiss,damage, gp);
-    this->computeDissipationFunctionPrime2(ddDiss,damage, gp);
+    this->computeDissipationFunctionPrime(dDiss,damage, localDamageDrivingVariable_n, gp);
+    this->computeDissipationFunctionPrime2(ddDiss,damage, localDamageDrivingVariable_n, gp);
     this->computeDamagePrime(dDamage, answer, gp);
     this->computeDamagePrime2(ddDamage, answer, gp);
     f = dDamage * storedEnergy + k1 * ( micromorphicDamageDrivingVariable - answer) - dDamage * dDiss;  

@@ -42,7 +42,11 @@
 #define _IFT_VarBasedDamageMaterial_initDamage "initdamage"
 #define _IFT_VarBasedDamageMaterial_beta "beta"
 #define _IFT_VarBasedDamageMaterial_p "p"
-#define _IFT_VarBasedDamageMaterial_pf "pf"
+#define _IFT_VarBasedDamageMaterial_phaseFieldModelType "phasefieldmodeltype"
+
+#define _IFT_VarBasedDamageMaterial_a1 "a1"
+#define _IFT_VarBasedDamageMaterial_a2 "a2"
+#define _IFT_VarBasedDamageMaterial_a3 "a3"
 
 #define _IFT_VarBasedDamageMaterial_equivstraintype "equivstraintype"
 #define _IFT_VarBasedDamageMaterial_damageLaw "damlaw"
@@ -54,12 +58,24 @@ namespace oofem {
  */
 class VarBasedDamageMaterial : public IsotropicDamageMaterial1, public GradientDamageMaterialExtensionInterface
 {
-protected:
+ protected:
   double initialDamage;
   double beta;
   double p;
   double penalty;
   int pf;
+  double a1;
+  double a2;
+  double a3;
+  
+  enum PhaseFieldModelType {
+        phaseFieldModel_JZ=0,
+        phaseFieldModel_Miehe=1,
+        phaseFieldModel_Wu=2,
+  };
+
+  PhaseFieldModelType phaseFieldModelType;
+
 
 public:
     /// Constructor
@@ -98,17 +114,27 @@ public:
     
     
     virtual void computeDamage(double &answer, double damageDrivingVariable, GaussPoint *gp);
-    virtual void computeDamagePrime(double &answer, double damageDrivingVariable, GaussPoint *gp);
+    virtual void computeDamagePrime(double &answer,  double damageDrivingVariable, GaussPoint *gp);
     virtual void computeDamagePrime2(double &answer, double damageDrivingVariable, GaussPoint *gp);
     double solveExpLaw(double dam, double c);
-    virtual void computeDissipationFunctionPrime(double &answer, double damageDrivingVariable, GaussPoint *gp);
-    virtual void computeDissipationFunctionPrime2(double &answer, double damageDrivingVariable, GaussPoint *gp);
+    virtual void computeDissipationFunctionPrime(double &answer, double damage, double damageDrivingVariable, GaussPoint *gp);
+    virtual void computeDissipationFunctionPrime2(double &answer, double damage, double damageDrivingVariable, GaussPoint *gp);
 #ifdef keep_track_of_dissipated_energy
     virtual void computeRegulirizingWork(GaussPoint *gp,const FloatArray &nonlocalDamageDrivingVariableGrad);
 #endif
 
     int giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType type, TimeStep *tStep);
 
+    virtual double computeQ_Wu(double damageDrivingVariable);
+
+    virtual double computeQ_Wu_prime1(double damageDrivingVariable);
+
+    virtual double computeQ_Wu_prime2(double damageDrivingVariable);
+
+    virtual double compute_dissipation_Wu_prime1_in_gamma(double damageDrivingVariable);
+
+    virtual double compute_dissipation_Wu_prime2_in_gamma(double damageDrivingVariable);
+     
 
     
 };
