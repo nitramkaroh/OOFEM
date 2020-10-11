@@ -67,7 +67,7 @@ class VarBasedDamageMaterial : public IsotropicDamageMaterial1, public GradientD
   double a1;
   double a2;
   double a3;
-  
+    
   enum PhaseFieldModelType {
         phaseFieldModel_JZ=0,
         phaseFieldModel_Miehe=1,

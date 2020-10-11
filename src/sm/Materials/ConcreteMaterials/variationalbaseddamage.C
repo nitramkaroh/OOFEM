@@ -97,6 +97,10 @@ VarBasedDamageMaterial :: initializeFrom(InputRecord *ir)
     }  else {
         OOFEM_ERROR("Unknown phase-field model typed");
     }
+
+    
+    
+   
    
     
     if (this->phaseFieldModelType == phaseFieldModel_JZ){
@@ -119,7 +123,8 @@ VarBasedDamageMaterial :: initializeFrom(InputRecord *ir)
       IR_GIVE_OPTIONAL_FIELD(ir, this->a2, _IFT_VarBasedDamageMaterial_a2); 
       this->a3 = 0.;
       IR_GIVE_OPTIONAL_FIELD(ir, this->a3, _IFT_VarBasedDamageMaterial_a3);
-      this->damageLaw = 5; // damage law used by Wu       
+      this->damageLaw = 5; // damage law used by Wu
+      gf = gf*this->a1/2;
     }
 
     int equivStrainTypeRecord = 0; // default

@@ -109,10 +109,11 @@ IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_uu(Floa
 
       FloatArray totalStrain = status->giveTempStrainVector();
       StructuralMaterial :: giveReducedSymVectorForm( reducedStrain, totalStrain, gp->giveMaterialMode() );
+
+      localDamageDrivingVariable = status->giveTempLocalDamageDrivingVariable();
       this->computeDissipationFunctionPrime(dDiss, tempDamage, localDamageDrivingVariable, gp);
       this->computeDissipationFunctionPrime2(ddDiss, tempDamage, localDamageDrivingVariable, gp);
-      this->computeEquivalentStrain(equivStrain, reducedStrain, gp, tStep);
-      localDamageDrivingVariable = status->giveTempLocalDamageDrivingVariable();
+      this->computeEquivalentStrain(equivStrain, reducedStrain, gp, tStep);      
       this->computeDamagePrime(dDamage, localDamageDrivingVariable, gp);
       this->computeDamagePrime2(ddDamage, localDamageDrivingVariable, gp);
       this->computeEta(eta, reducedStrain, gp, tStep);
@@ -175,11 +176,11 @@ IsotropicDamageMaterialMicromorphic :: giveGradientDamageStiffnessMatrix_ud(Floa
       this->computeEquivalentStrain(equivStrain, reducedStrain, gp, tStep);
       double E = linearElasticMaterial->give('E', gp);
       double storedEnergy = 0.5 * E * equivStrain * equivStrain;
-      
+
+      localDamageDrivingVariable = status->giveTempLocalDamageDrivingVariable();
       this->computeDissipationFunctionPrime(dDiss, tempDamage, localDamageDrivingVariable, gp);
       this->computeDissipationFunctionPrime2(ddDiss, tempDamage, localDamageDrivingVariable, gp);
-      localDamageDrivingVariable = status->giveTempLocalDamageDrivingVariable();
-
+      
 
       this->computeDamagePrime(dDamage, localDamageDrivingVariable, gp);
       this->computeDamagePrime2(ddDamage, localDamageDrivingVariable, gp);
