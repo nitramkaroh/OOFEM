@@ -86,7 +86,7 @@ VarBasedDamageMaterial :: initializeFrom(InputRecord *ir)
     this->phaseFieldModelType = phaseFieldModel_JZ;
 
     int phaseFieldModelTypeRecord = 0; // default
-    //non zero value corresponds to the Miehe phase-field model, p and beta are then not needed
+    //non zero value corresponds to the Miehe phase-field model or Wu model
     IR_GIVE_OPTIONAL_FIELD(ir, phaseFieldModelTypeRecord, _IFT_VarBasedDamageMaterial_phaseFieldModelType);
     if ( phaseFieldModelTypeRecord == 0 ) {
         this->phaseFieldModelType = phaseFieldModel_JZ;
@@ -286,17 +286,15 @@ VarBasedDamageMaterial :: giveNonlocalInternalForces_N_factor(double &answer, do
 
   
 {
-  double localDamageDrivingVariable, dDamage, dDiss, damage, damageDrivingVariable;
+  double localDamageDrivingVariable, dDamage, dDiss, damage;
 
-  auto damageDrivingVariable = false;
-  
-   VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
+  VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
     //  damageDrivingVariable = status->giveTempNonlocalDamageDrivingVariable();
   damage = status->giveTempDamage();
   
   this-> computeLocalDamageDrivingVariable(localDamageDrivingVariable, gp, tStep);
   this->computeDamagePrime(dDamage, nonlocalDamageDrivingVariable, gp);
-  this->computeDissipationFunctionPrime(dDiss, damage, damageDrivingVariable,  gp);  
+  this->computeDissipationFunctionPrime(dDiss, damage, nonlocalDamageDrivingVariable,  gp);  
   answer = ( dDiss - localDamageDrivingVariable ) * dDamage;
  
 }
