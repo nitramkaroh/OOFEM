@@ -48,6 +48,13 @@
 #define _IFT_VarBasedDamageMaterial_a2 "a2"
 #define _IFT_VarBasedDamageMaterial_a3 "a3"
 
+#define _IFT_VarBasedDamageMaterial_Gf "fractureenergywu"
+#define _IFT_VarBasedDamageMaterial_Ldinf "ldinf"
+#define _IFT_VarBasedDamageMaterial_ft "ft"
+#define _IFT_VarBasedDamageMaterial_youngs_modulus "youngsmodulus"
+
+#define _IFT_VarBasedDamageMaterial_wu_softening_law "wusoftlaw"
+
 #define _IFT_VarBasedDamageMaterial_equivstraintype "equivstraintype"
 #define _IFT_VarBasedDamageMaterial_damageLaw "damlaw"
 
@@ -58,23 +65,35 @@ namespace oofem {
  */
 class VarBasedDamageMaterial : public IsotropicDamageMaterial1, public GradientDamageMaterialExtensionInterface
 {
- protected:
+protected:
   double initialDamage;
   double beta;
   double p;
-  double penalty;
-  int pf;
-  double a1;
-  double a2;
-  double a3;
+  double penalty; //???
+  int pf; //???
+  double a1; // Wu model - coefficient for approximation polynomial Q(gamma) in damage function 
+  double a2;  // Wu model - coefficient for approximation polynomial Q(gamma) in damage function
+  double a3;  // Wu model - coefficient for approximation polynomial Q(gamma) in damage function
+  double Gf; // Wu model - fracture energy
+  double Ldinf; //Wu model - the size of the damage zone at complete failure
+  double ft; //Wu model - tensile strength of the material
+  double youngs_modulus; //
     
   enum PhaseFieldModelType {
-        phaseFieldModel_JZ=0,
-        phaseFieldModel_Miehe=1,
-        phaseFieldModel_Wu=2,
-  };
+			    phaseFieldModel_JZ=0,
+			    phaseFieldModel_Miehe=1,
+			    phaseFieldModel_Wu=2,
+  }; // type of phase-field model
 
   PhaseFieldModelType phaseFieldModelType;
+
+  enum WuSofteningLaw {
+		     linear_softening=0,
+		     exponential_softening=1,
+		     user_specified_softening=2,
+  }; // softening law for Wu phase-field model, user_specified_softening requires setting parameters a1, a2, a3
+
+  WuSofteningLaw wuSofteningLaw;
 
 
 public:
