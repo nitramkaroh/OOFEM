@@ -127,7 +127,7 @@ VarBasedDamageMaterial :: initializeFrom(InputRecord *ir)
   }
   else if (this->phaseFieldModelType == phaseFieldModel_Wu) {
     this->damageLaw = 5; // damage law used by Wu
-      
+    
     if (wuSofteningLaw == user_specified_softening){
       this->a1 = 1.;
       IR_GIVE_OPTIONAL_FIELD(ir, this->a1, _IFT_VarBasedDamageMaterial_a1);
@@ -163,6 +163,9 @@ VarBasedDamageMaterial :: initializeFrom(InputRecord *ir)
       this->p = 2.;
 
       gf = this->Gf/this->Ldinf;
+      double gf0 =  2*gf/this->a1;
+      double linf = pow(2,1/2)/M_PI*this->Ldinf;
+      internalLength = pow(gf/gf0,1/2)*linf;
     }
 
     else if (wuSofteningLaw == exponential_softening){
@@ -186,6 +189,9 @@ VarBasedDamageMaterial :: initializeFrom(InputRecord *ir)
       this->p = 2.5;
 
       gf = this->Gf/this->Ldinf;
+      double gf0 =  2*gf/this->a1;
+      double linf = pow(2,1/2)/M_PI*this->Ldinf;
+      internalLength = pow(gf/gf0,1/2)*linf;
     }      
   }
 
