@@ -48,8 +48,8 @@
 #define _IFT_VarBasedDamageMaterial_a2 "a2"
 #define _IFT_VarBasedDamageMaterial_a3 "a3"
 
-#define _IFT_VarBasedDamageMaterial_Gf "fractureenergywu"
-#define _IFT_VarBasedDamageMaterial_Ldinf "ldinf"
+//#define _IFT_VarBasedDamageMaterial_Gf "fractureenergywu"
+//#define _IFT_VarBasedDamageMaterial_Ldinf "ldinf"
 #define _IFT_VarBasedDamageMaterial_ft "ft"
 #define _IFT_VarBasedDamageMaterial_youngs_modulus "youngsmodulus"
 
@@ -74,8 +74,8 @@ protected:
   double a1; // Wu model - coefficient for approximation polynomial Q(gamma) in damage function 
   double a2;  // Wu model - coefficient for approximation polynomial Q(gamma) in damage function
   double a3;  // Wu model - coefficient for approximation polynomial Q(gamma) in damage function
-  double Gf; // Wu model - fracture energy
-  double Ldinf; //Wu model - the size of the damage zone at complete failure
+  //double Gf; // Wu model - fracture energy
+  //double Ldinf; //Wu model - the size of the damage zone at complete failure
   double ft; //Wu model - tensile strength of the material
   double youngs_modulus; //
     

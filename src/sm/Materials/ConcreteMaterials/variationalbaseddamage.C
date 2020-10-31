@@ -139,16 +139,16 @@ VarBasedDamageMaterial :: initializeFrom(InputRecord *ir)
       this->p = 2.;
       IR_GIVE_OPTIONAL_FIELD(ir, this->p, _IFT_VarBasedDamageMaterial_p);
 
-      gf = gf*this->a1/2;
+      //gf = gf*this->a1/2;
     }
 
     else if (wuSofteningLaw == linear_softening){
 
-      this->Gf = 100.;
-      IR_GIVE_OPTIONAL_FIELD(ir, this->Gf, _IFT_VarBasedDamageMaterial_Gf);
+      //this->Gf = 100.;
+      //IR_GIVE_OPTIONAL_FIELD(ir, this->Gf, _IFT_VarBasedDamageMaterial_Gf);
 
-      this->Ldinf = 5e-2;
-      IR_GIVE_OPTIONAL_FIELD(ir, this->Ldinf, _IFT_VarBasedDamageMaterial_Ldinf);
+      //this->Ldinf = 5e-2;
+      //IR_GIVE_OPTIONAL_FIELD(ir, this->Ldinf, _IFT_VarBasedDamageMaterial_Ldinf);
 
       this->ft = 3e6;
       IR_GIVE_OPTIONAL_FIELD(ir, this->ft, _IFT_VarBasedDamageMaterial_ft);
@@ -156,25 +156,26 @@ VarBasedDamageMaterial :: initializeFrom(InputRecord *ir)
       this->youngs_modulus = 20e9;
       IR_GIVE_OPTIONAL_FIELD(ir, this->youngs_modulus, _IFT_VarBasedDamageMaterial_youngs_modulus);
 		
-      this->a1 = 4.*this->youngs_modulus*this->Gf/(pow(this->ft,2)*this->Ldinf);
+      //this->a1 = 4.*this->youngs_modulus*this->Gf/(pow(this->ft,2)*this->Ldinf);
+      this->a1 = 4*youngs_modulus*gf/pow(this->ft,2);
       this->a2 = -1*this->a1/2;
       this->a3 = 0.;
 
       this->p = 2.;
 
-      gf = this->Gf/this->Ldinf;
-      double gf0 =  2*gf/this->a1;
-      double linf = pow(2,1/2)/M_PI*this->Ldinf;
-      internalLength = pow(gf/gf0,1/2)*linf;
+      //gf = this->Gf/this->Ldinf;
+      //double gf0 =  2*gf/this->a1;
+      //double linf = pow(2,1/2)/M_PI*this->Ldinf;
+      //internalLength = pow(gf/gf0,1/2)*linf;
     }
 
     else if (wuSofteningLaw == exponential_softening){
 
-      this->Gf = 100.;
-      IR_GIVE_OPTIONAL_FIELD(ir, this->Gf, _IFT_VarBasedDamageMaterial_Gf);
+      //this->Gf = 100.;
+      //IR_GIVE_OPTIONAL_FIELD(ir, this->Gf, _IFT_VarBasedDamageMaterial_Gf);
 
-      this->Ldinf = 5e-2;
-      IR_GIVE_OPTIONAL_FIELD(ir, this->Ldinf, _IFT_VarBasedDamageMaterial_Ldinf);
+      //this->Ldinf = 5e-2;
+      //IR_GIVE_OPTIONAL_FIELD(ir, this->Ldinf, _IFT_VarBasedDamageMaterial_Ldinf);
 
       this->ft = 3e6;
       IR_GIVE_OPTIONAL_FIELD(ir, this->ft, _IFT_VarBasedDamageMaterial_ft);
@@ -182,16 +183,17 @@ VarBasedDamageMaterial :: initializeFrom(InputRecord *ir)
       this->youngs_modulus = 20e9;
       IR_GIVE_OPTIONAL_FIELD(ir, this->youngs_modulus, _IFT_VarBasedDamageMaterial_youngs_modulus);
 		
-      this->a1 = 4.*this->youngs_modulus*this->Gf/(pow(this->ft,2)*this->Ldinf);
+      //this->a1 = 4.*this->youngs_modulus*this->Gf/(pow(this->ft,2)*this->Ldinf);
+      this->a1 = 4*youngs_modulus*gf/pow(this->ft,2);
       this->a2 = (pow(2.,5/3)-3)*this->a1;
       this->a3 = 0.;
 
       this->p = 2.5;
 
-      gf = this->Gf/this->Ldinf;
-      double gf0 =  2*gf/this->a1;
-      double linf = pow(2,1/2)/M_PI*this->Ldinf;
-      internalLength = pow(gf/gf0,1/2)*linf;
+      //gf = this->Gf/this->Ldinf;
+      //double gf0 =  2*gf/this->a1;
+      //double linf = pow(2,1/2)/M_PI*this->Ldinf;
+      //internalLength = pow(gf/gf0,1/2)*linf;
     }      
   }
 
