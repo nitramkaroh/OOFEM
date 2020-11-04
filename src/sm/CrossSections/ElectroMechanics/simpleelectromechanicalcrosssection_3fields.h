@@ -42,7 +42,7 @@
 
 ///@name Input fields for SimpleCrossSection
 //@{
-#define _IFT_SimpleElectroMechanicalCrossSection_3Fields_Name "simpleemcs"
+#define _IFT_SimpleElectroMechanicalCrossSection_3Fields_Name "simpleemcs_3fields"
 #define _IFT_SimpleElectroMechanicalCrossSection_3Fields_thick "thick"
 #define _IFT_SimpleElectroMechanicalCrossSection_3Fields_width "width"
 #define _IFT_SimpleElectroMechanicalCrossSection_3Fields_area "area"

@@ -71,6 +71,7 @@
 #define _IFT_CylindricalALM_rtolv "rtolv"
 #define _IFT_CylindricalALM_rtolf "rtolf"
 #define _IFT_CylindricalALM_rtold "rtold"
+#define _IFT_CylindricalALM_l12 "l12"
 //@}
 
 
@@ -208,7 +209,7 @@ protected:
     FloatArray rtold;
     /// Parallel context for computing norms, dot products and such.
     ParallelContext *parallel_context;
-
+    int l12;
 public:
     CylindricalALM(Domain * d, EngngModel * m);
     virtual ~CylindricalALM();

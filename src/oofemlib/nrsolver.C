@@ -303,23 +303,7 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
 	  // }
         }
 
-        //
-        // update solution
-        //
-        if ( this->lsFlag && ( nite > 0 ) ) { // Why not nite == 0 ?
-            // line search
-            LineSearchNM :: LS_status LSstatus;
-            double eta;
-            this->giveLineSearchSolver()->solve(X, ddX, F, R, R0, prescribedEqs, 1.0, eta, LSstatus, tStep);
-        } else if ( this->constrainedNRFlag && ( nite > this->constrainedNRminiter ) ) {
-            ///@todo This doesn't check units, it is nonsense and must be corrected / Mikael
-            if ( this->forceErrVec.computeSquaredNorm() > this->forceErrVecOld.computeSquaredNorm() ) {
-                OOFEM_LOG_INFO("Constraining increment to be %e times full increment...\n", this->constrainedNRalpha);
-                ddX.times(this->constrainedNRalpha);
-            }
-            //this->giveConstrainedNRSolver()->solve(X, & ddX, this->forceErrVec, this->forceErrVecOld, status, tStep);
-        }
-	
+
 	
 	if((engngModel->isAnalysisCrashed()) || (converged == false && nite == nsmax ) || errorOutOfRangeFlag ) {
 	  if(nReductions > 25) {
@@ -353,9 +337,29 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
 	  this->solve(k, R, R0, X, dX, F, internalForcesEBENorm, l, rlm, nite, tStep);
 	  */
 	}
+
+        //
+        // update solution
+        //
+        if ( this->lsFlag ) { // Why not nite == 0 ?
+            // line search
+            LineSearchNM :: LS_status LSstatus;
+            double eta;
+            this->giveLineSearchSolver()->solve(X, dX, ddX, F, R, R0, prescribedEqs, 1.0, eta, LSstatus, tStep);
+        } else if ( this->constrainedNRFlag && ( nite > this->constrainedNRminiter ) ) {
+            ///@todo This doesn't check units, it is nonsense and must be corrected / Mikael
+            if ( this->forceErrVec.computeSquaredNorm() > this->forceErrVecOld.computeSquaredNorm() ) {
+                OOFEM_LOG_INFO("Constraining increment to be %e times full increment...\n", this->constrainedNRalpha);
+                ddX.times(this->constrainedNRalpha);
+            }
+            //this->giveConstrainedNRSolver()->solve(X, & ddX, this->forceErrVec, this->forceErrVecOld, status, tStep);
+        } else {
+	  X.add(ddX);
+	  dX.add(ddX);
+	}
+
 	
-        X.add(ddX);
-        dX.add(ddX);
+
 	if(followerLoadFlag) {
 	  engngModel->updateComponent(tStep, ExternalRhs, domain);
 	  RT = R;
@@ -534,7 +538,7 @@ NRSolver :: solveHR(SparseMtrx &k, FloatArray &R, FloatArray *R0, FloatArray *iR
             // line search
             LineSearchNM :: LS_status LSstatus;
             double eta;
-            this->giveLineSearchSolver()->solve(X, ddX, F, R, R0, prescribedEqs, 1.0, eta, LSstatus, tStep);
+            this->giveLineSearchSolver()->solve(X, dX, ddX, F, R, R0, prescribedEqs, 1.0, eta, LSstatus, tStep);
         } else if ( this->constrainedNRFlag && ( nite > this->constrainedNRminiter ) ) {
             ///@todo This doesn't check units, it is nonsense and must be corrected / Mikael
             if ( this->forceErrVec.computeSquaredNorm() > this->forceErrVecOld.computeSquaredNorm() ) {

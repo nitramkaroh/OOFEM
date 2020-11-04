@@ -53,6 +53,8 @@ namespace oofem {
     ENUM_ITEM_WITH_VALUE(MicromorphicStrainNorm, 18)	  \
     ENUM_ITEM_WITH_VALUE(CosseratRotationVector, 19)	  \
     ENUM_ITEM_WITH_VALUE(CumulatedMicroplasticStrain, 20)	  \
+    ENUM_ITEM_WITH_VALUE(ElectricPotential, 21)	  \
+    ENUM_ITEM_WITH_VALUE(ElectricDisplacementVector, 22)	  \
 /**
  * Type representing particular unknown (its physical meaning).
  */

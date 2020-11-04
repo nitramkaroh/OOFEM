@@ -93,11 +93,14 @@ CylindricalALM :: CylindricalALM(Domain *d, EngngModel *m) :
     minIterations = 0;
 
     calm_hpc_init = 0;
-
+    calm_HPCWeights.clear();
     // Maximum number of restarts when convergence not reached during maxiter
     maxRestarts = 4;
 
     parallel_context = engngModel->giveParallelContext( d->giveNumber() );
+
+    l12 = 0;
+    
 }
 
 
@@ -411,6 +414,7 @@ restart:
                 engngModel->initStepIncrements();
                 dX.zero();
                 // restore initial stiffness
+		engngModel->resetStiffnessMatrix();
                 engngModel->updateComponent(tStep, NonLinearLhs, domain);
 		// init engng for the new step
 		// added by nitramkaroh
@@ -769,7 +773,7 @@ CylindricalALM :: initializeFrom(InputRecord *ir)
     calm_HPCDmanDofSrcArray.clear();
     IR_GIVE_OPTIONAL_FIELD(ir, calm_HPCDmanDofSrcArray, _IFT_CylindricalALM_hpc);
 
-    calm_HPCDmanWeightSrcArray.clear();
+    calm_HPCWeights.clear();
     IR_GIVE_OPTIONAL_FIELD(ir, calm_HPCDmanWeightSrcArray, _IFT_CylindricalALM_hpcw);
     // in calm_HPCIndirectDofMask are stored pairs with following meaning:
     // inode idof
@@ -892,6 +896,8 @@ CylindricalALM :: initializeFrom(InputRecord *ir)
         rtold.at(1) = _rtol;
     }
 
+    IR_GIVE_OPTIONAL_FIELD(ir, l12, _IFT_CylindricalALM_l12);
+    
     this->giveLinearSolver()->initializeFrom(ir);
 
     SparseNonLinearSystemNM :: initializeFrom(ir);
@@ -1095,6 +1101,7 @@ CylindricalALM :: computeDeltaLambda(double &deltaLambda, const FloatArray &dX, 
             a5 = cola(1);
         }
 
+	
         double cos1 = ( a4 + a5 * lam1 ) / deltaL / deltaL;
         double cos2 = ( a4 + a5 * lam2 ) / deltaL / deltaL;
         if ( cos1 > cos2 ) {
@@ -1102,6 +1109,15 @@ CylindricalALM :: computeDeltaLambda(double &deltaLambda, const FloatArray &dX, 
         } else {
             deltaLambda = lam2;
         }
+	if(l12 > 0) {
+	  if(lam1 > lam2) {
+	    deltaLambda = lam2;
+	  } else {
+	    deltaLambda = lam1;
+	  }
+	}
+	  
+
 
         //printf ("eta=%e, lam1=%e, lam2=%e", eta, lam1, lam2);
     } else if ( calm_Control == calml_hpc ) {

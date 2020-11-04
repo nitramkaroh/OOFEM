@@ -35,7 +35,7 @@
 
 
 #include "../sm/Elements/ElectroMechanics/baseelectromechanicalelement_3fields.h"
-#include "../sm/Materials/ElectroMechanics/electromechanicalmaterialextensioninterface_3fields.h"
+#include "../sm/Materials/ElectroMechanics/electromechanicalmaterialextensioninterface.h"
 
 #include "../sm/Materials/structuralms.h"
 
@@ -137,10 +137,10 @@ BaseElectroMechanicalElement_3Fields :: giveLocationArrayOfDofIDs(IntArray &loca
  
 
 void
-BaseElectroMechanicalElement_3Fields :: compute_FirstPKStressVector_philectricFieldVector(FloatArray &P, FloatArray &E, GaussPoint *gp, TimeStep *tStep)
+BaseElectroMechanicalElement_3Fields :: compute_FirstPKStressVector_ElectricFieldVector(FloatArray &P, FloatArray &E, GaussPoint *gp, TimeStep *tStep)
 {
     NLStructuralElement *elem = this->giveStructuralElement();
-    SimpleElectroMechanicalCrossSection *cs = this->giveCrossSection();
+    SimpleElectroMechanicalCrossSection_3Fields *cs = this->giveCrossSection();
 
     FloatArray electricDisplacemenet;
     if( elem->giveGeometryMode() == 0) {
@@ -150,10 +150,10 @@ BaseElectroMechanicalElement_3Fields :: compute_FirstPKStressVector_philectricFi
       mixedPressureMat->giveRealStressVector(stress, gp, strain,pressure, tStep);
       */
     } else {
-      FloatArray F;
+      FloatArray F, electricDisplacement;
       elem->computeDeformationGradientVector(F, gp, tStep);
       this->computeElectricDisplacementVector(electricDisplacement, gp, tStep);   
-      cs->give_FirstPKStressVector_philectricDisplacementVector(P, E, gp, F, electricDisplacement, tStep);
+      cs->give_FirstPKStressVector_ElectricFieldVector(P, E, gp, F, electricDisplacement, tStep);
     }
     
 }
@@ -205,7 +205,7 @@ void
 BaseElectroMechanicalElement_3Fields :: giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord)
 {
     NLStructuralElement *elem = this->giveStructuralElement();
-    FloatArray BP, vP, vE, BE, ND, gradPhi, electricDisplacement;
+    FloatArray BP, BD, vP, vE, NE, gradPhi, electricDisplacement;
     FloatMatrix B_u, B_phi, N_d;
    
     answer.resize(this->giveNumberOfDofs());
@@ -219,7 +219,7 @@ BaseElectroMechanicalElement_3Fields :: giveInternalForcesVector(FloatArray &ans
     answer_d.zero();
     
     for ( GaussPoint *gp: *elem->giveIntegrationRule(0) ) {
-      this->compute_FirstPKStressVector_ElectricDisplacementVector(vP, vE, gp, tStep);
+      this->compute_FirstPKStressVector_ElectricFieldVector(vP, vE, gp, tStep);
       this->computeElectricPotentialGradientVector(gradPhi, gp, tStep);
       this->computeElectricDisplacementVector(electricDisplacement, gp, tStep);
       //
@@ -227,16 +227,16 @@ BaseElectroMechanicalElement_3Fields :: giveInternalForcesVector(FloatArray &ans
       // Compute nodal internal forces at nodes as f_u = \int_V B^T*vP dV
       elem->computeBHmatrixAt(gp, B_u, tStep, 0);
       BP.beTProductOf(B_u, vP);
-      answer_u.add(dV, BS);
+      answer_u.add(dV, BP);
       // Compute nodal internal forces at nodes as f_\phi = \int B^T* vD dV     
       this->computeElectricPotentialBmatrixAt(gp, B_phi);      
       BD.beTProductOf(B_phi, electricDisplacement);
       answer_phi.add(dV, BD);
       // Compute nodal internal forces at nodes as f_d = \int N^T(E + gradPhi) dB
       this->computeElectricDisplacementNmatrixAt(gp, N_d);
-      vE.add(gradPhi)
-      NE.beTProductOf(B_phi, vE);
-      answer_d.add(dV, vE);
+      vE.add(gradPhi);
+      NE.beTProductOf(N_d, vE);
+      answer_d.add(dV, NE);
       
     }
 
@@ -291,19 +291,20 @@ BaseElectroMechanicalElement_3Fields :: computeLocForceLoadVector(FloatArray &an
 void
 BaseElectroMechanicalElement_3Fields :: computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode rMode, TimeStep *tStep)
 {
-    //set displacement and nonlocal location array
+  //set displacement and nonlocal location array
     answer.resize(this->giveNumberOfDofs(), this->giveNumberOfDofs());
     answer.zero();
 
 
     NLStructuralElement *elem = this->giveStructuralElement();
-    SimpleElectroMechanicalCrossSection *cs = this->giveCrossSection();
+    SimpleElectroMechanicalCrossSection_3Fields *cs = this->giveCrossSection();
 
-    FloatMatrix B_u, B_phi, Duu, Dud, Ddd, DuuBu, DueNd, DeeNd;
+    FloatMatrix B_u, B_phi, N_d, Duu, Dud, Ddd, DuuBu, DueNd, DudNd, DddNd, DudBd;
     FloatMatrix Kuu, Kud, Kdu, Kdd, Kde, Ked;
     
     for ( GaussPoint *gp: *elem->giveIntegrationRule(0) ) {
-      this->computeElectricPotentialBmatrixAt(gp, B_phi);  
+      this->computeElectricPotentialBmatrixAt(gp, B_phi);
+      this->computeElectricDisplacementNmatrixAt(gp, N_d);  
       if( elem->giveGeometryMode() == 0) {
 	/*FloatArray strain;
 	  this->computeStrainVector(strain, gp, tStep);
@@ -321,8 +322,8 @@ BaseElectroMechanicalElement_3Fields :: computeStiffnessMatrix(FloatMatrix &answ
       DudNd.beProductOf(Dud, N_d);
       DddNd.beProductOf(Ddd, N_d);      
       Kuu.plusProductUnsym(B_u, DuuBu, dV);
-      Kud.plusProductUnsym(B_u, DudBd, dV);
-      Kdd.plusProductUnsym(B_d, DeeBd, dV);
+      Kud.plusProductUnsym(B_u, DudNd, dV);
+      Kdd.plusProductUnsym(N_d, DddNd, dV);
       Ked.plusProductUnsym(B_phi, N_d, dV);
 
     }
@@ -341,12 +342,12 @@ BaseElectroMechanicalElement_3Fields :: computeStiffnessMatrix(FloatMatrix &answ
 }
 
 
-SimpleElectroMechanicalCrossSection*
+SimpleElectroMechanicalCrossSection_3Fields*
 BaseElectroMechanicalElement_3Fields :: giveCrossSection()
 // Returns the crossSection of the receiver.
 {
   //NLStructuralElement *elem = this->giveElement();
-  return static_cast< SimpleElectroMechanicalCrossSection* >( this->giveStructuralElement()->giveCrossSection() );
+  return static_cast< SimpleElectroMechanicalCrossSection_3Fields* >( this->giveStructuralElement()->giveCrossSection() );
 }
 
 

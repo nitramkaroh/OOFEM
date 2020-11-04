@@ -96,7 +96,12 @@ namespace oofem {
       /*Micromorphic cumulative strain degree of freedom, within this formulation, the Aifantis gradient plasticity can be implemented with C0 elements*/ \
       ENUM_ITEM_WITH_VALUE(M_MP, 45)                                     \
       /*Electric potential degree of freedom*/                           \
-     ENUM_ITEM_WITH_VALUE(E_phi, 46)
+      ENUM_ITEM_WITH_VALUE(E_phi, 46)					\
+      /*Electric displacement degree of freedom*/				\
+      ENUM_ITEM_WITH_VALUE(E_D1, 47)					\
+      ENUM_ITEM_WITH_VALUE(E_D2, 48)					\
+      ENUM_ITEM_WITH_VALUE(E_D3, 49)					
+
   
 
   

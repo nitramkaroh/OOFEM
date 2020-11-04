@@ -44,7 +44,7 @@
 #include "engngm.h"
 
 namespace oofem {
-REGISTER_CrossSection(SimpleElectroMechanicalCrossSection);
+REGISTER_CrossSection(SimpleElectroMechanicalCrossSection_3Fields);
 
 
 void
@@ -87,7 +87,7 @@ SimpleElectroMechanicalCrossSection_3Fields :: giveElectroMechanicalConstitutive
 void
 SimpleElectroMechanicalCrossSection_3Fields :: giveElectroMechanicalConstitutiveMatrix_dPdD(FloatMatrix &answer, MatResponseMode rMode, GaussPoint *gp, TimeStep *tStep)
 {
-    ElectroMechanicalMaterialExtensionInterface_3Fields *elmechMat = static_cast< ElectroMechanicalMaterialExtensionInterface_3Fields * >(this->giveMaterialInterface(ElectroMechanicalMaterialExtensionInterfaceType, gp) );
+    ElectroMechanicalMaterialExtensionInterface_3Fields *elmechMat = static_cast< ElectroMechanicalMaterialExtensionInterface_3Fields * >(this->giveMaterialInterface(ElectroMechanicalMaterialExtensionInterface_3FieldsType, gp) );
 
     MaterialMode mode = gp->giveMaterialMode();
     if ( mode == _3dMat ) {

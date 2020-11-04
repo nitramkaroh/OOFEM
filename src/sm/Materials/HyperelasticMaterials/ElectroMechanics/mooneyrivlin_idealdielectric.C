@@ -47,7 +47,7 @@
 namespace oofem {
   REGISTER_Material(MooneyRivlin_IdealDielectricMaterial);
 
-  MooneyRivlin_IdealDielectricMaterial :: MooneyRivlin_IdealDielectricMaterial(int n, Domain *d):Material(n, d), ElectroMechanicalMaterialExtensionInterface(d), ElectroMechanicalMaterialExtensionInterface_3Field(d)
+  MooneyRivlin_IdealDielectricMaterial :: MooneyRivlin_IdealDielectricMaterial(int n, Domain *d):Material(n, d), ElectroMechanicalMaterialExtensionInterface(d), ElectroMechanicalMaterialExtensionInterface_3Fields(d)
 {
     this->hyperelasticMaterial = new MooneyRivlinMaterial(n, d);
 }

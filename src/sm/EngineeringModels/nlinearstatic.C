@@ -645,16 +645,17 @@ void
 NonLinearStatic :: giveInitialGuess(int di, TimeStep *tStep)
 {
 
-    if ( this->initialGuessType == IG_Tangent ) {
+    if ( this->initialGuessType == IG_Tangent || this->initialGuessType == IG_Secant) {
 #ifdef VERBOSE
       OOFEM_LOG_RELEVANT("Computing initial guess\n");
 #endif
-      /*      if(tStep->giveNumber()==5)
-	this->reduceTimeStep(tStep);
-      */
       
       FloatArray extrapolatedForces;
-      this->assembleExtrapolatedForces( extrapolatedForces, tStep, TangentStiffnessMatrix, this->giveDomain(di) );
+      if(this->initialGuessType == IG_Tangent) {
+	this->assembleExtrapolatedForces( extrapolatedForces, tStep, TangentStiffnessMatrix, this->giveDomain(di) );
+      } else {
+	this->assembleExtrapolatedForces( extrapolatedForces, tStep, SecantStiffnessMatrix, this->giveDomain(di) );
+      }
       extrapolatedForces.negated();
       this->updateComponent( tStep->givePreviousStep(), NonLinearLhs, this->giveDomain(di) );     
       SparseLinearSystemNM *linSolver = nMethod->giveLinearSolver();

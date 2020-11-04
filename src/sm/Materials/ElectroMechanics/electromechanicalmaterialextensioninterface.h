@@ -92,7 +92,7 @@ public:
 /**
  * Material interface for gradient material models.
  */
-class ElectroMechanicalMaterialExtensionInterface_3Field : public Interface
+class ElectroMechanicalMaterialExtensionInterface_3Fields : public Interface
 {
 protected:
     Domain *dom;
@@ -102,9 +102,9 @@ public:
      * Constructor. Creates material with given number, belonging to given domain.
      * @param d Domain to which new material will belong.
      */
-    ElectroMechanicalMaterialExtensionInterface_3Field(Domain *d){    dom = d;}
+    ElectroMechanicalMaterialExtensionInterface_3Fields(Domain *d){    dom = d;}
     /// Destructor.
-    virtual ~ElectroMechanicalMaterialExtensionInterface_3Field() { }
+    virtual ~ElectroMechanicalMaterialExtensionInterface_3Fields() { }
 
   
     virtual void give_FirstPKStressVector_ElectricalFieldVector_3d(FloatArray &P, FloatArray &E, GaussPoint *gp, const FloatArray &F, const FloatArray &D, TimeStep *tStep) = 0;

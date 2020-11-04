@@ -938,10 +938,10 @@ VTKXMLExportModule :: giveDataHeaders(std :: string &pointHeader, std :: string 
 
     for ( int i = 1; i <= primaryVarsToExport.giveSize(); i++ ) {
         UnknownType type = ( UnknownType ) primaryVarsToExport.at(i);
-        if ( type == DisplacementVector || type == EigenVector || type == VelocityVector || type == DirectorField ) {
+        if ( type == DisplacementVector || type == EigenVector || type == VelocityVector || type == DirectorField || type == ElectricDisplacementVector) {
             vectors += __UnknownTypeToString(type);
             vectors.append(" ");
-        } else if ( type == FluxVector || type == PressureVector || type == Temperature || type == Humidity || type == DeplanationFunction || type == GradientDamageUnknown || CumulatedMicroplasticStrain) {
+        } else if ( type == FluxVector || type == PressureVector || type == Temperature || type == Humidity || type == DeplanationFunction || type == GradientDamageUnknown || CumulatedMicroplasticStrain || type == ElectricPotential) {
             scalars += __UnknownTypeToString(type);
             scalars.append(" ");
         } else {
@@ -1560,6 +1560,21 @@ VTKXMLExportModule :: getNodalVariableFromPrimaryField(FloatArray &answer, DofMa
         }
 
         iState = IST_DirectorField;
+    } else if ( type == ElectricDisplacementVector ) {
+      for ( Dof *dof : *dman ) {
+	DofIDItem id = dof->giveDofID();
+	if ( ( id == E_D1 ) || ( id == E_D2 ) || ( id == E_D3 ) ) {
+	  dofIDMask.followedBy(id);
+	}
+
+            answer.resize(3);
+        }
+
+        iState = IST_ElectricDisplacementVector;
+    } else if ( type == ElectricPotential ) {
+      dofIDMask.followedBy(E_phi);
+      iState = IST_ElectricPotential;
+      answer.resize(1);
     } else {
         OOFEM_ERROR( "unsupported unknownType %s", __UnknownTypeToString(type) );
     }

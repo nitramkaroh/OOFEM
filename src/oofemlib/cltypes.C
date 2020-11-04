@@ -151,6 +151,8 @@ InternalStateValueType giveInternalStateValueType(InternalStateType type)
     case IST_InterfaceTraction:
     case IST_InterfaceJump:
     case IST_NematicElastomerOrientation:
+    case IST_ElectricDisplacementVector:
+    case IST_ElectricFieldVector:
         return ISVT_VECTOR;
 
     case IST_MaxEquivalentStrainLevel:
@@ -232,9 +234,9 @@ int giveInternalStateTypeSize(InternalStateValueType valType)
 
 InternalStateValueType giveInternalStateValueType(UnknownType type)
 {
-    if ( type == DisplacementVector || type == EigenVector || type == VelocityVector || type == DirectorField ) {
+    if ( type == DisplacementVector || type == EigenVector || type == VelocityVector || type == DirectorField || type == ElectricDisplacementVector) {
         return ISVT_VECTOR;
-    } else if ( type == FluxVector || type == PressureVector || type == Temperature || type == Humidity || type == DeplanationFunction || type == GradientDamageUnknown || type == CumulatedMicroplasticStrain ) {
+    } else if ( type == FluxVector || type == PressureVector || type == Temperature || type == Humidity || type == DeplanationFunction || type == GradientDamageUnknown || type == CumulatedMicroplasticStrain || ElectricPotential) {
         return ISVT_SCALAR;
     } else {
         OOFEM_ERROR( "unsupported UnknownType %s", __UnknownTypeToString(type) );

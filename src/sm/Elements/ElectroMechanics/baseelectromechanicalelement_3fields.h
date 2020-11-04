@@ -39,7 +39,7 @@
 #include "../sm/Elements/structuralelement.h"
 #include "../sm/Elements/nlstructuralelement.h"
 
-#include "../sm/CrossSections/ElectroMechanics/simpleelectromechanicalcrosssection.h"
+#include "../sm/CrossSections/ElectroMechanics/simpleelectromechanicalcrosssection_3fields.h"
 
 namespace oofem {
 /**
@@ -49,7 +49,7 @@ namespace oofem {
   class BaseElectroMechanicalElement_3Fields
 {
 protected:
-    IntArray displacementDofsOrdering, electricDisplacementDofsOrdering, electricFieldDofsOrdering;
+    IntArray displacementDofsOrdering, electricDisplacementDofsOrdering, electricPotentialDofsOrdering;
     IntArray locationArray_u, locationArray_phi, locationArray_d;
     
 
@@ -69,7 +69,7 @@ protected:
 
     virtual int giveNumberOfElectricPotentialDofs() = 0;
     virtual int giveNumberOfDisplacementDofs() = 0;
-    virtual int giveNumberOfElectricDisplecementDofs() = 0;
+    virtual int giveNumberOfElectricDisplacementDofs() = 0;
     virtual int giveNumberOfDofs() = 0;
 
     virtual void giveDofManDofIDMask_u(IntArray &answer) = 0;
@@ -78,11 +78,11 @@ protected:
     /// End of pure virtual functions
 
     /// @return Reference to the associated crossSection of element.
-    SimpleElectroMechanicalCrossSection *giveCrossSection(); 
+    SimpleElectroMechanicalCrossSection_3Fields *giveCrossSection(); 
 
     virtual void computeStiffnessMatrix(FloatMatrix &, MatResponseMode, TimeStep *);
     virtual void giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord);
-    void compute_FirstPKStressVector_ElectricDisplacementVector(FloatArray &stress, FloatArray &electricDisplacement, GaussPoint *gp, TimeStep *tStep);
+    void compute_FirstPKStressVector_ElectricFieldVector(FloatArray &stress, FloatArray &electricDisplacement, GaussPoint *gp, TimeStep *tStep);
     void computeStrainVector(FloatArray &answer, GaussPoint *gp, TimeStep *tStep);
     void computeElectricPotentialGradientVector(FloatArray &answer,  GaussPoint *gp, TimeStep *tStep);
     void computeElectricDisplacementVector(FloatArray &answer,  GaussPoint *gp, TimeStep *tStep);   

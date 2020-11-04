@@ -141,7 +141,9 @@ set (sm_element
     Elements/Micromorphic/Straindivergence/planestrainstraindivergence.C
     #Electro-mechanical elements
     Elements/ElectroMechanics/baseelectromechanicalelement.C
+    Elements/ElectroMechanics/baseelectromechanicalelement_3fields.C
     Elements/ElectroMechanics/3D/lspaceelectromechanicalelement.C
+    Elements/ElectroMechanics/3D/lspaceelectromechanicalelement_3fields.C
     )
 
 set (sm_interface_elements
@@ -170,6 +172,7 @@ set (sm_crosssection
     CrossSections/variablecrosssection.C
     CrossSections/warpingcrosssection.C
     CrossSections/ElectroMechanics/simpleelectromechanicalcrosssection.C
+    CrossSections/ElectroMechanics/simpleelectromechanicalcrosssection_3fields.C
     )
 
 set (sm_emodel
@@ -323,7 +326,8 @@ set (sm_material
     Materials/Micromorphic/secondgradientms.C
     Materials/Micromorphic/secondgradientmaterialextensioninterface.C
     # Electro-mechanics
-    Materials/HyperelasticMaterials/ElectroMechanics/mooneyrivlin_idealdielectric.C    
+    Materials/HyperelasticMaterials/ElectroMechanics/mooneyrivlin_idealdielectric.C
+    Materials/HyperelasticMaterials/ElectroMechanics/mooneyrivlin_idealdielectric_transverselyisotropic.C    
     Materials/ElectroMechanics/electromechanicalms.C
     )
 

@@ -392,12 +392,13 @@ EngngModel :: reduceTimeStep(TimeStep *tStep)
 {
   /// reduce timestep by fator of 2 for now
   double dT = tStep->giveTimeIncrement()/2.;
+  /// Set target time.
+  tStep->setTargetTime(tStep->giveTargetTime() - dT);
+  /// Set intrinsic time.
+  tStep->setIntrinsicTime(tStep->giveIntrinsicTime() - dT);
   /// Set time increment.  
   tStep->setTimeIncrement(dT);
-  /// Set target time.
-  tStep->setTargetTime(tStep->giveTargetTime()-dT);
-  /// Set intrinsic time.
-  tStep->setIntrinsicTime(tStep->giveIntrinsicTime()-dT);
+
 
 
 }

@@ -54,7 +54,7 @@ namespace oofem {
 /**
  * Electromechanical coupling considering Ideal dielectric Mooney-Rivlin material
  */
-  class MooneyRivlin_IdealDielectricMaterial : public Material, public ElectroMechanicalMaterialExtensionInterface, public ElectroMechanicalMaterialExtensionInterface_3Field
+  class MooneyRivlin_IdealDielectricMaterial : public Material, public ElectroMechanicalMaterialExtensionInterface, public ElectroMechanicalMaterialExtensionInterface_3Fields
 {
 protected:
   MooneyRivlinMaterial *hyperelasticMaterial;
