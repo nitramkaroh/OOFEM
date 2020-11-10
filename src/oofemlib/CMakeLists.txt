@@ -95,6 +95,10 @@ if (USE_MKLPARDISO)
     list (APPEND core_nm mklpardisosolver.C)
 endif ()
 
+if (USE_PARDISO_ORG)
+    list (APPEND core_nm pardisoprojectorgsolver.C)
+endif ()
+
 set (core_fields
     fieldmanager.C
     field.C

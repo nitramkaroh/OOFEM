@@ -64,6 +64,8 @@ set (CKIT_DIR CACHE PATH "Manual CKit directory (OOFEG only)")
 set (METIS_DIR CACHE PATH "Manual Metis directory (Load balancing)")
 set (PARMETIS_DIR CACHE PATH "Manual ParMetis directory (Load balancing)")
 #set (BOOST_DIR CACHE PATH "Manual Boost directory")
+set (SUPERLU_MT_DIR CACHE PATH "Manual SuperLU_MT directory")
+set (PARDISO_ORG_DIR CACHE PATH "Manual pardiso-project.org directory (sparse direct solver)")
 
 #######################################################################
 ######################## Options ######################################
@@ -85,6 +87,8 @@ option (USE_DSS "Enable DSS module" OFF) # No reason to use this
 option (USE_IML "Enable iml++ solvers" OFF) # or this
 option (USE_SPOOLES "Enable SPOOLES-solver" OFF) # or this
 option (USE_MKLPARDISO "Enable MKLPARDISO solver support" OFF)
+option (USE_PARDISO_ORG "Enable PARDISO-project.org solver support" OFF)
+option (USE_SUPERLU_MT "Use SUPERLU_MT" OFF)
 option (USE_PETSC "Enable PETSc support (required for parallel)" OFF)
 option (USE_SLEPC "Enable SLEPc support" OFF)
 option (USE_LAPACK "Use LAPACK" OFF)
@@ -246,6 +250,33 @@ if (USE_LAPACK)
     add_definitions (-D__LAPACK_MODULE)
 endif ()
 
+
+
+## There is a conflict on set.h as defined by libstdc and superlu_mt 3.1
+## Therefore it is assumed that superlu include files
+## are included using #include "SUPERLU_MT/include"
+## The ${SUPERLU_MT_DIR} is added into compiler include path
+## Therefore SUPERLU_MT/include has to be manually added pointing to
+## ${SUPERLU_MT__DIR}/src directory
+if (USE_SUPERLU_MT)
+    set (CMAKE_LIBRARY_DIR ${SUPERLU_MT_DIR})
+    #find_package (SuperLU REQUIRED)
+    find_package(BLAS REQUIRED)
+    find_library (SUPERLU_MT_LIB superlu_mt_OPENMP PATH "${SUPERLU_MT_DIR}/lib")
+    list (APPEND EXT_LIBS ${SUPERLU_MT_LIB} ${BLAS_LIBRARIES})
+    #set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${BLAS_LINKER_FLAGS}")
+    list (APPEND MODULE_LIST "SuperLU_MT")
+    include_directories("${SUPERLU_MT_DIR}")
+    set (CMAKE_REQUIRED_INCLUDES "${SUPERLU_MT_DIR}")
+    add_definitions (-D__SuperLU_MT_MODULE)
+    check_include_file_cxx ("${SUPERLU_MT_DIR}/include/slu_mt_ddefs.h" HAVE_SUPERLU_MT_DDEFS_H)
+    if (NOT HAVE_SUPERLU_MT_DDEFS_H)
+        message (FATAL_ERROR "Necessary SUPERLU_MT headers not found; refer to CMakeLists.txt for details")
+    endif ()
+
+
+endif ()
+
 if (USE_VTK)
     set (CMAKE_LIBRARY_DIR ${VTK_DIR})
     find_package (VTK REQUIRED NO_MODULE)
@@ -284,6 +315,23 @@ if (USE_METIS)
     list (APPEND EXT_LIBS ${METIS_LIB})
     list (APPEND MODULE_LIST "metis")
 endif ()
+
+
+if (USE_PARDISO_ORG)
+    if (PARDISO_ORG_DIR)
+        find_library (PARDISO_ORG_LIB pardiso PATH "${PARDISO_ORG_DIR}")
+    else ()
+        find_library (PARDISO_ORG_LIB pardiso)
+    endif ()
+    if (${PARDISO_ORG_LIB} STREQUAL "PARDISO_ORG_LIB-NOTFOUND")
+        message (FATAL_ERROR "Pardiso library not found")
+    endif ()
+    list (APPEND EXT_LIBS ${PARDISO_ORG_LIB} blas lapack gfortran pthread)
+    set (CMAKE_CXX_COMPILE_FLAGS "${CMAKE_CXX_COMPILES_FLAGS} -fopenmp")
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fopenmp" ) 
+    list (APPEND MODULE_LIST "pardiso-project.org")
+endif ()
+
 
 if (USE_MKLPARDISO)
     # Find the actual libraries:
