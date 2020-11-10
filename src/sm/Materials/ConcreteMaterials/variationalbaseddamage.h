@@ -56,13 +56,10 @@ class VarBasedDamageMaterial : public IsotropicDamageMaterial1, public GradientD
 {
 protected:
   double initialDamage;
-  /// beta is parameter ....
   double beta;
   double p;
   double penalty;
   int pf;
-
-  double a1,a2,a3;
 
 public:
     /// Constructor
@@ -99,7 +96,7 @@ public:
     virtual void giveNonlocalInternalForces_N_factor(double &answer, double nlddv, GaussPoint *gp, TimeStep *tStep);
     virtual void giveNonlocalInternalForces_B_factor(FloatArray &answer, const FloatArray &nlddv, GaussPoint *gp, TimeStep *tStep);
     
- protected:
+    
     virtual void computeDamage(double &answer, double damageDrivingVariable, GaussPoint *gp);
     virtual void computeDamagePrime(double &answer, double damageDrivingVariable, GaussPoint *gp);
     virtual void computeDamagePrime2(double &answer, double damageDrivingVariable, GaussPoint *gp);
@@ -108,7 +105,6 @@ public:
     virtual void computeDissipationFunctionPrime2(double &answer, double damageDrivingVariable, GaussPoint *gp);
 #ifdef keep_track_of_dissipated_energy
     virtual void computeRegulirizingWork(GaussPoint *gp,const FloatArray &nonlocalDamageDrivingVariableGrad);
-    double computeQ(const double damageDrivingVariable);
 #endif
 
     int giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType type, TimeStep *tStep);

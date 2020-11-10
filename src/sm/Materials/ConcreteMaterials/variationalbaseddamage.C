@@ -280,23 +280,17 @@ VarBasedDamageMaterial :: giveNonlocalInternalForces_B_factor(FloatArray &answer
 void
 VarBasedDamageMaterial :: computeDamage(double &answer, double damageDrivingVariable, GaussPoint *gp)
 {
+  /// for now, class of models using linear softening with exponent p is used
+  if(p == 1) {
+    answer = 1-exp( -damageDrivingVariable );
+  } else {   
+    answer = 1. - pow( ( 1. + ( p - 1. ) * damageDrivingVariable ), 1. / ( 1. - p ) );
+  }
 
-  if(VarBasedModeType == VBMT_ZJ) {
-    /// for now, class of models using linear softening with exponent p is used
-    if(p == 1) {
-      answer = 1-exp( -damageDrivingVariable );
-    } else {   
-      answer = 1. - pow( ( 1. + ( p - 1. ) * damageDrivingVariable ), 1. / ( 1. - p ) );
-    }
-
-  } else if(VarBasedModeType == VBMT_Miehe) {
+  
+  if(pf!=0) {
     //corresponds to the Miehe phase-field model
     answer = 2*damageDrivingVariable-damageDrivingVariable*damageDrivingVariable;
-  } else if(VarBasedModeType == VBMT_Wu){ // Wu
-    double Q = this->computeQ(damageDrivingVariable);
-    answer  = pow(1-damageDrivingVariable, this->p) / (Q  + pow(1-damageDrivingVariable, this->p));
-  } else {
-    OOFEM_ERROR("Unknown phase-field type");
   }
 
   
@@ -308,16 +302,6 @@ VarBasedDamageMaterial :: computeDamage(double &answer, double damageDrivingVari
     answer = 0.;
   }
 }
-
-
-double
-VarBasedDamageMaterial :: computeQ(const double damageDrivingVariable)
-{
-  return this->a1 * damageDrivingVariable + this->a2 * damageDrivingVariable * damageDrivingVariable + this->a3 * damageDrivingVariable * damageDrivingVariable * damageDrivingVariable;
-
-}
-  
-
 
 void
 VarBasedDamageMaterial :: computeDamagePrime(double &answer, double damageDrivingVariable, GaussPoint *gp)
@@ -389,8 +373,6 @@ VarBasedDamageMaterial :: computeDissipationFunctionPrime(double &answer, double
     aux = 1.+solveExpLaw(damage,c);
     answer = gf*aux*aux;
     break;
-  case 5: // Wu
-    
   default: // linear softening
     aux = 1. + ( beta - 1. )*damage;
     answer = gf/(aux*aux);
@@ -419,7 +401,6 @@ VarBasedDamageMaterial :: computeDissipationFunctionPrime2(double &answer, doubl
     aux = 1.+solveExpLaw(damage,c);
     answer = 2.*gf*aux*aux/(1.-damage+c*exp(-c*(aux-1.)));
     break;
-  case 5: // Wu
   default: // linear softening
     answer = 2. * (1. - beta) * gf/(pow( 1. + ( beta - 1. ) * damage, 3. ));
   }
