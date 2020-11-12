@@ -81,8 +81,29 @@ VarBasedDamageMaterial :: initializeFrom(InputRecord *ir)
   if ( result != IRRT_OK ) {
     return result;
   }
+  // IR_GIVE_FIELD(ir, internalLength, _IFT_GradientDamageMaterialExtensionInterface_l);
+  // IR_GIVE_FIELD(ir, E, _IFT_IsotropicLinearElasticMaterial_e);
+  this->gf = 0; 
+  IR_GIVE_OPTIONAL_FIELD(ir, this->gf, _IFT_IsotropicDamageMaterial1_gf);
+  if(this->gf == 0){
+    this->Gf = 100.;
+    IR_GIVE_FIELD(ir, this->Gf, _IFT_VarBasedDamageMaterial_Gf);
+    this->LdInf = 5e-2;
+    IR_GIVE_FIELD(ir, this->LdInf, _IFT_VarBasedDamageMaterial_LdInf);
+    this->ft = 3e6;
+    IR_GIVE_FIELD(ir, this->ft, _IFT_VarBasedDamageMaterial_ft);
+    this->youngsModulus = 20e9;
+    IR_GIVE_FIELD(ir, this->youngsModulus, _IFT_VarBasedDamageMaterial_youngsModulus);
 
-  IR_GIVE_FIELD(ir, gf, _IFT_IsotropicDamageMaterial1_gf);
+    this->gfInf = this->Gf/this->LdInf;
+    this->internalLengthInf = pow(2.,1/2)/M_PI*this->LdInf;
+    this->a1 = 4.*this->youngsModulus*this->gfInf/pow(this->ft,2);
+
+    this->gf = 2*this->gfInf/this->a1; 
+    
+    internalLength = pow(this->gfInf/this->gf,1/2)*this->internalLengthInf;  
+  }    
+    
   this->phaseFieldModelType = phaseFieldModel_JZ;
 
   int phaseFieldModelTypeRecord = 0; // default
@@ -129,12 +150,10 @@ VarBasedDamageMaterial :: initializeFrom(InputRecord *ir)
     this->damageLaw = 5; // damage law used by Wu
     
     if (wuSofteningLaw == user_specified_softening){
-      this->a1 = 1.;
-      IR_GIVE_OPTIONAL_FIELD(ir, this->a1, _IFT_VarBasedDamageMaterial_a1);
       this->a2 = -2.;
-      IR_GIVE_OPTIONAL_FIELD(ir, this->a2, _IFT_VarBasedDamageMaterial_a2); 
+      IR_GIVE_FIELD(ir, this->a2, _IFT_VarBasedDamageMaterial_a2); 
       this->a3 = 0.;
-      IR_GIVE_OPTIONAL_FIELD(ir, this->a3, _IFT_VarBasedDamageMaterial_a3);
+      IR_GIVE_FIELD(ir, this->a3, _IFT_VarBasedDamageMaterial_a3);
 
       this->p = 2.;
       IR_GIVE_OPTIONAL_FIELD(ir, this->p, _IFT_VarBasedDamageMaterial_p);
@@ -144,56 +163,20 @@ VarBasedDamageMaterial :: initializeFrom(InputRecord *ir)
 
     else if (wuSofteningLaw == linear_softening){
 
-      //this->Gf = 100.;
-      //IR_GIVE_OPTIONAL_FIELD(ir, this->Gf, _IFT_VarBasedDamageMaterial_Gf);
-
-      //this->Ldinf = 5e-2;
-      //IR_GIVE_OPTIONAL_FIELD(ir, this->Ldinf, _IFT_VarBasedDamageMaterial_Ldinf);
-
-      this->ft = 3e6;
-      IR_GIVE_OPTIONAL_FIELD(ir, this->ft, _IFT_VarBasedDamageMaterial_ft);
-
-      this->youngs_modulus = 20e9;
-      IR_GIVE_OPTIONAL_FIELD(ir, this->youngs_modulus, _IFT_VarBasedDamageMaterial_youngs_modulus);
-		
-      //this->a1 = 4.*this->youngs_modulus*this->Gf/(pow(this->ft,2)*this->Ldinf);
-      this->a1 = 4*youngs_modulus*gf/pow(this->ft,2);
       this->a2 = -1*this->a1/2;
       this->a3 = 0.;
 
       this->p = 2.;
 
-      //gf = this->Gf/this->Ldinf;
-      //double gf0 =  2*gf/this->a1;
-      //double linf = pow(2,1/2)/M_PI*this->Ldinf;
-      //internalLength = pow(gf/gf0,1/2)*linf;
     }
 
     else if (wuSofteningLaw == exponential_softening){
 
-      //this->Gf = 100.;
-      //IR_GIVE_OPTIONAL_FIELD(ir, this->Gf, _IFT_VarBasedDamageMaterial_Gf);
-
-      //this->Ldinf = 5e-2;
-      //IR_GIVE_OPTIONAL_FIELD(ir, this->Ldinf, _IFT_VarBasedDamageMaterial_Ldinf);
-
-      this->ft = 3e6;
-      IR_GIVE_OPTIONAL_FIELD(ir, this->ft, _IFT_VarBasedDamageMaterial_ft);
-
-      this->youngs_modulus = 20e9;
-      IR_GIVE_OPTIONAL_FIELD(ir, this->youngs_modulus, _IFT_VarBasedDamageMaterial_youngs_modulus);
-		
-      //this->a1 = 4.*this->youngs_modulus*this->Gf/(pow(this->ft,2)*this->Ldinf);
-      this->a1 = 4*youngs_modulus*gf/pow(this->ft,2);
       this->a2 = (pow(2.,5/3)-3)*this->a1;
       this->a3 = 0.;
 
       this->p = 2.5;
 
-      //gf = this->Gf/this->Ldinf;
-      //double gf0 =  2*gf/this->a1;
-      //double linf = pow(2,1/2)/M_PI*this->Ldinf;
-      //internalLength = pow(gf/gf0,1/2)*linf;
     }      
   }
 
@@ -506,13 +489,13 @@ VarBasedDamageMaterial :: solveExpLaw(double dam, double c)
 double
 VarBasedDamageMaterial :: compute_dissipation_Wu_prime1_in_gamma(double damageDrivingVariable)
 {
-  return gf*(2 - 2*damageDrivingVariable);
+  return this->gfInf*(2 - 2*damageDrivingVariable);
 }
 
 double
 VarBasedDamageMaterial :: compute_dissipation_Wu_prime2_in_gamma(double damageDrivingVariable)
 {
-  return -2*gf;
+  return -2*this->gfInf;
 }
 
 void
