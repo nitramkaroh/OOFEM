@@ -77,15 +77,26 @@ VarBasedDamageMaterial :: initializeFrom(InputRecord *ir)
   if ( result != IRRT_OK ) {
     return result;
   }
+
+  int phaseFieldModelTypeRecord = 0; // default
+  //non zero value corresponds to the Miehe phase-field model or Wu model
+  IR_GIVE_OPTIONAL_FIELD(ir, phaseFieldModelTypeRecord, _IFT_VarBasedDamageMaterial_phaseFieldModelType);
+  if ( phaseFieldModelTypeRecord == 0 ) {
+    this->phaseFieldModelType = phaseFieldModel_JZ;
+  } else if ( phaseFieldModelTypeRecord == 1 ) {
+    this->phaseFieldModelType = phaseFieldModel_Miehe;
+  } else if ( phaseFieldModelTypeRecord == 2 ) {
+    this->phaseFieldModelType = phaseFieldModel_Wu;
+  }  else {
+    OOFEM_ERROR("Unknown phase-field model type");
+  }
+  
   result = GradientDamageMaterialExtensionInterface :: initializeFrom(ir);
   if ( result != IRRT_OK ) {
     return result;
   }
-  // IR_GIVE_FIELD(ir, internalLength, _IFT_GradientDamageMaterialExtensionInterface_l);
-  // IR_GIVE_FIELD(ir, E, _IFT_IsotropicLinearElasticMaterial_e);
-  this->gf = 0; 
-  IR_GIVE_OPTIONAL_FIELD(ir, this->gf, _IFT_IsotropicDamageMaterial1_gf);
-  if(this->gf == 0){
+
+  if (this->phaseFieldModelType == phaseFieldModel_Wu) {
     this->Gf = 100.;
     IR_GIVE_FIELD(ir, this->Gf, _IFT_VarBasedDamageMaterial_Gf);
     this->LdInf = 5e-2;
@@ -101,36 +112,28 @@ VarBasedDamageMaterial :: initializeFrom(InputRecord *ir)
 
     this->gf = 2*this->gfInf/this->a1; 
     
-    internalLength = pow(this->gfInf/this->gf,1/2)*this->internalLengthInf;  
-  }    
+    internalLength = 0;
+
+    //pow(this->gfInf/this->gf,1/2)*this->internalLengthInf;
+
+    int WuSofteningLawRecord = 0; // default - linear softening
+    //non zero value corresponds to the Miehe phase-field model or Wu model
+    IR_GIVE_OPTIONAL_FIELD(ir, WuSofteningLawRecord, _IFT_VarBasedDamageMaterial_wu_softening_law);
+    if ( WuSofteningLawRecord == 0 ) {
+      this->wuSofteningLaw = linear_softening;
+    } else if ( WuSofteningLawRecord == 1 ) {
+      this->wuSofteningLaw = exponential_softening;
+    } else if ( WuSofteningLawRecord == 2 ) {
+      this->wuSofteningLaw = user_specified_softening;
+    }  else {
+      OOFEM_ERROR("Unknown Wu softening law type");
+    }
+  }
+  // IR_GIVE_FIELD(ir, internalLength, _IFT_GradientDamageMaterialExtensionInterface_l);
+  // IR_GIVE_FIELD(ir, E, _IFT_IsotropicLinearElasticMaterial_e);    
     
-  this->phaseFieldModelType = phaseFieldModel_JZ;
-
-  int phaseFieldModelTypeRecord = 0; // default
-  //non zero value corresponds to the Miehe phase-field model or Wu model
-  IR_GIVE_OPTIONAL_FIELD(ir, phaseFieldModelTypeRecord, _IFT_VarBasedDamageMaterial_phaseFieldModelType);
-  if ( phaseFieldModelTypeRecord == 0 ) {
-    this->phaseFieldModelType = phaseFieldModel_JZ;
-  } else if ( phaseFieldModelTypeRecord == 1 ) {
-    this->phaseFieldModelType = phaseFieldModel_Miehe;
-  } else if ( phaseFieldModelTypeRecord == 2 ) {
-    this->phaseFieldModelType = phaseFieldModel_Wu;
-  }  else {
-    OOFEM_ERROR("Unknown phase-field model type");
-  }
-
-  int WuSofteningLawRecord = 0; // default - linear softening
-  //non zero value corresponds to the Miehe phase-field model or Wu model
-  IR_GIVE_OPTIONAL_FIELD(ir, WuSofteningLawRecord, _IFT_VarBasedDamageMaterial_wu_softening_law);
-  if ( WuSofteningLawRecord == 0 ) {
-    this->wuSofteningLaw = linear_softening;
-  } else if ( WuSofteningLawRecord == 1 ) {
-    this->wuSofteningLaw = exponential_softening;
-  } else if ( WuSofteningLawRecord == 2 ) {
-    this->wuSofteningLaw = user_specified_softening;
-  }  else {
-    OOFEM_ERROR("Unknown Wu softening law type");
-  }
+  
+  
     
    
    
@@ -156,7 +159,7 @@ VarBasedDamageMaterial :: initializeFrom(InputRecord *ir)
       IR_GIVE_FIELD(ir, this->a3, _IFT_VarBasedDamageMaterial_a3);
 
       this->p = 2.;
-      IR_GIVE_OPTIONAL_FIELD(ir, this->p, _IFT_VarBasedDamageMaterial_p);
+      IR_GIVE_FIELD(ir, this->p, _IFT_VarBasedDamageMaterial_p);
 
       //gf = gf*this->a1/2;
     }

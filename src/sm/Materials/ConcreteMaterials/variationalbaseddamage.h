@@ -47,8 +47,8 @@
 #define _IFT_VarBasedDamageMaterial_a2 "a2"
 #define _IFT_VarBasedDamageMaterial_a3 "a3"
 
-#define _IFT_VarBasedDamageMaterial_Gf "Gf"
-#define _IFT_VarBasedDamageMaterial_LdInf "LdInf"
+#define _IFT_VarBasedDamageMaterial_Gf "fractenergy"
+#define _IFT_VarBasedDamageMaterial_LdInf "ldinf"
 #define _IFT_VarBasedDamageMaterial_ft "ft"
 #define _IFT_VarBasedDamageMaterial_youngsModulus "youngsmodulus"
 
