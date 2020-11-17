@@ -112,9 +112,7 @@ VarBasedDamageMaterial :: initializeFrom(InputRecord *ir)
 
     this->gf = 2*this->gfInf/this->a1; 
     
-    internalLength = 0;
-
-    //pow(this->gfInf/this->gf,1/2)*this->internalLengthInf;
+    internalLength = pow(this->gfInf/this->gf,1/2)*this->internalLengthInf;
 
     int WuSofteningLawRecord = 0; // default - linear softening
     //non zero value corresponds to the Miehe phase-field model or Wu model
