@@ -81,7 +81,9 @@ public:
 
     virtual void solveYourself();
     virtual void solveYourselfAt(TimeStep *tStep);
-
+    void giveInitialGuess(int di, TimeStep *tStep);
+   
+  
     virtual void terminate(TimeStep *tStep);
 
     virtual void updateComponent(TimeStep *tStep, NumericalCmpn cmpn, Domain *d);
