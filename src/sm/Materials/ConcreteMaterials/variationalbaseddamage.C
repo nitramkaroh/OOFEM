@@ -50,6 +50,8 @@
 namespace oofem {
 REGISTER_Material(VarBasedDamageMaterial);
 
+//q Syntax?
+
 VarBasedDamageMaterial :: VarBasedDamageMaterial(int n, Domain *d) : IsotropicDamageMaterial1(n, d), GradientDamageMaterialExtensionInterface(d)
     //
     // constructor
@@ -63,34 +65,123 @@ VarBasedDamageMaterial :: ~VarBasedDamageMaterial()
 //
 { }
 
+
+//q IRResultType --- syntax?  
+ 
 IRResultType
 VarBasedDamageMaterial :: initializeFrom(InputRecord *ir)
 {
-    IRResultType result;
+  IRResultType result;
 
-    result = linearElasticMaterial->initializeFrom(ir);
-    if ( result != IRRT_OK ) {
-        return result;
+  result = linearElasticMaterial->initializeFrom(ir);
+  if ( result != IRRT_OK ) {
+    return result;
+  }
+
+  int phaseFieldModelTypeRecord = 0; // default
+  //non zero value corresponds to the Miehe phase-field model or Wu model
+  IR_GIVE_OPTIONAL_FIELD(ir, phaseFieldModelTypeRecord, _IFT_VarBasedDamageMaterial_phaseFieldModelType);
+  if ( phaseFieldModelTypeRecord == 0 ) {
+    this->phaseFieldModelType = phaseFieldModel_JZ;
+  } else if ( phaseFieldModelTypeRecord == 1 ) {
+    this->phaseFieldModelType = phaseFieldModel_Miehe;
+  } else if ( phaseFieldModelTypeRecord == 2 ) {
+    this->phaseFieldModelType = phaseFieldModel_Wu;
+  }  else {
+    OOFEM_ERROR("Unknown phase-field model type");
+  }
+  
+  result = GradientDamageMaterialExtensionInterface :: initializeFrom(ir);
+  if ( result != IRRT_OK ) {
+    return result;
+  }
+
+  if (this->phaseFieldModelType == phaseFieldModel_Wu) {
+    this->Gf = 100.;
+    IR_GIVE_FIELD(ir, this->Gf, _IFT_VarBasedDamageMaterial_Gf);
+    this->LdInf = 5e-2;
+    IR_GIVE_FIELD(ir, this->LdInf, _IFT_VarBasedDamageMaterial_LdInf);
+    this->ft = 3e6;
+    IR_GIVE_FIELD(ir, this->ft, _IFT_VarBasedDamageMaterial_ft);
+    this->youngsModulus = 20e9;
+    IR_GIVE_FIELD(ir, this->youngsModulus, _IFT_VarBasedDamageMaterial_youngsModulus);
+
+    this->gfInf = this->Gf/this->LdInf;
+    this->internalLengthInf = pow(2.,1/2)/M_PI*this->LdInf;
+    this->a1 = 4.*this->youngsModulus*this->gfInf/pow(this->ft,2);
+
+    this->gf = 2*this->gfInf/this->a1; 
+    
+    internalLength = 0;
+
+    //pow(this->gfInf/this->gf,1/2)*this->internalLengthInf;
+
+    int WuSofteningLawRecord = 0; // default - linear softening
+    //non zero value corresponds to the Miehe phase-field model or Wu model
+    IR_GIVE_OPTIONAL_FIELD(ir, WuSofteningLawRecord, _IFT_VarBasedDamageMaterial_wu_softening_law);
+    if ( WuSofteningLawRecord == 0 ) {
+      this->wuSofteningLaw = linear_softening;
+    } else if ( WuSofteningLawRecord == 1 ) {
+      this->wuSofteningLaw = exponential_softening;
+    } else if ( WuSofteningLawRecord == 2 ) {
+      this->wuSofteningLaw = user_specified_softening;
+    }  else {
+      OOFEM_ERROR("Unknown Wu softening law type");
     }
-    result = GradientDamageMaterialExtensionInterface :: initializeFrom(ir);
-    if ( result != IRRT_OK ) {
-        return result;
+  }
+  // IR_GIVE_FIELD(ir, internalLength, _IFT_GradientDamageMaterialExtensionInterface_l);
+  // IR_GIVE_FIELD(ir, E, _IFT_IsotropicLinearElasticMaterial_e);    
+    
+  
+  
+    
+   
+   
+    
+  if (this->phaseFieldModelType == phaseFieldModel_JZ){
+    this->p = 0.5;
+    IR_GIVE_OPTIONAL_FIELD(ir, this->p, _IFT_VarBasedDamageMaterial_p);
+    this->damageLaw = 0; // linear softening - default
+    IR_GIVE_OPTIONAL_FIELD(ir, this->damageLaw, _IFT_VarBasedDamageMaterial_damageLaw);
+    beta = 1.; // elastic-brittle model - default
+    IR_GIVE_OPTIONAL_FIELD(ir, this->beta, _IFT_VarBasedDamageMaterial_beta);
+  }
+  else if (this->phaseFieldModelType == phaseFieldModel_Miehe) {
+    this->damageLaw = 1; // damage law used by Miehe 
+  }
+  else if (this->phaseFieldModelType == phaseFieldModel_Wu) {
+    this->damageLaw = 5; // damage law used by Wu
+    
+    if (wuSofteningLaw == user_specified_softening){
+      this->a2 = -2.;
+      IR_GIVE_FIELD(ir, this->a2, _IFT_VarBasedDamageMaterial_a2); 
+      this->a3 = 0.;
+      IR_GIVE_FIELD(ir, this->a3, _IFT_VarBasedDamageMaterial_a3);
+
+      this->p = 2.;
+      IR_GIVE_FIELD(ir, this->p, _IFT_VarBasedDamageMaterial_p);
+
+      //gf = gf*this->a1/2;
     }
 
-    IR_GIVE_FIELD(ir, gf, _IFT_IsotropicDamageMaterial1_gf);
-    pf = 0;
-    //non zero value corresponds to the Miehe phase-field model, p and beta are then not needed
-    IR_GIVE_OPTIONAL_FIELD(ir, pf, _IFT_VarBasedDamageMaterial_pf);
-    if (pf == 0){
-      p = 0.5;
-      IR_GIVE_OPTIONAL_FIELD(ir, p, _IFT_VarBasedDamageMaterial_p);
-      this->damageLaw = 0; // linear softening - default
-      IR_GIVE_OPTIONAL_FIELD(ir, this->damageLaw, _IFT_VarBasedDamageMaterial_damageLaw);
-       beta = 1.; // elastic-brittle model - default
-      IR_GIVE_OPTIONAL_FIELD(ir, beta, _IFT_VarBasedDamageMaterial_beta);
-    } else {
-      this->damageLaw = 1; // damage law used by Miehe 
+    else if (wuSofteningLaw == linear_softening){
+
+      this->a2 = -1*this->a1/2;
+      this->a3 = 0.;
+
+      this->p = 2.;
+
     }
+
+    else if (wuSofteningLaw == exponential_softening){
+
+      this->a2 = (pow(2.,5/3)-3)*this->a1;
+      this->a3 = 0.;
+
+      this->p = 2.5;
+
+    }      
+  }
 
     int equivStrainTypeRecord = 0; // default
     IR_GIVE_OPTIONAL_FIELD(ir, equivStrainTypeRecord, _IFT_VarBasedDamageMaterial_equivstraintype);
@@ -119,10 +210,6 @@ VarBasedDamageMaterial :: initializeFrom(InputRecord *ir)
 
     return this->mapper.initializeFrom(ir);
 }
-
-/////////////////////////////////////////////////////////////////////////////
-
-
 
 int
 VarBasedDamageMaterial :: hasMaterialModeCapability(MaterialMode mode)
@@ -223,8 +310,8 @@ VarBasedDamageMaterial :: giveGradientDamageStiffnessMatrix_dd_NN(FloatMatrix &a
   
   this->computeDamagePrime(dDamage, damageDrivingVariable, gp);
   this->computeDamagePrime2(ddDamage, damageDrivingVariable, gp);
-  this->computeDissipationFunctionPrime(dDiss, damage, gp);
-  this->computeDissipationFunctionPrime2(ddDiss, damage, gp);
+  this->computeDissipationFunctionPrime(dDiss, damage, damageDrivingVariable, gp);
+  this->computeDissipationFunctionPrime2(ddDiss, damage, damageDrivingVariable, gp);
 
   answer.resize(1,1);
   answer.at(1,1) = (ddDiss*dDamage*dDamage) + (dDiss-localDamageDrivingVariable)*ddDamage;
@@ -253,16 +340,18 @@ VarBasedDamageMaterial :: giveGradientDamageStiffnessMatrix_dd_BB(FloatMatrix &a
 
 void
 VarBasedDamageMaterial :: giveNonlocalInternalForces_N_factor(double &answer, double nonlocalDamageDrivingVariable, GaussPoint *gp, TimeStep *tStep)
+
+  
 {
   double localDamageDrivingVariable, dDamage, dDiss, damage;
 
-   VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
+  VarBasedDamageMaterialStatus *status = static_cast< VarBasedDamageMaterialStatus * >( this->giveStatus(gp) );
     //  damageDrivingVariable = status->giveTempNonlocalDamageDrivingVariable();
   damage = status->giveTempDamage();
   
   this-> computeLocalDamageDrivingVariable(localDamageDrivingVariable, gp, tStep);
   this->computeDamagePrime(dDamage, nonlocalDamageDrivingVariable, gp);
-  this->computeDissipationFunctionPrime(dDiss, damage, gp);  
+  this->computeDissipationFunctionPrime(dDiss, damage, nonlocalDamageDrivingVariable,  gp);  
   answer = ( dDiss - localDamageDrivingVariable ) * dDamage;
  
 }
@@ -277,27 +366,53 @@ VarBasedDamageMaterial :: giveNonlocalInternalForces_B_factor(FloatArray &answer
 #endif
 }
 
+double
+VarBasedDamageMaterial :: computeQ_Wu(double damageDrivingVariable)
+{
+  return this->a1*damageDrivingVariable + this->a2*pow(damageDrivingVariable,2) + this->a3*pow(damageDrivingVariable,3);
+}
+
+double
+VarBasedDamageMaterial :: computeQ_Wu_prime1(double damageDrivingVariable)
+{
+  return this->a1 + this->a2*2*damageDrivingVariable + this->a3*3*pow(damageDrivingVariable,2);
+}
+
+double
+VarBasedDamageMaterial :: computeQ_Wu_prime2(double damageDrivingVariable)
+{
+  return this->a2*2 + this->a3*6*damageDrivingVariable;
+}
+
+
 void
 VarBasedDamageMaterial :: computeDamage(double &answer, double damageDrivingVariable, GaussPoint *gp)
 {
   /// for now, class of models using linear softening with exponent p is used
-  if(p == 1) {
-    answer = 1-exp( -damageDrivingVariable );
-  } else {   
-    answer = 1. - pow( ( 1. + ( p - 1. ) * damageDrivingVariable ), 1. / ( 1. - p ) );
-  }
 
-  
-  if(pf!=0) {
+  if (this->phaseFieldModelType == phaseFieldModel_JZ) { 
+    if(this->p == 1) {
+      answer = 1-exp( -damageDrivingVariable );
+    } else {   
+      answer = 1. - pow( ( 1. + ( this->p - 1. ) * damageDrivingVariable ), 1. / ( 1. - this->p ) );
+    }
+  }
+  else if(this->phaseFieldModelType == phaseFieldModel_Miehe) {
     //corresponds to the Miehe phase-field model
     answer = 2*damageDrivingVariable-damageDrivingVariable*damageDrivingVariable;
   }
-
+  else if(this->phaseFieldModelType == phaseFieldModel_Wu) {
+    //corresponds to the Wu phase-field model
+    double Q = this->computeQ_Wu(damageDrivingVariable);  
+    answer = 1. - pow(1 - damageDrivingVariable, this->p)/(Q + pow(1 - damageDrivingVariable,this->p)); 
+  }
+  else {
+    OOFEM_ERROR("Unknown phase-field model type");
+  }
   
   if(answer > 1.) {
     answer = 1.;
   }
-
   if(answer < 0.) {
     answer = 0.;
   }
@@ -307,15 +422,25 @@ void
 VarBasedDamageMaterial :: computeDamagePrime(double &answer, double damageDrivingVariable, GaussPoint *gp)
 {
   /// for now, only class of models using exponent p is used
-  if(p == 1) {
-    answer = exp( -damageDrivingVariable );
-  } else {   
-    answer = pow( ( 1. + ( p - 1. ) * damageDrivingVariable ), p / ( 1. - p ) );
+  if (this->phaseFieldModelType == phaseFieldModel_JZ) {
+    if(this->p == 1) {
+      answer = exp( -damageDrivingVariable );
+    } else {   
+      answer = pow( ( 1. + ( this->p - 1. ) * damageDrivingVariable ), this->p / ( 1. - this->p ) );
+    }
   }
-
-  if(pf!=0) {
+  else if(this->phaseFieldModelType == phaseFieldModel_Miehe) {
     //corresponds to the Miehe phase-field model
     answer = 2 * ( 1. - damageDrivingVariable );
+  }
+  else if(this->phaseFieldModelType == phaseFieldModel_Wu) {
+    //corresponds to the Wu phase-field model
+    double Q = this->computeQ_Wu(damageDrivingVariable);
+    double prime1_Q = this->computeQ_Wu_prime1(damageDrivingVariable);
+    answer = ((1.-damageDrivingVariable)*prime1_Q+p*Q)*pow(1-damageDrivingVariable,p-1.)/pow(Q+pow(1.-damageDrivingVariable,p),2);
+  }
+  else {
+    OOFEM_ERROR("Unknown phase-field model type");
   }
 }
   
@@ -323,17 +448,30 @@ void
 VarBasedDamageMaterial :: computeDamagePrime2(double &answer, double damageDrivingVariable, GaussPoint *gp)
 {
   /// for now, only class of models using exponent p is used
-  if(p == 1) {
-    answer = - exp( - damageDrivingVariable );
-  } else {   
-    answer = - p * pow( ( 1. + ( p - 1. ) * damageDrivingVariable ), (2. * p - 1) / ( 1. - p ) );
+  if (this->phaseFieldModelType == phaseFieldModel_JZ) {
+    if(this->p == 1) {
+      answer = - exp( - damageDrivingVariable );
+    } else {   
+      answer = - this->p * pow( ( 1. + ( this->p - 1. ) * damageDrivingVariable ), (2. * this->p - 1) / ( 1. - this->p ) );
+    }
   }
-
-  if(pf!=0) {
+  else if(this->phaseFieldModelType == phaseFieldModel_Miehe) {
     //corresponds to the Miehe phase-field model
     answer = -2;
   }
+
+  else if(this-> phaseFieldModelType == phaseFieldModel_Wu) {
+    //corresponds to the Wu phase-field model
+    double Q = this->computeQ_Wu(damageDrivingVariable);
+    double prime1_Q = this->computeQ_Wu_prime1(damageDrivingVariable);
+    double prime2_Q = this->computeQ_Wu_prime2(damageDrivingVariable);
+    answer = pow(1. - damageDrivingVariable,p-2.)*(-(this->p-1.)*this->p*pow(Q,2)+Q*(pow(1.-damageDrivingVariable,this->p)*this->p*(1.+this->p) + 2*(damageDrivingVariable - 1.)*this->p*prime1_Q + pow(damageDrivingVariable -1.,2)*prime2_Q)+(damageDrivingVariable -1.)*(-2*(damageDrivingVariable -1.)*pow(prime1_Q,2) + pow(1. - damageDrivingVariable,this->p)*(-2*this->p*prime1_Q + (-1. + damageDrivingVariable)*prime2_Q)))/pow(pow(1. - damageDrivingVariable, this->p) + Q,3);
+  }
+  else {
+    OOFEM_ERROR("Unknown phase-field model type");
+  }
 }
+
 
 double
 VarBasedDamageMaterial :: solveExpLaw(double dam, double c)
@@ -350,59 +488,88 @@ VarBasedDamageMaterial :: solveExpLaw(double dam, double c)
   printf("No convergence in VarBasedDamageMaterial :: solveExpLaw(%g,%g)\n",dam,c);
   exit(0);
 }
-  
+
+double
+VarBasedDamageMaterial :: compute_dissipation_Wu_prime1_in_gamma(double damageDrivingVariable)
+{
+  return this->gfInf*(2 - 2*damageDrivingVariable);
+}
+
+double
+VarBasedDamageMaterial :: compute_dissipation_Wu_prime2_in_gamma(double damageDrivingVariable)
+{
+  return -2*this->gfInf;
+}
+
 void
-VarBasedDamageMaterial :: computeDissipationFunctionPrime(double &answer, double damage, GaussPoint *gp)
+VarBasedDamageMaterial :: computeDissipationFunctionPrime(double &answer, double damage, double damageDrivingVariable,  GaussPoint *gp)
 {
   /// softening - currently using 0=linear (default), 1=Miehe, 2=Fremond, 3=pseudo-exponential, 4=exponential
 
   double aux, c;
   switch (this->damageLaw){
-  case 1: // damage law used by Miehe phase-field model
+  case 1: { // damage law used by Miehe phase-field model
     answer = gf/2. * (1./sqrt(1.-damage) - 1.);
-    break;
-  case 2: // damage law used by Fremond-Nedjar
+  }break;
+  case 2: {// damage law used by Fremond-Nedjar
     answer = gf*(1.+2.*(1.-beta)*damage/(1.-damage));
-    break;
-  case 3: // pseudo-exponential law, not successful
+  }  break;
+  case 3: {// pseudo-exponential law, not successful
     aux = 1.-(1.-beta)*log(1.-damage);
     answer = gf*aux*aux;
-    break;
-  case 4: // exponential law, implicit
+  }  break;
+  case 4: {// exponential law, implicit
     c = beta/(1.-beta);
     aux = 1.+solveExpLaw(damage,c);
     answer = gf*aux*aux;
-    break;
-  default: // linear softening
+  }  break;
+  case 5: {//Wu
+    double dissPrime1inGamma = compute_dissipation_Wu_prime1_in_gamma(damageDrivingVariable);
+    double damagePrime1inGamma;
+    this->computeDamagePrime(damagePrime1inGamma, damageDrivingVariable, gp);     
+    answer = dissPrime1inGamma/damagePrime1inGamma;
+  }  break;    
+  default: {// linear softening
     aux = 1. + ( beta - 1. )*damage;
     answer = gf/(aux*aux);
+  }
   }
 }
 
 void
-VarBasedDamageMaterial :: computeDissipationFunctionPrime2(double &answer, double damage, GaussPoint *gp)
+VarBasedDamageMaterial :: computeDissipationFunctionPrime2(double &answer, double damage, double damageDrivingVariable, GaussPoint *gp)
 {
   /// softening - currently using 0=linear (default), 1=Miehe, 2=Fremond, 3=pseudo-exponential, 4=exponential
   
   double aux, c;
   switch (this->damageLaw){
-  case 1: // damage law used by Miehe phase-field model
+  case 1: {// damage law used by Miehe phase-field model
     answer = gf/4. * 1./pow( 1- damage, 3./2. );
-    break;
-  case 2: // damage law used by Fremond-Nedjar
+  }  break;
+  case 2: {// damage law used by Fremond-Nedjar
     answer = 2.*gf*(1.-beta)/(1.-damage)/(1.-damage);
-    break;
-  case 3: // pseudo-exponential law, not successful
+  }  break;
+  case 3: {// pseudo-exponential law, not successful
     aux = 1.-(1.-beta)*log(1.-damage);
     answer = 2.*gf*aux*(1.-beta)/(1.-damage);
-    break;
-  case 4: // exponential law, implicit
+  }  break;
+  case 4: {// exponential law, implicit
     c = beta/(1.-beta);
     aux = 1.+solveExpLaw(damage,c);
     answer = 2.*gf*aux*aux/(1.-damage+c*exp(-c*(aux-1.)));
-    break;
-  default: // linear softening
+  }  break;
+  case 5: {//Wu
+    double dissPrime1inGamma = compute_dissipation_Wu_prime1_in_gamma(damageDrivingVariable);
+    double dissPrime2inGamma = compute_dissipation_Wu_prime2_in_gamma(damageDrivingVariable);
+    double damagePrime1inGamma;
+    double damagePrime2inGamma;
+    this->computeDamagePrime(damagePrime1inGamma, damageDrivingVariable, gp);
+    this->computeDamagePrime2(damagePrime2inGamma, damageDrivingVariable, gp);
+    answer = dissPrime2inGamma/pow(damagePrime1inGamma,2) - (dissPrime1inGamma*damagePrime2inGamma)/pow(damagePrime1inGamma,3);
+  }  break;    
+  default: {// linear softening
     answer = 2. * (1. - beta) * gf/(pow( 1. + ( beta - 1. ) * damage, 3. ));
+  }
   }
 }
 
@@ -606,3 +773,4 @@ VarBasedDamageMaterialStatus :: restoreContext(DataStream &stream, ContextMode m
 
 
 }     // end namespace oofem
+
