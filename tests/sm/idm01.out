@@ -1,0 +1,531 @@
+############################################################## www.oofem.org ###
+       ####    ####   ######  ######  #    #
+     #    #  #    #  #       #       ##  ##
+    #    #  #    #  #####   #####   # ## #
+   #    #  #    #  #       #       #    #
+  #    #  #    #  #       #       #    #   OOFEM ver. 2.4
+  ####    ####   #       ######  #    #    Copyright (C) 1994-2014 Borek Patzak
+################################################################################
+
+
+Starting analysis on: Mon Aug 10 16:04:02 2020
+
+Test of damage law with exponential softening on a 1D truss element, fracturing strain
+Domain type: 1dtruss, default ndofs per node is 1
+
+
+
+
+Output for time 0.000e+00, solution step number 1
+Reached load level :            10.000000 in 1 iterations
+
+
+
+DofManager output:
+------------------
+Node           1 (       1):
+  dof 1   d  0.00000000e+00
+Node           2 (       2):
+  dof 1   d  5.00000000e-02
+
+
+
+
+Element output:
+---------------
+element 1 (       1) :
+  GP  1.1  :  strains  1.0000e-01 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+              stresses 1.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+status { kappa 0.100000}
+
+
+
+
+	R E A C T I O N S  O U T P U T:
+	_______________________________
+
+
+	Node        1 iDof  1 reaction -1.0000e+01    [bc-id: 1]
+
+User time consumed by solution step 1: 0.009 [s]
+
+
+
+Output for time 1.000e+00, solution step number 2
+Reached load level :            20.000000 in 1 iterations
+
+
+
+DofManager output:
+------------------
+Node           1 (       1):
+  dof 1   d  0.00000000e+00
+Node           2 (       2):
+  dof 1   d  1.00000000e-01
+
+
+
+
+Element output:
+---------------
+element 1 (       1) :
+  GP  1.1  :  strains  2.0000e-01 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+              stresses 2.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+status { kappa 0.200000}
+
+
+
+
+	R E A C T I O N S  O U T P U T:
+	_______________________________
+
+
+	Node        1 iDof  1 reaction -2.0000e+01    [bc-id: 1]
+
+User time consumed by solution step 2: 0.001 [s]
+
+
+
+Output for time 2.000e+00, solution step number 3
+Reached load level :            30.000000 in 1 iterations
+
+
+
+DofManager output:
+------------------
+Node           1 (       1):
+  dof 1   d  0.00000000e+00
+Node           2 (       2):
+  dof 1   d  1.50000000e-01
+
+
+
+
+Element output:
+---------------
+element 1 (       1) :
+  GP  1.1  :  strains  3.0000e-01 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+              stresses 3.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+status { kappa 0.300000}
+
+
+
+
+	R E A C T I O N S  O U T P U T:
+	_______________________________
+
+
+	Node        1 iDof  1 reaction -3.0000e+01    [bc-id: 1]
+
+User time consumed by solution step 3: 0.001 [s]
+
+
+
+Output for time 3.000e+00, solution step number 4
+Reached load level :            40.000000 in 1 iterations
+
+
+
+DofManager output:
+------------------
+Node           1 (       1):
+  dof 1   d  0.00000000e+00
+Node           2 (       2):
+  dof 1   d  2.00000000e-01
+
+
+
+
+Element output:
+---------------
+element 1 (       1) :
+  GP  1.1  :  strains  4.0000e-01 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+              stresses 4.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+status { kappa 0.400000}
+
+
+
+
+	R E A C T I O N S  O U T P U T:
+	_______________________________
+
+
+	Node        1 iDof  1 reaction -4.0000e+01    [bc-id: 1]
+
+User time consumed by solution step 4: 0.001 [s]
+
+
+
+Output for time 4.000e+00, solution step number 5
+Reached load level :            50.000000 in 1 iterations
+
+
+
+DofManager output:
+------------------
+Node           1 (       1):
+  dof 1   d  0.00000000e+00
+Node           2 (       2):
+  dof 1   d  2.50000000e-01
+
+
+
+
+Element output:
+---------------
+element 1 (       1) :
+  GP  1.1  :  strains  5.0000e-01 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+              stresses 5.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+status { kappa 0.500000}
+
+
+
+
+	R E A C T I O N S  O U T P U T:
+	_______________________________
+
+
+	Node        1 iDof  1 reaction -5.0000e+01    [bc-id: 1]
+
+User time consumed by solution step 5: 0.001 [s]
+
+
+
+Output for time 5.000e+00, solution step number 6
+Reached load level :            43.340851 in 9 iterations
+
+
+
+DofManager output:
+------------------
+Node           1 (       1):
+  dof 1   d  0.00000000e+00
+Node           2 (       2):
+  dof 1   d  3.00000000e-01
+
+
+
+
+Element output:
+---------------
+element 1 (       1) :
+  GP  1.1  :  strains  6.0000e-01 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+              stresses 4.3344e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+status { kappa 0.600000, damage 0.277602 crackVector 1.000000 0.000000 0.000000, dissW 0.416403, freeE 1.300317, stressW 1.716719 }
+
+
+
+
+	R E A C T I O N S  O U T P U T:
+	_______________________________
+
+
+	Node        1 iDof  1 reaction -4.3344e+01    [bc-id: 1]
+
+User time consumed by solution step 6: 0.002 [s]
+
+
+
+Output for time 6.000e+00, solution step number 7
+Reached load level :            37.576522 in 8 iterations
+
+
+
+DofManager output:
+------------------
+Node           1 (       1):
+  dof 1   d  0.00000000e+00
+Node           2 (       2):
+  dof 1   d  3.50000000e-01
+
+
+
+
+Element output:
+---------------
+element 1 (       1) :
+  GP  1.1  :  strains  7.0000e-01 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+              stresses 3.7574e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+status { kappa 0.700000, damage 0.463231 crackVector 1.000000 0.000000 0.000000, dissW 0.806223, freeE 1.315085, stressW 2.121308 }
+
+
+
+
+	R E A C T I O N S  O U T P U T:
+	_______________________________
+
+
+	Node        1 iDof  1 reaction -3.7574e+01    [bc-id: 1]
+
+User time consumed by solution step 7: 0.001 [s]
+
+
+
+Output for time 7.000e+00, solution step number 8
+Reached load level :            32.573047 in 8 iterations
+
+
+
+DofManager output:
+------------------
+Node           1 (       1):
+  dof 1   d  0.00000000e+00
+Node           2 (       2):
+  dof 1   d  4.00000000e-01
+
+
+
+
+Element output:
+---------------
+element 1 (       1) :
+  GP  1.1  :  strains  8.0000e-01 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+              stresses 3.2572e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+status { kappa 0.800000, damage 0.592851 crackVector 1.000000 0.000000 0.000000, dissW 1.169159, freeE 1.302878, stressW 2.472037 }
+
+
+
+
+	R E A C T I O N S  O U T P U T:
+	_______________________________
+
+
+	Node        1 iDof  1 reaction -3.2572e+01    [bc-id: 1]
+
+User time consumed by solution step 8: 0.001 [s]
+
+
+
+Output for time 8.000e+00, solution step number 9
+Reached load level :            28.234161 in 7 iterations
+
+
+
+DofManager output:
+------------------
+Node           1 (       1):
+  dof 1   d  0.00000000e+00
+Node           2 (       2):
+  dof 1   d  4.50000000e-01
+
+
+
+
+Element output:
+---------------
+element 1 (       1) :
+  GP  1.1  :  strains  9.0000e-01 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+              stresses 2.8236e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+status { kappa 0.900000, damage 0.686268 crackVector 1.000000 0.000000 0.000000, dissW 1.505461, freeE 1.270616, stressW 2.776077 }
+
+
+
+
+	R E A C T I O N S  O U T P U T:
+	_______________________________
+
+
+	Node        1 iDof  1 reaction -2.8236e+01    [bc-id: 1]
+
+User time consumed by solution step 9: 0.001 [s]
+
+
+
+Output for time 9.000e+00, solution step number 10
+Reached load level :            24.476112 in 7 iterations
+
+
+
+DofManager output:
+------------------
+Node           1 (       1):
+  dof 1   d  0.00000000e+00
+Node           2 (       2):
+  dof 1   d  5.00000000e-01
+
+
+
+
+Element output:
+---------------
+element 1 (       1) :
+  GP  1.1  :  strains  1.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+              stresses 2.4477e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+status { kappa 1.000000, damage 0.755229 crackVector 1.000000 0.000000 0.000000, dissW 1.815787, freeE 1.223854, stressW 3.039642 }
+
+
+
+
+	R E A C T I O N S  O U T P U T:
+	_______________________________
+
+
+	Node        1 iDof  1 reaction -2.4477e+01    [bc-id: 1]
+
+User time consumed by solution step 10: 0.001 [s]
+
+
+
+Output for time 1.000e+01, solution step number 11
+Reached load level :            21.218062 in 7 iterations
+
+
+
+DofManager output:
+------------------
+Node           1 (       1):
+  dof 1   d  0.00000000e+00
+Node           2 (       2):
+  dof 1   d  5.50000000e-01
+
+
+
+
+Element output:
+---------------
+element 1 (       1) :
+  GP  1.1  :  strains  1.1000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+              stresses 2.1219e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+status { kappa 1.100000, damage 0.807103 crackVector 1.000000 0.000000 0.000000, dissW 2.101095, freeE 1.167025, stressW 3.268120 }
+
+
+
+
+	R E A C T I O N S  O U T P U T:
+	_______________________________
+
+
+	Node        1 iDof  1 reaction -2.1219e+01    [bc-id: 1]
+
+User time consumed by solution step 11: 0.001 [s]
+
+
+
+Output for time 1.100e+01, solution step number 12
+Reached load level :            18.395388 in 6 iterations
+
+
+
+DofManager output:
+------------------
+Node           1 (       1):
+  dof 1   d  0.00000000e+00
+Node           2 (       2):
+  dof 1   d  6.00000000e-01
+
+
+
+
+Element output:
+---------------
+element 1 (       1) :
+  GP  1.1  :  strains  1.2000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+              stresses 1.8394e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+status { kappa 1.200000, damage 0.846717 crackVector 1.000000 0.000000 0.000000, dissW 2.362545, freeE 1.103638, stressW 3.466183 }
+
+
+
+
+	R E A C T I O N S  O U T P U T:
+	_______________________________
+
+
+	Node        1 iDof  1 reaction -1.8394e+01    [bc-id: 1]
+
+User time consumed by solution step 12: 0.000 [s]
+
+
+
+Output for time 1.200e+01, solution step number 13
+Reached load level :            15.946293 in 6 iterations
+
+
+
+DofManager output:
+------------------
+Node           1 (       1):
+  dof 1   d  0.00000000e+00
+Node           2 (       2):
+  dof 1   d  6.50000000e-01
+
+
+
+
+Element output:
+---------------
+element 1 (       1) :
+  GP  1.1  :  strains  1.3000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+              stresses 1.5945e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+status { kappa 1.300000, damage 0.877344 crackVector 1.000000 0.000000 0.000000, dissW 2.601433, freeE 1.036446, stressW 3.637880 }
+
+
+
+
+	R E A C T I O N S  O U T P U T:
+	_______________________________
+
+
+	Node        1 iDof  1 reaction -1.5945e+01    [bc-id: 1]
+
+User time consumed by solution step 13: 0.000 [s]
+
+
+
+Output for time 1.300e+01, solution step number 14
+Reached load level :            13.823330 in 6 iterations
+
+
+
+DofManager output:
+------------------
+Node           1 (       1):
+  dof 1   d  0.00000000e+00
+Node           2 (       2):
+  dof 1   d  7.00000000e-01
+
+
+
+
+Element output:
+---------------
+element 1 (       1) :
+  GP  1.1  :  strains  1.4000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+              stresses 1.3823e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+status { kappa 1.400000, damage 0.901267 crackVector 1.000000 0.000000 0.000000, dissW 2.819134, freeE 0.967586, stressW 3.786720 }
+
+
+
+
+	R E A C T I O N S  O U T P U T:
+	_______________________________
+
+
+	Node        1 iDof  1 reaction -1.3823e+01    [bc-id: 1]
+
+User time consumed by solution step 14: 0.000 [s]
+
+
+
+Output for time 1.400e+01, solution step number 15
+Reached load level :            11.983040 in 6 iterations
+
+
+
+DofManager output:
+------------------
+Node           1 (       1):
+  dof 1   d  0.00000000e+00
+Node           2 (       2):
+  dof 1   d  7.50000000e-01
+
+
+
+
+Element output:
+---------------
+element 1 (       1) :
+  GP  1.1  :  strains  1.5000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+              stresses 1.1983e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00 0.0000e+00
+status { kappa 1.500000, damage 0.920116 crackVector 1.000000 0.000000 0.000000, dissW 3.017054, freeE 0.898691, stressW 3.915746 }
+
+
