@@ -49,7 +49,11 @@
 
 namespace oofem {
 REGISTER_Element(QTruss1dGradDamage);
+  IntArray QTruss1dGradDamage :: locationArray_u = {1, 3, 5};
+IntArray QTruss1dGradDamage :: locationArray_d = {2, 4};
 
+
+  
 FEI1dLin QTruss1dGradDamage :: interpolation_lin(1);
 
 QTruss1dGradDamage :: QTruss1dGradDamage(int n, Domain *aDomain) : QTruss1d(n, aDomain), GradientDamageElement()
@@ -104,7 +108,7 @@ QTruss1dGradDamage :: initializeFrom(InputRecord *ir)
     return StructuralElement :: initializeFrom(ir);
 }
 
-
+  /*
 void
 QTruss1dGradDamage :: computeGaussPoints()
 {
@@ -112,7 +116,7 @@ QTruss1dGradDamage :: computeGaussPoints()
     integrationRulesArray [ 0 ].reset( new GaussIntegrationRule(1, this, 1, 1) );
     this->giveCrossSection()->setupIntegrationPoints(* integrationRulesArray [ 0 ], numberOfGaussPoints, this);
 }
-
+  */
 
 void
 QTruss1dGradDamage :: computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode rMode, TimeStep *tStep)
@@ -154,5 +158,28 @@ void QTruss1dGradDamage :: computeField(ValueModeType mode, TimeStep* tStep, con
     this->computeVectorOf({G_0}, mode, tStep, unknown);
     answer.at(2) = n.dotProduct(unknown);
 }
+
+void
+QTruss1dGradDamage :: giveLocationArray_u(IntArray &answer)
+{
+  answer = locationArray_u;
+}
+
+  
+void
+QTruss1dGradDamage :: giveLocationArray_d(IntArray &answer)
+{
+  answer = locationArray_d;
+}
+
+  
+void
+QTruss1dGradDamage :: postInitialize()
+{
+  GradientDamageElement:: postInitialize();
+  NLStructuralElement :: postInitialize();
+}
+
+
 
 }

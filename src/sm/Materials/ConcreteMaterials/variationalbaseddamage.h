@@ -78,7 +78,6 @@ protected:
   double ft; //Wu model - tensile strength of the material
   double gfInf;
   double internalLengthInf;
-  double youngsModulus; //
     
   enum PhaseFieldModelType {
 			    phaseFieldModel_JZ=0,

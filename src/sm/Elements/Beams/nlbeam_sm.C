@@ -203,7 +203,8 @@ NlBeam_SM :: findLeftEndForcesLocal(FloatArray &ub_target, FloatArray &fab_loc)
   res = ub_target-ub_loc; 
   double error = res.computeNorm();
   
-  while ((iter==0) || (error>tolerance && iter < beam_maxit)){
+  while ((iter==0) || (error>tolerance && iter < beam_maxit) ){
+    //|| (error != error)
     iter++;
     jacobi.solveForRhs(res, dforces);
     fab_loc.add(dforces);
@@ -212,9 +213,10 @@ NlBeam_SM :: findLeftEndForcesLocal(FloatArray &ub_target, FloatArray &fab_loc)
     error = res.computeNorm();
   }
 
-  if (iter > beam_maxit) {
+  if (iter >= beam_maxit) {
     //@todo: cut the step
-    OOFEM_ERROR("No convergence in findLeftEndForcesLocal\n");
+    //domain->giveEngngModel()->setAnalysisCrash(true);
+    //OOFEM_ERROR("No convergence in findLeftEndForcesLocal\n");
   }
 }
 

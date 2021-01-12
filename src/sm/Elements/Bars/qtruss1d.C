@@ -105,6 +105,9 @@ void QTruss1d :: computeGaussPoints()
     }
 }
 
+FEInterpolation *
+QTruss1d :: giveInterpolation() const { return & interpolation; }
+  
 void
 QTruss1d :: computeBmatrixAt(GaussPoint *gp, FloatMatrix &answer, TimeStep *tStep, int li, int ui)
 {

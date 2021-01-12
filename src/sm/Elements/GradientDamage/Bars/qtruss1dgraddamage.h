@@ -51,6 +51,8 @@ class QTruss1dGradDamage : public QTruss1d, public GradientDamageElement
 {
 protected:
     static FEI1dLin interpolation_lin;
+    static IntArray locationArray_u;
+    static IntArray locationArray_d;
 
 public:
     QTruss1dGradDamage(int n, Domain * d);
@@ -69,15 +71,16 @@ protected:
     virtual void computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode rMode, TimeStep *tStep);
     virtual void computeField(ValueModeType mode, TimeStep *tStep, const FloatArray &lcoords, FloatArray &answer);
     virtual void giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord = 0);
-    virtual void computeGaussPoints();
+    //    virtual void computeGaussPoints();
     virtual void giveDofManDofIDMask(int inode, IntArray &answer) const;
     void giveDofManDofIDMask_u(IntArray &answer) const;
     void giveDofManDofIDMask_d(IntArray &answer) const;
     
     virtual StructuralElement *giveStructuralElement() { return this; }
     virtual NLStructuralElement *giveNLStructuralElement() { return this; }
-    virtual void giveLocationArray_u(IntArray &answer){;}
-    virtual void giveLocationArray_d(IntArray &answer){;}
+    virtual void giveLocationArray_u(IntArray &answer);
+    virtual void giveLocationArray_d(IntArray &answer);
+    void postInitialize();
 };
 } // end namespace oofem
 #endif // truss1d_h

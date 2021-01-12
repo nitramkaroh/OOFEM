@@ -325,7 +325,7 @@ void StaticStructural :: updateComponent(TimeStep *tStep, NumericalCmpn cmpn, Do
     } else if ( cmpn == NonLinearLhs ) {
         this->stiffnessMatrix->zero();
         this->assemble(*this->stiffnessMatrix, tStep, TangentAssembler(TangentStiffness), EModelDefaultEquationNumbering(), d);
-    } else if ( cmpn = InitialGuess) {
+    } else if ( cmpn == InitialGuess) {
       this-> giveInitialGuess(d->giveNumber(), tStep);
     } else {
         OOFEM_ERROR("Unknown component");

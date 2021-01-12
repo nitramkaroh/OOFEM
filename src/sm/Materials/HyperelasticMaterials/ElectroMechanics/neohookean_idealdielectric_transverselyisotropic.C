@@ -98,19 +98,20 @@ MooneyRivlin_IdealDielectricMaterial :: give_FirstPKStressVector_ElectricalField
     //derivatives wrt F
     this->compute_dI4_dF(dI4_dF, F);
     this->compute_dI7_dF(dI7_dF, F);
-    this->compute_dI10_dF(dI10_dF, F);
+    //this->compute_dI10_dF(dI10_dF, F);
     //derivatives wrt D_0
     this->compute_dI7_dD(dI7_dD, D);
-    this->compute_dI10_dD(dI10_dD, D);
+    this->compute_dI9_dD(dI10_dD, D);
+    //this->compute_dI10_dD(dI10_dD, D);
     //
     vP.add(dI4, Cm);
     vP.add(dI7, 1./this->eps_f / J);
     vP.add(cofF, - I7 / J / J / this->eps_m);
-    vP.add(dI10, 2. * I10 / /this->eps_f / J);
-    vP.add(cofF, - I10 / J / J / this->eps_f);
+    //    vP.add(dI10, 2. * I10 / /this->eps_f / J);
+    //vP.add(cofF, - I10 / J / J / this->eps_f);
 
     E.add(dI7_dD, 1. / J / this->eps_m);
-    E.add(dI10_dD, 2. * I10 / J / this->eps_f);
+    //E.add(dI10_dD, 2. * I10 / J / this->eps_f);
 
     
     

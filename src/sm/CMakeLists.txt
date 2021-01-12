@@ -31,6 +31,7 @@ set (sm_element
     Elements/Beams/beam2d.C 
     Elements/Beams/beam3d.C
     Elements/Beams/nlbeam_sm.C
+    Elements/Beams/nlbeam_sm2.C
     Elements/Plates/cct.C
     Elements/Plates/dkt.C 
     Elements/Plates/qdkt.C

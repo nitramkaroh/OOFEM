@@ -62,6 +62,9 @@ public:
 
     virtual void computeStressVector(FloatArray &answer, const FloatArray &strain, GaussPoint *gp, TimeStep *tStep);
 
+    virtual FEInterpolation *giveInterpolation() const;
+
+    
     virtual double giveCharacteristicLength(const FloatArray &normalToCrackPlane)
     { return this->computeLength(); }
 

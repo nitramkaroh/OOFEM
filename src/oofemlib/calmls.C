@@ -314,7 +314,8 @@ restart:
         // B.3.
         //
 	status = this->computeDeltaLambda(deltaLambda, dX, deltaXt, deltaX_, R, RR, eta, deltaL, DeltaLambda, neq);
-        if (status) {
+        if (status ||  (engngModel->isAnalysisCrashed())) {
+	  engngModel->setAnalysisCrash(false);
             irest++;
             if ( irest <= maxRestarts ) {
                 // convergence problems
@@ -1347,7 +1348,8 @@ CylindricalALM :: do_lineSearch(FloatArray &r, const FloatArray &rInitial, const
             currEta = eta.at(ils + 1);
             // solve for deltaLambda
             dl_failed = this->computeDeltaLambda(deltaLambda, dXm1, deltaXt, deltaX_, R, RR, currEta, deltaL, DeltaLambdam1, neq);
-            if ( dl_failed ) {
+            if ( dl_failed ||  (engngModel->isAnalysisCrashed())) {
+	      engngModel->setAnalysisCrash(false);
                 eta.at(ils + 1) = 1.0;
                 deltaLambda = deltaLambdaForEta1;
                 break;

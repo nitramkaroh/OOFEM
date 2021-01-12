@@ -113,11 +113,14 @@ protected:
 
     double compute_I4(const FloatMatrix &F);
     double compute_I7(const FloatMatrix &F, const FloatArray &D);
+    double compute_I9(const FloatArray &D);
     double compute_I10(const FloatMatrix &F, const FloatArray &D_0);
     void compute_dI4dF(FloatArray &answer, const FloatMatrix &F);
     void compute_dI7dF(FloatArray &answer, const FloatMatrix &F, const FloatArray &D);
     void compute_dI7dD(FloatArray &answer, const FloatMatrix &F, const FloatArray &D);
     void compute_dI10dF(FloatArray &answer, const FloatMatrix &F, const FloatArray &D);
+    void compute_dI9dD(FloatArray &answer, const FloatArray &D);
+
     void compute_dI10dD(FloatArray &answer, const FloatMatrix &F, const FloatArray &D);
     void compute_d2I4dF2(FloatMatrix &answer, const FloatMatrix &F);
     void compute_d2I7dF2(FloatMatrix &answer, const FloatMatrix &F, const FloatArray &D);

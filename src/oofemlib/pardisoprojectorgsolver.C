@@ -123,6 +123,7 @@ NM_Status PardisoProjectOrgSolver :: solve(SparseMtrx &A, FloatArray &b, FloatAr
     // https://software.intel.com/en-us/articles/pardiso-parameter-table#table2
 
     iparm [ 0 ] = 1;
+    iparm [ 3 - 1 ] = 16;
     ///@todo I might be misunderstanding something, but this iterative solver still does a full factorization. No options for incomplete factorizations.
     //iparm[4-1] = 32; // 10*L + K. K = 1 implies CGS (instead of LU), K = 2 implies CG. L specifies exponent tolerance.
     iparm [ 8 - 1 ] = 2; /* Max numbers of iterative refinement steps. */  ///@todo I have no idea if this is suitable value. Examples use 2. / Mikael
@@ -135,7 +136,7 @@ NM_Status PardisoProjectOrgSolver :: solve(SparseMtrx &A, FloatArray &b, FloatAr
     mnum   = 1;         // Which factorization to use.
     msglvl = 0;         // Print statistical information
     error  = 0;         // Initialize error flag
-
+ 
     /* -------------------------------------------------------------------- */
     /* ..  Reordering and Symbolic Factorization.  This step also allocates */
     /*     all memory that is necessary for the factorization.              */
