@@ -64,6 +64,8 @@
 #define _IFT_NlBeam_SM2_kappa0 "kappa0"
 #define _IFT_NlBeam_SM2_tangentPoint "tp"
 
+#define _IFT_NlBeam_SM2_alCoord "alcoord"
+
 
 //@}
 
@@ -96,7 +98,7 @@ protected:
     /// Initial stress field curved configuration
     ScalarFunction u_0, w_0, phi_0, kappa_0;
     FloatArray tangentPoint;
-    
+    FloatArray arcLengthCoordinate;
 
     
 public:

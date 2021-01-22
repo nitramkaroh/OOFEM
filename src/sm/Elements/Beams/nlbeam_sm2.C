@@ -96,20 +96,55 @@ NlBeam_SM2 :: initializeFrom(InputRecord *ir)
     auto nodeB  = this->giveNode(2);
     FloatArray pointA({nodeA->giveCoordinate(1), nodeA->giveCoordinate(3)});
     FloatArray pointB({nodeB->giveCoordinate(1), nodeB->giveCoordinate(3)});
-       
     tangentPoint.clear();
     IR_GIVE_OPTIONAL_FIELD(ir, tangentPoint, _IFT_NlBeam_SM2_tangentPoint);    
-    
-    if(tangentPoint.giveSize()) {
-      IR_GIVE_FIELD(ir, u_0, _IFT_NlBeam_SM2_u0);
-      IR_GIVE_FIELD(ir, w_0, _IFT_NlBeam_SM2_w0);
-      IR_GIVE_FIELD(ir, phi_0, _IFT_NlBeam_SM2_phi0);
-      IR_GIVE_FIELD(ir, kappa_0, _IFT_NlBeam_SM2_kappa0);
+    /// input by array of points
+    IR_GIVE_OPTIONAL_FIELD(ir, arcLengthCoordinate, _IFT_NlBeam_SM2_alCoord);
+
+    /*    u_0.resize(NIP+1);
+    w_0.resize(NIP+1);
+    phi_0.resize(NIP+1);
+    kappa_0.resize(NIP+1);
+    */
+    if(arcLengthCoordinate.giveSize()) {
+      /*      IR_GIVE_FIELD(ir, pu_0, _IFT_NlBeam_SM2_pu_0);
+      IR_GIVE_FIELD(ir, pw_0, _IFT_NlBeam_SM2_pw_0);
+      IR_GIVE_FIELD(ir, pphi_0, _IFT_NlBeam_SM2_pphi0);
+      IR_GIVE_FIELD(ir, pkappa_0, _IFT_NlBeam_SM2_pkappa0);
+      if(pu_0.giveSize() != NIP+1 || pw_0.giveSize() != NIP+1 || pphi_0.giveSize () != NIP+! || pkappa_0.giveSize() != NIP+1) {
+	OOFEM_ERROR("Inconsistent size of the input fields....");
+	}*/
+      /*      u_0 = pu_0;
+      w_0 = pw_0; 
+      kappa_0 = pkappa_0;
+      for(int i = 1; i <= NIP+1; i++) {
+	phi_0 = pphi_0.at(2*i-1);
+	phi_12 = pphi_0.at(2*i);
+      }
+      */
+    } else if(tangentPoint.giveSize()) {
+      /*IR_GIVE_FIELD(ir, fu_0, _IFT_NlBeam_SM2_fu0);
+      IR_GIVE_FIELD(ir, fw_0, _IFT_NlBeam_SM2_fw0);
+      IR_GIVE_FIELD(ir, fphi_0, _IFT_NlBeam_SM2_fphi0);
+      IR_GIVE_FIELD(ir, fkappa_0, _IFT_NlBeam_SM2_fkappa0);
+      */
       FloatArray tangentLine(tangentPoint);
       tangentLine.subtract(pointA);
       curvedbeamLength = tangentLine.computeNorm();
       cosBeta = (curvedbeamLength+ this->eval_u0(curvedbeamLength))/beamLength;
       sinBeta = this->eval_w0(curvedbeamLength)/beamLength;
+  
+      double dx = curvedbeamLength/NIP;
+      for(int i = 1; i <= NIP+1; i++) {
+	/*u_0.at(i) = this->eval_u0(x);
+	w_0.at(i) = this->eval_w0(x);
+	phi_0.at(i) = this->eval_phi0(x);
+	kappa_0.at(i) = this->eval_kappa0(x);	
+	x +=dx;
+	phi_12.at(i) = this->eval_phi0(x - dx/2.);
+	*/
+      }
+      
     }
    
     cosAlpha = (pointB.at(1) - pointA.at(1))/beamLength;
@@ -284,19 +319,25 @@ NlBeam_SM2 :: integrateAlongCurvedBeamAndGetJacobi(const FloatArray &fab, FloatA
   this->x.at(1) = 0;
   ub = {0., 0., 0.};
   jacobi.resize(3,3);
-  double dx = curvedbeamLength/NIP;
   // basic loop over spatial steps
   for (int i=2; i<=NIP+1; i++){
-  this->x.at(i) = this->x.at(i-1) + dx;
+    double ds;
+    if(arcLengthCoordinate.giveSize()) {
+      ds = arcLengthCoordinate.at(i) - arcLengthCoordinate.at(i-1);
+    } else {
+      ds = curvedbeamLength/NIP;
+    }
+  this->x.at(i) = this->x.at(i-1) + ds;
   u_prev = ub;
   // rotation at midstep and its derivatives with respect to the left-end forces
-  double phi0_mid = eval_phi0(x.at(i)-dx/2.);
-  double delta_phi_mid = u_prev.at(3) + delta_kappa * dx/2.;
+  double phi0_mid = eval_phi0(x.at(i)-ds/2.);
+  //  phi0_mid = phi_12.at(i);
+  double delta_phi_mid = u_prev.at(3) + delta_kappa * ds/2.;
   double phi_mid = phi0_mid + delta_phi_mid;
   FloatMatrix jacobiprime;
   jacobiprime.beTranspositionOf(jacobi);
   dphi_mid.beColumnOf(jacobiprime, 3);
-  dphi_mid.add(dx/2, dkappa);  
+  dphi_mid.add(ds/2, dkappa);  
   // normal force at midstep and its derivatives with respect to the left-end forces
   double N_mid = -Xab * cos(phi_mid) + Zab *  sin(phi_mid);
   vN.at(i) = N_mid;
@@ -311,10 +352,10 @@ NlBeam_SM2 :: integrateAlongCurvedBeamAndGetJacobi(const FloatArray &fab, FloatA
   deps_mid.times(deps_dM);
   deps_mid.add(deps_dN, dN);   							
   // horizontal displacement at the end of the step
-  ub.at(1) = u_prev.at(1)+dx*((1.+eps_mid)*cos(phi_mid)-cos(phi0_mid));
+  ub.at(1) = u_prev.at(1)+ds*((1.+eps_mid)*cos(phi_mid)-cos(phi0_mid));
   this->u.at(i) = ub.at(1);
   // vertical displacement at the end of the step
-  ub.at(2) = u_prev.at(2)+dx*(sin(phi0_mid)-(1.+eps_mid)*sin(phi_mid));
+  ub.at(2) = u_prev.at(2)+ds*(sin(phi0_mid)-(1.+eps_mid)*sin(phi_mid));
   this->w.at(i) = ub.at(2);
   // first two rows jacobi
   FloatArray j_row1, j_row2;
@@ -322,15 +363,16 @@ NlBeam_SM2 :: integrateAlongCurvedBeamAndGetJacobi(const FloatArray &fab, FloatA
   s1 = (1.+eps_mid)*(-sin(phi_mid));
   j_row1.beScaled(s1, dphi_mid);
   j_row1.add(cos(phi_mid), deps_mid);
-  j_row1.times(dx);
+  j_row1.times(ds);
   s2 = (1.+eps_mid)*(-cos(phi_mid));
   j_row2.beScaled(s2, dphi_mid);
   j_row2.add(-sin(phi_mid), deps_mid);
-  j_row2.times(dx);
+  j_row2.times(ds);
   jacobi.addSubVectorRow(j_row1, 1,1);
   jacobi.addSubVectorRow(j_row2, 2,1);
   // bending moment and curvature at the end of the step and their derivatives with respect to the left-end forces
   double M = -Mab+Xab*(eval_w0(x.at(i))+ub.at(2))-Zab*(x.at(i)+eval_u0(x.at(i))+ub.at(1));
+  //  M = -Mab+Xab*(w_0.at(i)+ub.at(2))-Zab*(x.at(i)+ u_0.at(i)+ub.at(1));
   vM.at(i) = M;
   jacobiprime.beTranspositionOf(jacobi);
   dM.beColumnOf(jacobiprime, 2);
@@ -338,8 +380,11 @@ NlBeam_SM2 :: integrateAlongCurvedBeamAndGetJacobi(const FloatArray &fab, FloatA
   FloatArray aux;
   aux.beColumnOf(jacobiprime, 1);
   dM.add(-Zab, aux);
-  dM.at(1) += eval_w0(x.at(i))+ub.at(2);
-  dM.at(2) += -(x.at(i)+eval_u0(x.at(i))+ub.at(1));
+  double tdM1 = eval_w0(x.at(i))+ub.at(2);
+  double tdM2 = -(x.at(i)+eval_u0(x.at(i))+ub.at(1));
+  //  dM.at(1) += w_0.at(i)+ub.at(2);
+  //dM.at(2) += -(x.at(i)+u_0.at(i)+ub.at(1));
+ 
   dM.at(3) += -1.;
   delta_kappa = computeDeltaCurvatureFromInternalForces(M,N_mid);
   dkappa_dM = computeDerCurvatureMoment(M,N_mid);
@@ -348,12 +393,12 @@ NlBeam_SM2 :: integrateAlongCurvedBeamAndGetJacobi(const FloatArray &fab, FloatA
   dkappa.times(dkappa_dM);
   dkappa.add(dkappa_dN, dN);                                                      
   // rotation at the end of the step
-  ub.at(3) = delta_phi_mid+delta_kappa*dx/2.;
+  ub.at(3) = delta_phi_mid+delta_kappa*ds/2.;
   this->phi.at(i) = ub.at(3);
   // update Jacobi matrix
     FloatArray j_row3;
     j_row3 = dphi_mid;
-    j_row3.add(dx/2., dkappa);
+    j_row3.add(ds/2., dkappa);
     jacobi.copySubVectorRow(j_row3, 3,1);
   } // end of loop over spatial steps
 }

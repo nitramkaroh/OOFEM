@@ -374,6 +374,49 @@ NonLinearStatic :: terminate(TimeStep *tStep)
     fflush( this->giveOutputStream() );
     this->updateLoadVectors(tStep);
     this->saveStepContext(tStep);
+    bool printStiffnessFlag = true;
+    if(printStiffnessFlag) {
+      FILE *FID; 
+      char fext[100];
+      sprintf( fext, "_m%d_%d", this->number, tStep->giveNumber() );
+      std :: string fileName, functionname, temp;
+      fileName = this->giveOutputBaseFileName();
+      size_t foundDot;
+      foundDot = fileName.rfind(".");
+      
+      while (foundDot != std :: string :: npos) {
+	fileName.replace(foundDot, 1, "_");
+	foundDot = fileName.rfind(".");   
+      }
+      
+      fileName += fext;
+      temp = fileName;
+      size_t backslash = temp.rfind("/");
+      if (backslash != std :: string :: npos ) {
+	functionname = temp.substr(backslash+1, std :: string :: npos);
+      } else {
+	functionname = temp;
+      }
+      
+      
+      fileName += "stiffnessMatrix.m";
+      if ( ( FID = fopen(fileName.c_str(), "w") ) == NULL ) {
+	OOFEM_ERROR("failed to open file %s", fileName.c_str() );
+      }
+
+
+      FloatMatrix copy;
+      stiffnessMatrix->toFloatMatrix(copy);
+      for ( int i = 1; i <= copy.giveNumberOfRows(); ++i ) {
+        for ( int j = 1; j <= copy.giveNumberOfColumns(); ++j ) {
+	  fprintf( FID, "%10.3e  ", copy.at(i, j) );
+        }
+        fprintf(FID, "\n");
+      }
+      fclose(FID);
+
+    }
+    
 }
 
 
