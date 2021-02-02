@@ -115,6 +115,9 @@ protected:
     FILE * giveOutputStream(TimeStep *tStep);
 
 
+    void giveInternalForcesVector_u(FloatArray &answer, TimeStep *tStep, const FloatArray &u);
+    void computeStiffnessMatrix_num(FloatMatrix &answer, MatResponseMode rMode, TimeStep *tStep);
+
 };
 } // end namespace oofem
 #endif // beam2d_h

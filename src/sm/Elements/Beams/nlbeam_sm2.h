@@ -50,21 +50,25 @@
 #define _IFT_NlBeam_SM2_initialCurvature "initialcurvature"
 #define _IFT_NlBeam_SM2_RADIUS "radius"
 #define _IFT_NlBeam_SM2_DEPTH "depth"
-#define _IFT_NlBeam_SM2_BETA "beta"
-#define _IFT_NlBeam_SM2_curvedbeamLength "curvedbeamlength"
 #define _IFT_NlBeam_SM2_Material "materialtype"
 #define _IFT_NlBeam_SM2_Beam_Tolerance "btol"
 #define _IFT_NlBeam_SM2_Beam_MaxIteration "bmaxit"
 #define _IFT_NlBeam_SM2_Section_Tolerance "stol"
 #define _IFT_NlBeam_SM2_Section_MaxIteration "smaxit"
 
-#define _IFT_NlBeam_SM2_u0 "u0"
-#define _IFT_NlBeam_SM2_w0 "w0"
-#define _IFT_NlBeam_SM2_phi0 "phi0"
-#define _IFT_NlBeam_SM2_kappa0 "kappa0"
+#define _IFT_NlBeam_SM2_fu0 "fu0"
+#define _IFT_NlBeam_SM2_fw0 "fw0"
+#define _IFT_NlBeam_SM2_fphi0 "fphi0"
+#define _IFT_NlBeam_SM2_fkappa0 "fkappa0"
 #define _IFT_NlBeam_SM2_tangentPoint "tp"
 
 #define _IFT_NlBeam_SM2_alCoord "alcoord"
+#define _IFT_NlBeam_SM2_pu0 "pu0"
+#define _IFT_NlBeam_SM2_pw0 "pw0"
+#define _IFT_NlBeam_SM2_pphi0 "pphi0"
+#define _IFT_NlBeam_SM2_pkappa0 "pkappa0"
+#define _IFT_NlBeam_SM2_beta "beta"
+#define _IFT_NlBeam_SM2_curvedbeamLength "curvedbeamlength"
 
 
 //@}
@@ -86,17 +90,19 @@ protected:
     FloatArray x, u, w, phi;
     FloatMatrix jacobi;
     double beam_tol = 1.e-6, beam_maxit = 100;
-    double section_tol = 1.e-4,section_maxit = 20;
+    double section_tol = 1.e-6,section_maxit = 20;
     double EI, EA;
     double RADIUS, DEPTH;
-    double BETA = 0;
     double curvedbeamLength;
     double choordLength;
     int materialtype = 1;
     FloatArray vM, vV, vN;
     double cosBeta, sinBeta, cosAlpha, sinAlpha;
     /// Initial stress field curved configuration
-    ScalarFunction u_0, w_0, phi_0, kappa_0;
+    ScalarFunction fu_0, fw_0, fphi_0, fkappa_0;
+    FloatArray pu_0, pw_0, pphi_0, pkappa_0;
+    FloatArray u_0, w_0, phi_0, kappa_0, phi_12;
+    double beta = 0;
     FloatArray tangentPoint;
     FloatArray arcLengthCoordinate;
 
@@ -158,11 +164,11 @@ protected:
     double eval_c2_StraightBeam(FloatArray &u);
     double eval_c1_CurvedBeam(FloatArray &u);
     double eval_c2_CurvedBeam(FloatArray &u);
-    double computeDeltaCurvatureFromInternalForces(double M, double N);
-    double computeDerCurvatureMoment(double M, double N);
-    double computeDerCurvatureNormalForce(double M, double N);
-    double computeCenterlineStrainFromInternalForces(double M, double N);
-    double computeDerStrainMoment(double M, double N);
+    double computeDeltaCurvatureFromInternalForces(double M, double N, double curvature);
+    double computeDerCurvatureMoment(double M, double N, double curvature);
+    double computeDerCurvatureNormalForce(double M, double N, double curvature);
+    double computeCenterlineStrainFromInternalForces(double M, double N, double curvature);
+    double computeDerStrainMoment(double M, double N, double curvature);
     double computeDerStrainNormalForce(double M, double N);
 
     FILE * giveOutputStream(TimeStep *tStep);

@@ -195,6 +195,7 @@ Everything is done here in the local coordinate system aligned with the undeform
 void
 NlBeam_SM :: findLeftEndForcesLocal(FloatArray &ub_target, FloatArray &fab_loc)
 {
+  FloatArray fab_init(fab_loc);
   FloatArray res, dforces, ub_loc;
   FloatMatrix jacobi(3,3);
   int iter = 0;
@@ -213,10 +214,12 @@ NlBeam_SM :: findLeftEndForcesLocal(FloatArray &ub_target, FloatArray &fab_loc)
     error = res.computeNorm();
   }
 
-  if (iter >= beam_maxit) {
+  if (iter >= beam_maxit || error != error) {
     //@todo: cut the step
-    //domain->giveEngngModel()->setAnalysisCrash(true);
+    //    domain->giveEngngModel()->setAnalysisCrash(true);
+    // fab_loc = fab_init;
     //OOFEM_ERROR("No convergence in findLeftEndForcesLocal\n");
+    int a = 1;
   }
 }
 
@@ -388,9 +391,59 @@ NlBeam_SM :: computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode rMode, 
     answer.at(5,j) = -answer.at(2,j);
     answer.at(6,j) += c1 * answer.at(1,j) + c2 * answer.at(2,j) - answer.at(3,j);
   }
+  FloatMatrix test;
+  //this->computeStiffnessMatrix_num(test, rMode, tStep);
+
+  
+}
+
+
+
+void
+NlBeam_SM :: giveInternalForcesVector_u(FloatArray &answer, TimeStep *tStep, const FloatArray &u)
+{
+  // solution vector
+  FloatArray fint(3);
+  answer.resize(6);
+  FloatArray f_a(3);
+  // only the first three entries of f are computed
+  this->findLeftEndForces(u, fint);
+  answer.at(1) = fint.at(1);
+  answer.at(2) = fint.at(2);
+  answer.at(3) = fint.at(3);  
+  answer.at(4) = -answer.at(1);
+  answer.at(5) = -answer.at(2);
+  double c1 = beamLength*sin(pitch) + u.at(5) - u.at(2);
+  double c2 = -beamLength*cos(pitch) - u.at(4) + u.at(1);
+  answer.at(6) = c1 * answer.at(1) + c2 * answer.at(2) - answer.at(3);
+}
+
+
+void
+NlBeam_SM :: computeStiffnessMatrix_num(FloatMatrix &answer, MatResponseMode rMode, TimeStep *tStep)
+{
+  
+  answer.resize(6,6);
+  FloatArray fint(3), fint_p(3);
+  // solution vector
+  FloatArray u;
+  this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, u);
+  this->giveInternalForcesVector_u(fint, tStep, u);   
+  double pert = 1.e-6;
+  FloatArray up;
+  for(int i = 1; i <= 6; i++) {
+    up = u;
+    up.at(i) += pert;
+    this->giveInternalForcesVector_u(fint_p, tStep, up);
+    for(int j = 1; j <= 6; j++) {
+      answer.at(i,j)  = (fint_p.at(j) - fint.at(j)) / pert;
+    }
+      
+  }
 
 }
-  
+
+
 
 void
 NlBeam_SM :: printOutputAt(FILE *file, TimeStep *tStep)
