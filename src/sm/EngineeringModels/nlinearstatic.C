@@ -231,6 +231,9 @@ NonLinearStatic :: initializeFrom(InputRecord *ir)
     }
 #endif
 
+
+    printStiffnessFlag = ir->hasField(_IFT_NonLinearStatic_printStiffnessFlag);
+
     return IRRT_OK;
 }
 
@@ -376,6 +379,8 @@ NonLinearStatic :: terminate(TimeStep *tStep)
     this->saveStepContext(tStep);
     bool printStiffnessFlag = true;
     if(printStiffnessFlag) {
+      this->updateComponent(tStep, NonLinearLhs, this->giveDomain(1) );     
+      
       FILE *FID; 
       char fext[100];
       sprintf( fext, "_m%d_%d", this->number, tStep->giveNumber() );

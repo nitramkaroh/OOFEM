@@ -52,6 +52,8 @@
 #define _IFT_NonLinearStatic_loadBalancingFlag "loadbalancingflag"
 #define _IFT_NonLinearStatic_forceloadBalancingFlag "forceloadbalancingflag"
 #define _IFT_NonLinearStatic_updateElasticStiffnessFlag "updateelasticstiffnessflag"
+#define _IFT_NonLinearStatic_printStiffnessFlag "printstiff"
+
 //@}
 
 namespace oofem {
@@ -119,6 +121,8 @@ protected:
     NonLinearStatic_controlType controlMode;
     /// Intrinsic time increment.
     double deltaT;
+    // print stiffness matrix to a file
+    bool printStiffnessFlag;
 
    /**
      * The following parameter allows to specify how the reference load vector
