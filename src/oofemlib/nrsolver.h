@@ -66,6 +66,7 @@
 #define _IFT_NRSolver_constrainedNRalpha "constrainednralpha"
 #define _IFT_NRSolver_constrainedNRminiter "constrainednrminiter"
 #define _IFT_NRSolver_followerLoad "followerload"
+#define _IFT_NRSolver_residuumNorm "rn"
 //@}
 
 namespace oofem {
@@ -153,7 +154,7 @@ protected:
 
     // If the follower load is applied, external forces need to be assembled in each itration
     bool followerLoadFlag;
-    
+    bool residuumNorm;    
 public:
     NRSolver(Domain * d, EngngModel * m);
     virtual ~NRSolver();

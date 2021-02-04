@@ -377,8 +377,7 @@ NonLinearStatic :: terminate(TimeStep *tStep)
     fflush( this->giveOutputStream() );
     this->updateLoadVectors(tStep);
     this->saveStepContext(tStep);
-    bool printStiffnessFlag = true;
-    if(printStiffnessFlag) {
+    if(this->printStiffnessFlag) {
       this->updateComponent(tStep, NonLinearLhs, this->giveDomain(1) );     
       
       FILE *FID; 

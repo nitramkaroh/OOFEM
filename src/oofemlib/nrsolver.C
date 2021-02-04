@@ -181,6 +181,7 @@ NRSolver :: initializeFrom(InputRecord *ir)
 
     this->followerLoadFlag = 0;
     IR_GIVE_OPTIONAL_FIELD(ir, this->followerLoadFlag, _IFT_NRSolver_followerLoad);
+    residuumNorm  =   ir->hasField(_IFT_NRSolver_residuumNorm);
     
     return SparseNonLinearSystemNM :: initializeFrom(ir);
 }
@@ -1155,7 +1156,7 @@ NRSolver :: checkConvergence(FloatArray &RT, FloatArray &F, FloatArray &rhs,  Fl
 
             if ( rtolf.at(1) > 0.0 ) {
                 //  compute a relative error norm
-                if ( ( dg_totalLoadLevel.at(dg) + internalForcesEBENorm.at(dg) ) > nrsolver_ERROR_NORM_SMALL_NUM ) {
+                if ( ( dg_totalLoadLevel.at(dg) + internalForcesEBENorm.at(dg) ) > nrsolver_ERROR_NORM_SMALL_NUM && !residuumNorm ) {
                     forceErr = sqrt( dg_forceErr.at(dg) / ( dg_totalLoadLevel.at(dg) + internalForcesEBENorm.at(dg) ) );
                 } else {
                     // If both external forces and internal ebe norms are zero, then the residual must be zero.
