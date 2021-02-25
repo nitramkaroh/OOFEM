@@ -145,6 +145,8 @@ public:
     virtual void solveYourself();
     virtual void solveYourselfAt(TimeStep *tStep);
     virtual void terminate(TimeStep *tStep);
+    void updateYourself(TimeStep *tStep);
+
 
     void giveInitialGuess(int di, TimeStep *tStep);
     void resetStiffnessMatrix() override;

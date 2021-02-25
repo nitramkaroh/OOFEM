@@ -193,6 +193,11 @@ double Parser :: prim(bool get) // handle primaries
 
         return time < e ? 0 : 1;
     }
+    case ASINH_FUNC: // arcus sinus hyperbolic
+    {
+        double e = agr(true);
+        return asinh(e);
+    }
 
     default:
         OOFEM_ERROR("primary expected");
@@ -319,7 +324,9 @@ Parser :: Token_value Parser :: get_token()
                 return curr_tok = TAN_FUNC;
             } else if ( !strncmp(string_value, "atan", 4) ) {
                 return curr_tok = ATAN_FUNC;
-            } else if ( !strncmp(string_value, "asin", 4) ) {
+            } else if ( !strncmp(string_value, "asinh", 5) ) {
+	        return curr_tok = ASINH_FUNC;
+	    } else if ( !strncmp(string_value, "asin", 4) ) {
                 return curr_tok = ASIN_FUNC;
             } else if ( !strncmp(string_value, "acos", 4) ) {
                 return curr_tok = ACOS_FUNC;

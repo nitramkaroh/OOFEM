@@ -369,6 +369,17 @@ NonLinearStatic :: solveYourselfAt(TimeStep *tStep)
 
 
 void
+NonLinearStatic :: updateYourself(TimeStep *tStep)
+{
+  if(this->printStiffnessFlag) {
+      this->updateComponent(tStep, NonLinearLhs, this->giveDomain(1) );     
+  }
+    StructuralEngngModel :: updateYourself(tStep);
+}
+
+
+
+void
 NonLinearStatic :: terminate(TimeStep *tStep)
 {
     this->doStepOutput(tStep);
@@ -378,8 +389,7 @@ NonLinearStatic :: terminate(TimeStep *tStep)
     this->updateLoadVectors(tStep);
     this->saveStepContext(tStep);
     if(this->printStiffnessFlag) {
-      this->updateComponent(tStep, NonLinearLhs, this->giveDomain(1) );     
-      
+       
       FILE *FID; 
       char fext[100];
       sprintf( fext, "_m%d_%d", this->number, tStep->giveNumber() );
@@ -413,7 +423,7 @@ NonLinearStatic :: terminate(TimeStep *tStep)
       stiffnessMatrix->toFloatMatrix(copy);
       for ( int i = 1; i <= copy.giveNumberOfRows(); ++i ) {
         for ( int j = 1; j <= copy.giveNumberOfColumns(); ++j ) {
-	  fprintf( FID, "%10.3e  ", copy.at(i, j) );
+	  fprintf( FID, "%10.12e  ", copy.at(i, j) );
         }
         fprintf(FID, "\n");
       }
