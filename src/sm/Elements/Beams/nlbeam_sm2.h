@@ -54,6 +54,7 @@
 #define _IFT_NlBeam_SM2_Material "materialtype"
 #define _IFT_NlBeam_SM2_Beam_Tolerance "btol"
 #define _IFT_NlBeam_SM2_Beam_MaxIteration "bmaxit"
+#define _IFT_NlBeam_SM_Beam_NumberMaxSubsteps "nsubsteps"
 #define _IFT_NlBeam_SM2_Section_Tolerance "stol"
 #define _IFT_NlBeam_SM2_Section_MaxIteration "smaxit"
 
@@ -88,6 +89,8 @@ protected:
     FloatMatrix jacobi;
     double beam_tol = 1.e-6, beam_maxit = 100;
     double section_tol = 1.e-6,section_maxit = 20;
+    int nsubsteps_init = 4;
+
     double EI, EA;
     double RADIUS, DEPTH;
     double curvedbeamLength;
@@ -142,7 +145,7 @@ protected:
     void integrateAlongBeamAndGetJacobi(const FloatArray &fab, FloatArray &ub, FloatMatrix &jacobi);
     void integrateAlongStraightBeamAndGetJacobi(const FloatArray &fab, FloatArray &ub, FloatMatrix &jacobi);
     void integrateAlongCurvedBeamAndGetJacobi(const FloatArray &fab, FloatArray &ub, FloatMatrix &jacobi);
-    void findLeftEndForcesLocal(FloatArray &ub_target, FloatArray &fab_loc);
+    bool findLeftEndForcesLocal(FloatArray &ub_target, FloatArray &fab_loc);
     void construct_T(FloatMatrix &T, const double phia);
     void construct_Tprime(FloatMatrix &T, const double phia);
     void construct_l(FloatArray &l, double phia);

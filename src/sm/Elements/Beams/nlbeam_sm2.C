@@ -460,7 +460,7 @@ at the right end, assuming that the displacement and rotation at the left end ar
 The solution is computed iteratively, using the Newton-Raphson method. 
 Everything is done here in the local coordinate system aligned with the undeformed beam.
 */
-void
+bool
 NlBeam_SM2 :: findLeftEndForcesLocal(FloatArray &ub_target, FloatArray &fab_loc)
 {
   FloatArray fab_init(fab_loc);
@@ -486,12 +486,10 @@ NlBeam_SM2 :: findLeftEndForcesLocal(FloatArray &ub_target, FloatArray &fab_loc)
   }
 
   if (iter >= beam_maxit || error != error) {
-    //@todo: cut the step
-    
-    domain->giveEngngModel()->setAnalysisCrash(true);
     fab_loc = fab_init;
-    //OOFEM_ERROR("No convergence in findLeftEndForcesLocal\n");
+    return false;
   }
+  return true;
 }
 
 /*
@@ -567,7 +565,7 @@ Note that the transformation matrix T is affected by angle alpha that specifies 
 void
 NlBeam_SM2 :: findLeftEndForces(const FloatArray &u, FloatArray &fab)
 {
-  FloatArray ub_loc, l, fab_loc; 
+  FloatArray ub_loc, l, fab_loc, fab_init(fab); 
   FloatMatrix T; 
   // compute displacements of the right end with respect to the auxiliary coordinate system
   construct_l(ub_loc, u.at(3));
@@ -582,7 +580,34 @@ NlBeam_SM2 :: findLeftEndForces(const FloatArray &u, FloatArray &fab)
   // transform initial guess to local coordinates
   fab_loc.beProductOf(T, fab);
   // find end forces in the local coordinate syste
-  findLeftEndForcesLocal(ub_loc, fab_loc);
+  bool success = findLeftEndForcesLocal(ub_loc, fab_loc);
+  if (!success) { // multi-level substepping (note that fab_loc remained unchanged if the local iteration failed)
+    FloatArray ub_loc_substep, ub_loc_intermediate(3);
+    FloatMatrix jacobi(3,3);
+    this->integrateAlongBeamAndGetJacobi(fab_loc, ub_loc_intermediate, jacobi);
+    ub_loc_substep.beDifferenceOf(ub_loc, ub_loc_intermediate);
+    int refinement_factor = 4;
+    ub_loc_substep.times(1./refinement_factor);
+    int isubstep = 0, maxnsubsteps = 1024;
+    int nsubsteps = this->nsubsteps_init;
+    while (isubstep < nsubsteps && nsubsteps <= maxnsubsteps){
+      ub_loc_intermediate.add(ub_loc_substep);
+      success = findLeftEndForcesLocal(ub_loc_intermediate, fab_loc);
+      if (success){
+	isubstep++;
+      } else { // further refinement needed
+	ub_loc_intermediate.subtract(ub_loc_substep);
+	ub_loc_substep.times(1./refinement_factor);
+	nsubsteps = isubstep + 4*(nsubsteps-isubstep);
+      }
+    }
+    if (isubstep < nsubsteps){
+      fab = fab_init;
+      domain->giveEngngModel()->setAnalysisCrash(true);
+      return;
+    }
+  }
+
   // transform local end forces to the global coordinate syste
   fab.beTProductOf(T, fab_loc);
 }
@@ -762,7 +787,7 @@ NlBeam_SM2 :: giveCompositeExportData_curved(std::vector< VTKPiece > &vtkPieces,
  
     int numCells = this->NIP;
     const int numCellNodes  = 2; // linear line
-    int nNodes = 2 * numCellNodes;
+    int nNodes = numCells * numCellNodes;
 
     vtkPieces.at(0).setNumberOfCells(numCells);
     vtkPieces.at(0).setNumberOfNodes(nNodes);
@@ -772,7 +797,7 @@ NlBeam_SM2 :: giveCompositeExportData_curved(std::vector< VTKPiece > &vtkPieces,
     IntArray nodes(numCellNodes);
  
     Node *nodeA = this->giveNode(1); 
-    FloatArray uab;
+    FloatArray uab, ug(3);
     this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, uab);
     
     FloatMatrix T,T0;
@@ -791,9 +816,9 @@ NlBeam_SM2 :: giveCompositeExportData_curved(std::vector< VTKPiece > &vtkPieces,
 	xs.at(2) = this->w0.at(index);
 	xs.at(3) = 0;
 	xg.beTProductOf(T0, xs);
-	nodeCoords.at(1) = nodeA->giveCoordinate(1) + xs.at(1);
-	nodeCoords.at(3) = nodeA->giveCoordinate(3) + xs.at(2);
-	vtkPieces.at(0).setNodeCoords(iNode, nodeCoords);
+	nodeCoords.at(1) = nodeA->giveCoordinate(1) + xg.at(1);
+	nodeCoords.at(3) = nodeA->giveCoordinate(3) + xg.at(2);
+	vtkPieces.at(0).setNodeCoords(nodeNum, nodeCoords);
 	nodeNum++;
 	connectivity.at(iNode) = val++;
       }
@@ -811,17 +836,25 @@ NlBeam_SM2 :: giveCompositeExportData_curved(std::vector< VTKPiece > &vtkPieces,
         if ( utype == DisplacementVector ) {
 	  FloatArray l;
 	  for ( int nN = 1; nN <= nNodes; nN++ ) {
-	    double Ls = s.at(nN);
-	    double L = sqrt((Ls + this->u0.at(nN)) * (Ls + this->u0.at(nN)) + this->w0.at(nN) * this->w0.at(nN));
+	    int lN = nN % 2;
+	    int iNode;
+	    if(lN == 0) {
+	      iNode = nN/2 + 1;
+	    } else {
+	      iNode = (nN + 1) / 2;
+	    }
+	  
+	    double Ls = s.at(iNode);
+	    double L = sqrt((Ls + this->u0.at(iNode)) * (Ls + this->u0.at(iNode)) + this->w0.at(iNode) * this->w0.at(iNode));
 	    this->construct_l(l, uab.at(3), L);
 	    FloatArray u_l, u_g;
-	    u_l = {this->u.at(nN), this->w.at(nN), 0};
+	    u_l = {this->u.at(iNode), this->w.at(iNode), 0};
 	    u_l.subtract(l);
 	    u_g.beTProductOf(T, u_l);
-	    u.at(1) = u_g.at(1) + uab.at(1);
-	    u.at(2) = u_g.at(2) + uab.at(2);
-	    u.at(3) = 0;
-	    vtkPieces.at(0).setPrimaryVarInNode(i, nN, u);
+	    ug.at(1) = u_g.at(1) + uab.at(1);
+	    ug.at(3) = u_g.at(2) + uab.at(2);
+	    ug.at(2) = 0;
+	    vtkPieces.at(0).setPrimaryVarInNode(i, nN, ug);
 	  }
         }
     }
@@ -879,7 +912,14 @@ NlBeam_SM2 :: giveCompositeExportData_straight(std::vector< VTKPiece > &vtkPiece
 	  FloatArray l;
 	  FloatMatrix T;
 	  for ( int nN = 1; nN <= nNodes; nN++ ) {
-	    double L = (nN-1) * ds;
+	    int lN = nN % 2;
+	    int iNode;
+	    if(lN == 0) {
+	      iNode = nN/2 + 1;
+	    } else {
+	      iNode = (nN + 1) / 2;
+	    }
+	    double L = (iNode-1) * ds;
 	    this->construct_l(l, uab.at(3), L);
 	    this->construct_T(T, uab.at(3));
 	    FloatArray u_l, u_g;

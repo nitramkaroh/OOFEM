@@ -342,8 +342,10 @@ restart:
                 goto restart;
             } else {
                 status = NM_NoSuccess;
-		goto restart;
-                OOFEM_ERROR("can't continue further");
+		OOFEM_ERROR("Maximum number of restarts reached. Can't continue further");
+		/*goto restart;
+                
+		*/
             }
         }
 
