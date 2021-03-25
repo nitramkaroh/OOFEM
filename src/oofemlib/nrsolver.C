@@ -333,6 +333,18 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
 	    }
 	    applyConstraintsToStiffness(k);
 	  }
+	  //init external forces
+	  engngModel->updateComponent(tStep, ExternalRhs, domain);
+	  // compute total load R = R+R0
+	  RT = R;
+	  if ( R0 &&  !followerLoadFlag) {
+	    RT.add(* R0);
+	  }
+	  
+	  RRT = parallel_context->localNorm(RT);
+	  RRT *= RRT;
+
+		  
 
 	  /*	  F.zero();
 	  this->solve(k, R, R0, X, dX, F, internalForcesEBENorm, l, rlm, nite, tStep);

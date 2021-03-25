@@ -106,6 +106,7 @@ NlBeam_SM2 :: initializeFrom(InputRecord *ir)
       IR_GIVE_FIELD(ir, w_0, _IFT_NlBeam_SM2_w0);
       IR_GIVE_FIELD(ir, phi_0, _IFT_NlBeam_SM2_phi0);
       IR_GIVE_FIELD(ir, kappa_0, _IFT_NlBeam_SM2_kappa0);
+      IR_GIVE_FIELD(ir, curvedbeamLength, _IFT_NlBeam_SM2_curvedbeamLength);
       int n_cf = 0;
       IR_GIVE_OPTIONAL_FIELD(ir, n_cf,  _IFT_NlBeam_SM2_coordinateFlag);
 
@@ -114,10 +115,22 @@ NlBeam_SM2 :: initializeFrom(InputRecord *ir)
       this->w0.resize(NIP+1);
       this->phi0.resize(NIP+1);
       this->kappa0.resize(NIP+1);
+      this->phi0mid.resize(NIP);
 
       
       if(n_cf == 0) {
 	this->cf = CF_s;
+	for(int i = 1; i <= NIP+1; i++) {
+	  s.at(i) = double(i-1.)/NIP * curvedbeamLength;
+	  kappa0.at(i) = this->eval_kappa0(s.at(i));
+	  phi0.at(i) = this->eval_phi0(s.at(i));
+	  u0.at(i) = this->eval_u0(s.at(i));
+	  w0.at(i) = this->eval_w0(s.at(i));
+	  double ds = curvedbeamLength/NIP;
+	  if(i > 1) {
+	    phi0mid.at(i-1) = this->eval_phi0(s.at(i)-ds/2.);
+	  }
+	}
       } else {
 	this->cf = CF_x;
 	IR_GIVE_FIELD(ir, sx, _IFT_NlBeam_SM2_s);
@@ -129,6 +142,12 @@ NlBeam_SM2 :: initializeFrom(InputRecord *ir)
 	  phi0.at(i) = this->eval_phi0(x);
 	  u0.at(i) = this->eval_u0(x);
 	  w0.at(i) = this->eval_w0(x);
+	  double dx = 1./NIP * nodeB->giveCoordinate(1);
+	  if(i > 1) {
+	    phi0mid.at(i-1) = this->eval_phi0(x-dx);
+	  }
+
+	  
 	}
       
       }
@@ -308,81 +327,82 @@ NlBeam_SM2 :: integrateAlongCurvedBeamAndGetJacobi(const FloatArray &fab, FloatA
   jacobi.resize(3,3);
   // basic loop over spatial steps
   for (int i=2; i<=NIP+1; i++){
-    this->s.at(i) = this->s.at(i-1) + ds.at(i-1);
+    double ds = this->s.at(i) - this->s.at(i-1);
+      //    this->s.at(i) = this->s.at(i-1) + ds.at(i-1);
     u_prev = ub;
     // rotation at midstep and its derivatives with respect to the left-end forces
     //double phi0_mid = eval_phi0(x.at(i)-ds/2.);
     double phi0_mid = phi0mid.at(i-1);
-    double delta_phi_mid = u_prev.at(3) + delta_kappa * ds.at(i-1)/2.;
+    double delta_phi_mid = u_prev.at(3) + delta_kappa * ds/2.;
     double phi_mid = phi0_mid + delta_phi_mid;
     FloatMatrix jacobiprime;
     jacobiprime.beTranspositionOf(jacobi);
     dphi_mid.beColumnOf(jacobiprime, 3);
-    dphi_mid.add(ds.at(i-1)/2., dkappa);  
+    dphi_mid.add(ds/2., dkappa);  
     // normal force at midstep and its derivatives with respect to the left-end forces
     double N_mid = -Xab * cos(phi_mid) + Zab *  sin(phi_mid);
     vN.at(i) = N_mid;
-  dN = ( Xab * sin(phi_mid) + Zab * cos(phi_mid)) * dphi_mid;
-  dN.at(1) -= cos(phi_mid);
-  dN.at(2) += sin(phi_mid);
-  // centerline strain at midstep
-  double eps_mid = computeCenterlineStrainFromInternalForces(vM.at(i-1),N_mid, kappa0.at(i));
-  double deps_dM = computeDerStrainMoment(vM.at(i-1),N_mid, kappa0.at(i));
-  double deps_dN = computeDerStrainNormalForce(vM.at(i-1),N_mid);
-  deps_mid = dM;
-  deps_mid.times(deps_dM);
-  deps_mid.add(deps_dN, dN);   							
-  // horizontal displacement at the end of the step
-  ub.at(1) = u_prev.at(1)+ds.at(i-1)*((1.+eps_mid)*cos(phi_mid)-cos(phi0_mid));
-  this->u.at(i) = ub.at(1);
-  // vertical displacement at the end of the step
-  ub.at(2) = u_prev.at(2)+ds.at(i-1)*(sin(phi0_mid)-(1.+eps_mid)*sin(phi_mid));
-  this->w.at(i) = ub.at(2);
-  // first two rows jacobi
-  FloatArray j_row1, j_row2;
-  double s1, s2;
-  s1 = (1.+eps_mid)*(-sin(phi_mid));
-  j_row1.beScaled(s1, dphi_mid);
-  j_row1.add(cos(phi_mid), deps_mid);
-  j_row1.times(ds.at(i-1));
-  s2 = (1.+eps_mid)*(-cos(phi_mid));
-  j_row2.beScaled(s2, dphi_mid);
-  j_row2.add(-sin(phi_mid), deps_mid);
-  j_row2.times(ds.at(i-1));
-  jacobi.addSubVectorRow(j_row1, 1,1);
-  jacobi.addSubVectorRow(j_row2, 2,1);
-  // bending moment and curvature at the end of the step and their derivatives with respect to the left-end forces
-  //double M = -Mab+Xab*(eval_w0(x.at(i))+ub.at(2))-Zab*(x.at(i)+eval_u0(x.at(i))+ub.at(1));
-  double M = -Mab+Xab*(w0.at(i)+ub.at(2))-Zab*(s.at(i)+ u0.at(i)+ub.at(1));
-  vM.at(i) = M;
-  jacobiprime.beTranspositionOf(jacobi);
-  dM.beColumnOf(jacobiprime, 2);
-  dM.times(Xab);
-  FloatArray aux;
-  aux.beColumnOf(jacobiprime, 1);
-  dM.add(-Zab, aux);
-  //dM.at(1) = eval_w0(x.at(i))+ub.at(2);
-  //dM.at(2) = -(x.at(i)+eval_u0(x.at(i))+ub.at(1));
-  dM.at(1) += w0.at(i)+ub.at(2);
-  dM.at(2) += -(s.at(i)+u0.at(i)+ub.at(1)); 
-  dM.at(3) += -1.;
-  delta_kappa = computeDeltaCurvatureFromInternalForces(M,N_mid, kappa0.at(i));
-  dkappa_dM = computeDerCurvatureMoment(M,N_mid, kappa0.at(i));
-  dkappa_dN = computeDerCurvatureNormalForce(M,N_mid, kappa0.at(i));
-  dkappa = dM;
-  dkappa.times(dkappa_dM);
-  dkappa.add(dkappa_dN, dN);                                                      
-  // rotation at the end of the step
-  ub.at(3) = delta_phi_mid+delta_kappa*ds.at(i-1)/2.;
-  this->phi.at(i) = ub.at(3);
-  // update Jacobi matrix
+    dN = ( Xab * sin(phi_mid) + Zab * cos(phi_mid)) * dphi_mid;
+    dN.at(1) -= cos(phi_mid);
+    dN.at(2) += sin(phi_mid);
+    // centerline strain at midstep
+    double eps_mid = computeCenterlineStrainFromInternalForces(vM.at(i-1),N_mid, kappa0.at(i));
+    double deps_dM = computeDerStrainMoment(vM.at(i-1),N_mid, kappa0.at(i));
+    double deps_dN = computeDerStrainNormalForce(vM.at(i-1),N_mid);
+    deps_mid = dM;
+    deps_mid.times(deps_dM);
+    deps_mid.add(deps_dN, dN);   							
+    // horizontal displacement at the end of the step
+    ub.at(1) = u_prev.at(1)+ds*((1.+eps_mid)*cos(phi_mid)-cos(phi0_mid));
+    this->u.at(i) = ub.at(1);
+    // vertical displacement at the end of the step
+    ub.at(2) = u_prev.at(2)+ds*(sin(phi0_mid)-(1.+eps_mid)*sin(phi_mid));
+    this->w.at(i) = ub.at(2);
+    // first two rows jacobi
+    FloatArray j_row1, j_row2;
+    double s1, s2;
+    s1 = (1.+eps_mid)*(-sin(phi_mid));
+    j_row1.beScaled(s1, dphi_mid);
+    j_row1.add(cos(phi_mid), deps_mid);
+    j_row1.times(ds);
+    s2 = (1.+eps_mid)*(-cos(phi_mid));
+    j_row2.beScaled(s2, dphi_mid);
+    j_row2.add(-sin(phi_mid), deps_mid);
+    j_row2.times(ds);
+    jacobi.addSubVectorRow(j_row1, 1,1);
+    jacobi.addSubVectorRow(j_row2, 2,1);
+    // bending moment and curvature at the end of the step and their derivatives with respect to the left-end forces
+    //double M = -Mab+Xab*(eval_w0(x.at(i))+ub.at(2))-Zab*(x.at(i)+eval_u0(x.at(i))+ub.at(1));
+    double M = -Mab+Xab*(w0.at(i)+ub.at(2))-Zab*(s.at(i)+ u0.at(i)+ub.at(1));
+    vM.at(i) = M;
+    jacobiprime.beTranspositionOf(jacobi);
+    dM.beColumnOf(jacobiprime, 2);
+    dM.times(Xab);
+    FloatArray aux;
+    aux.beColumnOf(jacobiprime, 1);
+    dM.add(-Zab, aux);
+    //dM.at(1) = eval_w0(x.at(i))+ub.at(2);
+    //dM.at(2) = -(x.at(i)+eval_u0(x.at(i))+ub.at(1));
+    dM.at(1) += w0.at(i)+ub.at(2);
+    dM.at(2) += -(s.at(i)+u0.at(i)+ub.at(1)); 
+    dM.at(3) += -1.;
+    delta_kappa = computeDeltaCurvatureFromInternalForces(M,N_mid, kappa0.at(i));
+    dkappa_dM = computeDerCurvatureMoment(M,N_mid, kappa0.at(i));
+    dkappa_dN = computeDerCurvatureNormalForce(M,N_mid, kappa0.at(i));
+    dkappa = dM;
+    dkappa.times(dkappa_dM);
+    dkappa.add(dkappa_dN, dN);                                                      
+    // rotation at the end of the step
+    ub.at(3) = delta_phi_mid+delta_kappa*ds/2.;
+    this->phi.at(i) = ub.at(3);
+    // update Jacobi matrix
     FloatArray j_row3;
     j_row3 = dphi_mid;
-    j_row3.add(ds.at(i-1)/2., dkappa);
+    j_row3.add(ds/2., dkappa);
     jacobi.copySubVectorRow(j_row3, 3,1);
   } // end of loop over spatial steps
 }
-
+  
 void
 NlBeam_SM2 :: integrateAlongStraightBeamAndGetJacobi(const FloatArray &fab, FloatArray &ub, FloatMatrix &jacobi)
 {
@@ -702,15 +722,180 @@ NlBeam_SM2 :: computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode rMode,
     answer.at(6,j) += c1 * answer.at(1,j) + c2 * answer.at(2,j) - answer.at(3,j);
   }
 
-  
+  /*  
   FloatMatrix K;
   this->computeStiffnessMatrix_num(K, rMode, tStep);
   int huhu = 1;
+  */
   
 
 }
   
 
+
+Interface *NlBeam_SM2 :: giveInterface(InterfaceType it)
+{
+    switch ( it ) {
+    case VTKXMLExportModuleElementInterfaceType:
+      return static_cast< VTKXMLExportModuleElementInterface * >( this );
+    default:
+      return StructuralElement :: giveInterface(it);
+    }
+}
+
+void
+NlBeam_SM2 :: giveCompositeExportData(std::vector< VTKPiece > &vtkPieces, IntArray &primaryVarsToExport, IntArray &internalVarsToExport, IntArray cellVarsToExport, TimeStep *tStep )
+{
+  if(tangentVector.giveSize()) {
+    this->giveCompositeExportData_curved(vtkPieces, primaryVarsToExport, internalVarsToExport, cellVarsToExport, tStep );
+  } else {
+    this->giveCompositeExportData_straight(vtkPieces, primaryVarsToExport, internalVarsToExport, cellVarsToExport, tStep );
+   }
+
+}
+
+void
+NlBeam_SM2 :: giveCompositeExportData_curved(std::vector< VTKPiece > &vtkPieces, IntArray &primaryVarsToExport, IntArray &internalVarsToExport, IntArray cellVarsToExport, TimeStep *tStep )
+{
+
+  vtkPieces.resize(1);
+ 
+    int numCells = this->NIP;
+    const int numCellNodes  = 2; // linear line
+    int nNodes = 2 * numCellNodes;
+
+    vtkPieces.at(0).setNumberOfCells(numCells);
+    vtkPieces.at(0).setNumberOfNodes(nNodes);
+
+    int val    = 1;
+    int offset = 0;
+    IntArray nodes(numCellNodes);
+ 
+    Node *nodeA = this->giveNode(1); 
+    FloatArray uab;
+    this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, uab);
+    
+    FloatMatrix T,T0;
+    this->construct_T(T0, 0);
+    this->construct_T(T, uab.at(3));
+
+    int nodeNum = 1;
+    FloatArray nodeCoords(3);
+    IntArray connectivity(2);
+    for ( int iElement = 1; iElement <= numCells; iElement++ ) {      
+      for (int iNode = 1; iNode <= numCellNodes; iNode++) {
+	int index = iElement  + iNode - 1;
+	double Ls = this->s.at(index);
+	FloatArray xs(3), xg;
+	xs.at(1) = Ls + this->u0.at(index);
+	xs.at(2) = this->w0.at(index);
+	xs.at(3) = 0;
+	xg.beTProductOf(T0, xs);
+	nodeCoords.at(1) = nodeA->giveCoordinate(1) + xs.at(1);
+	nodeCoords.at(3) = nodeA->giveCoordinate(3) + xs.at(2);
+	vtkPieces.at(0).setNodeCoords(iNode, nodeCoords);
+	nodeNum++;
+	connectivity.at(iNode) = val++;
+      }
+      vtkPieces.at(0).setConnectivity(iElement, connectivity);
+      offset += 2;
+      vtkPieces.at(0).setOffset(iElement, offset);
+      vtkPieces.at(0).setCellType(iElement, 3);
+    }
+
+
+    int n = primaryVarsToExport.giveSize();
+    vtkPieces [ 0 ].setNumberOfPrimaryVarsToExport(n, nNodes);
+    for ( int i = 1; i <= n; i++ ) {
+        UnknownType utype = ( UnknownType ) primaryVarsToExport.at(i);
+        if ( utype == DisplacementVector ) {
+	  FloatArray l;
+	  for ( int nN = 1; nN <= nNodes; nN++ ) {
+	    double Ls = s.at(nN);
+	    double L = sqrt((Ls + this->u0.at(nN)) * (Ls + this->u0.at(nN)) + this->w0.at(nN) * this->w0.at(nN));
+	    this->construct_l(l, uab.at(3), L);
+	    FloatArray u_l, u_g;
+	    u_l = {this->u.at(nN), this->w.at(nN), 0};
+	    u_l.subtract(l);
+	    u_g.beTProductOf(T, u_l);
+	    u.at(1) = u_g.at(1) + uab.at(1);
+	    u.at(2) = u_g.at(2) + uab.at(2);
+	    u.at(3) = 0;
+	    vtkPieces.at(0).setPrimaryVarInNode(i, nN, u);
+	  }
+        }
+    }
+
+
+}
+
+
+void
+NlBeam_SM2 :: giveCompositeExportData_straight(std::vector< VTKPiece > &vtkPieces, IntArray &primaryVarsToExport, IntArray &internalVarsToExport, IntArray cellVarsToExport, TimeStep *tStep )
+{
+    vtkPieces.resize(1);
+ 
+    int numCells = this->NIP;
+    const int numCellNodes  = 2; // linear line
+    int nNodes = 2 * numCellNodes;
+
+    vtkPieces.at(0).setNumberOfCells(numCells);
+    vtkPieces.at(0).setNumberOfNodes(nNodes);
+
+    int val    = 1;
+    int offset = 0;
+    IntArray nodes(numCellNodes);
+ 
+
+    FloatArray uab, ug(3);
+    this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, uab);
+    int nodeNum = 1;
+    double ds = beamLength/NIP;
+    FloatMatrix T;
+    this->construct_T(T, uab.at(3));
+    FloatArray nodeCoords;
+    IntArray connectivity(2);
+    for ( int iElement = 1; iElement <= numCells; iElement++ ) {
+      for (int iNode = 1; iNode <= numCellNodes; iNode++) {
+	double L = (iElement-1) * ds + (iNode -1) * ds;
+	nodeCoords.at(1) = L * cosAlpha;
+	nodeCoords.at(2) = L * sinAlpha;      
+	vtkPieces.at(0).setNodeCoords(iNode, nodeCoords);
+	nodeNum++;
+	connectivity.at(iNode) = val++;
+      }
+      vtkPieces.at(0).setConnectivity(iElement, connectivity);
+      offset += 2;
+      vtkPieces.at(0).setOffset(iElement, offset);
+      vtkPieces.at(0).setCellType(iElement, 3);
+    }
+
+
+    int n = primaryVarsToExport.giveSize();
+    vtkPieces [ 0 ].setNumberOfPrimaryVarsToExport(n, nNodes);
+    for ( int i = 1; i <= n; i++ ) {
+        UnknownType utype = ( UnknownType ) primaryVarsToExport.at(i);
+        if ( utype == DisplacementVector ) {
+	  FloatArray l;
+	  FloatMatrix T;
+	  for ( int nN = 1; nN <= nNodes; nN++ ) {
+	    double L = (nN-1) * ds;
+	    this->construct_l(l, uab.at(3), L);
+	    this->construct_T(T, uab.at(3));
+	    FloatArray u_l, u_g;
+	    u_l = {this->u.at(nN), this->w.at(nN), 0};
+	    u_l.subtract(l);
+	    u_g.beTProductOf(T, u_l);
+	    ug.at(1) = u_g.at(1) + uab.at(1);
+	    ug.at(2) = u_g.at(2) + uab.at(2);
+	    ug.at(3) = this->phi.at(i) + uab.at(3);
+	    vtkPieces.at(0).setPrimaryVarInNode(i, nN, ug);
+	  }
+        }
+    }
+
+}
+     
 
 
 void

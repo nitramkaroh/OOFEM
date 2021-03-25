@@ -38,6 +38,7 @@
 
 #include "dofmanager.h"
 #include "Elements/nlstructuralelement.h"
+#include "vtkxmlexportmodule.h"
 
 
 ///@name Input fields for NlBeam_SM
@@ -48,7 +49,7 @@
 #define _IFT_NlBeam_SM_EI "ei"
 #define _IFT_NlBeam_SM_Beam_Tolerance "btol"
 #define _IFT_NlBeam_SM_Beam_MaxIteration "bmaxit"
-
+#define _IFT_NlBeam_SM_Beam_NumberMaxSubsteps "nsubsteps"
 //@}
 
 namespace oofem {
@@ -59,7 +60,7 @@ namespace oofem {
  * The shooting method is used to calculate internal forces and stiffness matrix
  * Add more description 
  */
-class NlBeam_SM : public NLStructuralElement
+  class NlBeam_SM : public NLStructuralElement,public VTKXMLExportModuleElementInterface
 {
 protected:
     int NIP = 100;
@@ -70,6 +71,7 @@ protected:
     double beam_tol = 1.e-6, beam_maxit = 100;
     double EI, EA;
     FloatArray vM, vV, vN;
+    int nsubsteps_init = 4;
 public:
     NlBeam_SM(int n, Domain *aDomain);
     virtual ~NlBeam_SM(){;}
@@ -83,6 +85,15 @@ public:
 
     virtual int computeNumberOfDofs() { return 6; }
 
+
+
+    void giveCompositeExportData(std::vector< VTKPiece > &vtkPieces, IntArray &primaryVarsToExport, IntArray &internalVarsToExport, IntArray cellVarsToExport, TimeStep *tStep ) override;
+    Interface* giveInterface(InterfaceType it) override;
+    Element_Geometry_Type giveGeometryType() const override { return EGT_Composite; }
+
+
+
+    
     virtual void  printOutputAt(FILE *file, TimeStep *tStep);
 
     virtual const char *giveClassName() const { return "NlBeam_SM"; }
@@ -103,7 +114,7 @@ protected:
     double computeDerMomentFromCurvature(double kappa);
     double computeCurvatureFromMoment(double M);
     void   integrateAlongBeamAndGetJacobi(const FloatArray &fab, FloatArray &ub, FloatMatrix &jacobi);
-    void findLeftEndForcesLocal(FloatArray &ub_target, FloatArray &fab_loc);
+    bool findLeftEndForcesLocal(FloatArray &ub_target, FloatArray &fab_loc);
     void construct_T(FloatMatrix &T, const double phia);
     void construct_Tprime(FloatMatrix &T, const double phia);
     void construct_l(FloatArray &l, double phia);
@@ -117,7 +128,7 @@ protected:
 
     void giveInternalForcesVector_u(FloatArray &answer, TimeStep *tStep, const FloatArray &u);
     void computeStiffnessMatrix_num(FloatMatrix &answer, MatResponseMode rMode, TimeStep *tStep);
-
+   
 };
 } // end namespace oofem
 #endif // beam2d_h

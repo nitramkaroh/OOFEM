@@ -39,6 +39,7 @@
 #include "dofmanager.h"
 #include "Elements/nlstructuralelement.h"
 #include "scalarfunction.h"
+#include "vtkxmlexportmodule.h"
 
 
 ///@name Input fields for NlBeam_SM2
@@ -77,7 +78,7 @@ namespace oofem {
  * The shooting method is used to calculate internal forces and stiffness matrix
  * Add more description 
  */
-class NlBeam_SM2 : public NLStructuralElement
+  class NlBeam_SM2 : public NLStructuralElement, public VTKXMLExportModuleElementInterface
 {
 protected:
     int NIP = 100;
@@ -120,7 +121,12 @@ public:
     virtual const char *giveInputRecordName() const { return _IFT_NlBeam_SM2_Name; }
     virtual IRResultType initializeFrom(InputRecord *ir);
 
-    
+    void giveCompositeExportData(std::vector< VTKPiece > &vtkPieces, IntArray &primaryVarsToExport, IntArray &internalVarsToExport, IntArray cellVarsToExport, TimeStep *tStep ) override;
+    void giveCompositeExportData_curved(std::vector< VTKPiece > &vtkPieces, IntArray &primaryVarsToExport, IntArray &internalVarsToExport, IntArray cellVarsToExport, TimeStep *tStep );
+    void giveCompositeExportData_straight(std::vector< VTKPiece > &vtkPieces, IntArray &primaryVarsToExport, IntArray &internalVarsToExport, IntArray cellVarsToExport, TimeStep *tStep );
+
+     Interface *giveInterface(InterfaceType it) override;
+     Element_Geometry_Type giveGeometryType() const override { return EGT_Composite; }
 
 protected:
 

@@ -93,7 +93,7 @@ NlBeam_SM :: initializeFrom(InputRecord *ir)
     IR_GIVE_OPTIONAL_FIELD(ir, beam_tol, _IFT_NlBeam_SM_Beam_Tolerance);
     // maximum number of iterations at the beam level
     IR_GIVE_OPTIONAL_FIELD(ir, beam_maxit, _IFT_NlBeam_SM_Beam_MaxIteration);
-
+    IR_GIVE_OPTIONAL_FIELD(ir, nsubsteps_init, _IFT_NlBeam_SM_Beam_NumberMaxSubsteps);
     
     this->givePitch();
     this->computeLength();
@@ -192,11 +192,10 @@ at the right end, assuming that the displacement and rotation at the left end ar
 The solution is computed iteratively, using the Newton-Raphson method. 
 Everything is done here in the local coordinate system aligned with the undeformed beam.
 */
-void
+bool
 NlBeam_SM :: findLeftEndForcesLocal(FloatArray &ub_target, FloatArray &fab_loc)
 {
-  FloatArray fab_init(fab_loc);
-  FloatArray res, dforces, ub_loc;
+  FloatArray res, dforces, ub_loc, f_init(fab_loc);
   FloatMatrix jacobi(3,3);
   int iter = 0;
   double tolerance = beam_tol* ub_target.computeNorm();
@@ -215,12 +214,10 @@ NlBeam_SM :: findLeftEndForcesLocal(FloatArray &ub_target, FloatArray &fab_loc)
   }
 
   if (iter >= beam_maxit || error != error) {
-    //@todo: cut the step
-    //    domain->giveEngngModel()->setAnalysisCrash(true);
-    // fab_loc = fab_init;
-    //OOFEM_ERROR("No convergence in findLeftEndForcesLocal\n");
-    int a = 1;
+    fab_loc = f_init;
+    return false;
   }
+  return true;
 }
 
 /*
@@ -289,7 +286,7 @@ Note that the transformation matrix T is affected by angle alpha that specifies 
 void
 NlBeam_SM :: findLeftEndForces(const FloatArray &u, FloatArray &fab)
 {
-  FloatArray ub_loc, l, fab_loc; 
+  FloatArray ub_loc, l, fab_loc, fab_init(fab); 
   FloatMatrix T; 
   // compute displacements of the right end with respect to the auxiliary coordinate system
   construct_l(ub_loc, u.at(3));
@@ -304,7 +301,36 @@ NlBeam_SM :: findLeftEndForces(const FloatArray &u, FloatArray &fab)
   // transform initial guess to local coordinates
   fab_loc.beProductOf(T, fab);
   // find end forces in the local coordinate syste
-  findLeftEndForcesLocal(ub_loc, fab_loc);
+  bool success = findLeftEndForcesLocal(ub_loc, fab_loc);
+  if (!success) { // multi-level substepping (note that fab_loc remained unchanged if the local iteration failed)
+    FloatArray ub_loc_substep, ub_loc_intermediate(3);
+    FloatMatrix jacobi(3,3);
+    this->integrateAlongBeamAndGetJacobi(fab_loc, ub_loc_intermediate, jacobi);
+    ub_loc_substep.beDifferenceOf(ub_loc, ub_loc_intermediate);
+    int refinement_factor = 4;
+    ub_loc_substep.times(1./refinement_factor);
+    int isubstep = 0, maxnsubsteps = 10000;
+    int nsubsteps = this->nsubsteps_init;
+    while (isubstep < nsubsteps && nsubsteps <= maxnsubsteps){
+      ub_loc_intermediate.add(ub_loc_substep);
+      success = findLeftEndForcesLocal(ub_loc_intermediate, fab_loc);
+      if (success){
+	isubstep++;
+      } else { // further refinement needed
+	ub_loc_intermediate.subtract(ub_loc_substep);
+	ub_loc_substep.times(1./refinement_factor);
+	nsubsteps = isubstep + 4*(nsubsteps-isubstep);
+      }
+    }
+    if (isubstep < nsubsteps){
+      fab = fab_init;
+      domain->giveEngngModel()->setAnalysisCrash(true);
+      return;
+    }
+  }
+
+
+    
   // transform local end forces to the global coordinate syste
   fab.beTProductOf(T, fab_loc);
 }
@@ -440,6 +466,99 @@ NlBeam_SM :: computeStiffnessMatrix_num(FloatMatrix &answer, MatResponseMode rMo
     }
       
   }
+
+}
+
+
+
+
+Interface*
+NlBeam_SM :: giveInterface(InterfaceType it)
+{
+    switch ( it ) {
+    case VTKXMLExportModuleElementInterfaceType:
+      return static_cast< VTKXMLExportModuleElementInterface * >( this );
+    default:
+      return StructuralElement :: giveInterface(it);
+    }
+}
+
+
+
+void
+NlBeam_SM :: giveCompositeExportData(std::vector< VTKPiece > &vtkPieces, IntArray &primaryVarsToExport, IntArray &internalVarsToExport, IntArray cellVarsToExport, TimeStep *tStep )
+{
+    vtkPieces.resize(1);
+ 
+    int numCells = this->NIP;
+    const int numCellNodes  = 2; // linear line
+    int nNodes = numCellNodes * numCells;
+
+    vtkPieces.at(0).setNumberOfCells(numCells);
+    vtkPieces.at(0).setNumberOfNodes(nNodes);
+
+    int val    = 1;
+    int offset = 0;
+    IntArray nodes(numCellNodes);
+ 
+    Node *nodeA = this->giveNode(1);
+    
+    FloatArray uab, ug(3);
+    this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, uab);
+    int nodeNum = 1;
+    double ds = beamLength/NIP;
+    FloatMatrix T;
+    this->construct_T(T, uab.at(3));
+    FloatArray nodeCoords(3);
+    IntArray connectivity(2);
+    for ( int iElement = 1; iElement <= numCells; iElement++ ) {
+      for (int iNode = 1; iNode <= numCellNodes; iNode++) {
+	double L = (iElement - 1) * ds + (iNode - 1) * ds;
+	nodeCoords.at(1) = nodeA->giveCoordinate(1) + L * cos(pitch);
+	nodeCoords.at(3) = nodeA->giveCoordinate(3) + L * sin(pitch);
+	nodeCoords.at(2) = 0;
+	vtkPieces.at(0).setNodeCoords(nodeNum, nodeCoords);
+	nodeNum++;
+	connectivity.at(iNode) = val++;
+      }
+      vtkPieces.at(0).setConnectivity(iElement, connectivity);
+      offset += 2;
+      vtkPieces.at(0).setOffset(iElement, offset);
+      vtkPieces.at(0).setCellType(iElement, 3);
+    }
+
+
+    int n = primaryVarsToExport.giveSize();
+    vtkPieces [ 0 ].setNumberOfPrimaryVarsToExport(n, nNodes);
+    for ( int i = 1; i <= n; i++ ) {
+        UnknownType utype = ( UnknownType ) primaryVarsToExport.at(i);
+        if ( utype == DisplacementVector ) {
+	  FloatArray l;
+	  FloatMatrix T;
+	  for ( int nN = 1; nN <= nNodes; nN++ ) {
+	    int lN = nN % 2;
+	    int iNode;
+	    if(lN == 0) {
+	      iNode = nN/2 + 1;
+	    } else {
+	      iNode = (nN + 1) / 2;
+	    }
+
+	    double L = (iNode-1) * ds;
+	    this->construct_l(l, uab.at(3), L);
+	    this->construct_T(T, uab.at(3));
+	    FloatArray u_l, u_g;
+	    u_l = {this->u.at(iNode), this->w.at(iNode), 0};
+	    u_l.subtract(l);
+	    u_g.beTProductOf(T, u_l);
+	    ug.at(1) = u_g.at(1) + uab.at(1);
+	    ug.at(3) = u_g.at(2) + uab.at(2);
+	    ug.at(2) = 0;
+	    //rotation is not exported this->phi.at(i) + uab.at(3);
+	    vtkPieces.at(0).setPrimaryVarInNode(i, nN, ug);
+	  }
+        }
+    }
 
 }
 
