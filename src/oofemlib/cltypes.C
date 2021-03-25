@@ -204,6 +204,7 @@ InternalStateValueType giveInternalStateValueType(InternalStateType type)
     case IST_CrackIndex:
     case IST_RegularizingEnergy:
     case IST_NematicElastomerPhase:
+    case IST_AcousticTensorMinEigenvalue:
         return ISVT_SCALAR;
 
     default:

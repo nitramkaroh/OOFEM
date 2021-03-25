@@ -575,7 +575,64 @@ MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial :: compute_d2I10dFdD(
 }
 
 
-
+int
+MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial :: computeAcousticTensorMinEigenvalue(GaussPoint *gp, TimeStep *tStep)
+{
+   FloatMatrix Duu, Ddd, Dud;
+   this->give3dMaterialStiffnessMatrix_dPdF(Duu, TangentStiffness, gp, tStep);
+   this->give3dMaterialStiffnessMatrix_dEdD(Ddd, TangentStiffness, gp, tStep);
+   this->give3dMaterialStiffnessMatrix_dPdD(Dud, TangentStiffness, gp, tStep);
+   double minE;
+   FloatArray n(3);
+   FloatMatrix nn, I(3,3);
+   int nStepsI, nStepsJ;
+   nStepsI = nStepsJ = 20;
+   int index = 0;
+   for(int iStep = 1; iStep <= nStepsI; iStep ++) {
+     double theta = (iStep - 1.)/(nStepsI-1.) * 2. * 3.14159265358979323; 
+     for(int jStep = 1; jStep <= nStepsJ; jStep++) {
+       double phi = (jStep - 1.)/(nStepsJ-1.) * 2. * 3.14159265358979323; 
+       n.at(1) = sin(theta) * cos(phi);
+       n.at(2) = sin(theta) * sin(phi);
+       n.at(3) = cos(theta);
+       index++;
+       I.beUnitMatrix();
+       nn.beProductTOf(n,n);
+       I.subtract(nn);
+       FloatMatrix a,b, iDdd;
+       a.beProductOf(Ddd, I);
+       b.beProductOf(I, a);
+       iDdd.beInverseOf(b);
+       FloatMatrix G(3,3), Q(3,3);
+       for(int i = 1; i <= 3; i ++) {
+	 for(int j = 1; j <= 3; j ++) {
+	   for(int k = 1; k <= 3; k ++) {
+	     G.at(j,k) += Dud.at(sm::giveVI(i,j),k) * n.at(i);
+	     for(int l = 1; l <= 3; l ++) {
+	       Q.at(j, l) += Duu.at(sm::giveVI(i,j), sm::giveVI(k,l)) * n.at(i) * n.at(k);
+	     }
+	   }
+	 }
+       }
+       FloatMatrix iDdd_G, G_iDdd_G, At;
+       iDdd_G.beProductTOf(iDdd, G);
+       G_iDdd_G.beProductOf(G, iDdd_G);
+       At = Q;
+       At.subtract(G_iDdd_G);
+       FloatArray eval;
+       FloatMatrix v;
+       At.jaco_(eval, v, 1.e-10);
+       if(index == 1) {
+	 minE = eval.at(eval.giveIndexMinElem());
+       } else {
+	 minE = min(minE, eval.at(eval.giveIndexMinElem()));
+       }
+       
+     }
+   }
+   
+   return minE;
+}
 
 
 int
@@ -592,6 +649,8 @@ MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial :: giveIPValue(FloatA
       answer.resize(3);
       answer = status->giveEVector();
       return 1;
+  } else if ( type == IST_AcousticTensorMinEigenvalue ) {
+    answer = this->computeAcousticTensorMinEigenvalue(gp, tStep);
   } else {
       return  this->hyperelasticMaterial->giveIPValue(answer, gp, type, tStep);
   }

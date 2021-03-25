@@ -110,6 +110,7 @@ public:
 
 protected:
     virtual MaterialStatus *CreateStatus(GaussPoint *gp) const { return new ElectroMechanicalMaterialStatus(1, domain, gp); }
+    int computeAcousticTensorMinEigenvalue(GaussPoint *gp, TimeStep *tStep);
 
     double compute_I4(const FloatMatrix &F);
     double compute_I7(const FloatMatrix &F, const FloatArray &D);
