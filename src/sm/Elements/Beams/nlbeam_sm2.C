@@ -134,9 +134,14 @@ NlBeam_SM2 :: initializeFrom(InputRecord *ir)
       } else {
 	this->cf = CF_x;
 	IR_GIVE_FIELD(ir, sx, _IFT_NlBeam_SM2_s);
+
 	for(int i = 1; i <= NIP+1; i++) {
-	  double x = double(i-1.)/NIP * nodeB->giveCoordinate(1);
-	  double test = x - asinh(2.*0.02*x)/4./0.02 - x*sqrt(4.*0.02*0.02*x*x)/2.;
+	  //////////////////////
+	  //	  double sd = double(i-1.)/NIP * curvedbeamLength;
+	  //double x = 100 * sin(sd/100);
+	  double x = double(i-1.)/NIP * fabs(nodeB->giveCoordinate(1)-nodeA->giveCoordinate(1));
+	  //  double test = x - asinh(2.*0.02*x)/4./0.02 - x*sqrt(4.*0.02*0.02*x*x)/2.;
+	  
 	  s.at(i) = this->eval_s(x) ;
 	  kappa0.at(i) = this->eval_kappa0(x);
 	  phi0.at(i) = this->eval_phi0(x);

@@ -560,6 +560,34 @@ NlBeam_SM :: giveCompositeExportData(std::vector< VTKPiece > &vtkPieces, IntArra
         }
     }
 
+
+    InternalStateType isttype;
+    n = internalVarsToExport.giveSize();
+    vtkPieces [ 0 ].setNumberOfInternalVarsToExport(n, nNodes);
+    for ( int i = 1; i <= n; i++ ) {
+        isttype = ( InternalStateType ) internalVarsToExport.at(i);
+	if ( isttype == IST_BeamForceMomentumTensor ) {
+	   FloatArray endForces(3);
+	   for ( int nN = 1; nN <= nNodes; nN++ ) {
+	     int lN = nN % 2;
+	     int iNode;
+	     if(lN == 0) {
+	       iNode = nN/2 + 1;
+	     } else {
+	       iNode = (nN + 1) / 2;
+	     }
+	     endForces.at(1) = this->vN.at(iNode);
+	     endForces.at(3) = this->vM.at(iNode);
+	     vtkPieces [ 0 ].setInternalVarInNode(i, nN, endForces);
+	   }
+	} else {
+	  fprintf( stderr, "VTKXMLExportModule::exportIntVars: unsupported variable type %s\n", __InternalStateTypeToString(isttype) );
+	}
+    }
+
+
+    
+
 }
 
 
