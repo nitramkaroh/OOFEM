@@ -32,6 +32,7 @@ set (sm_element
     Elements/Beams/beam3d.C
     Elements/Beams/nlbeam_sm.C
     Elements/Beams/nlbeam_sm2.C
+    Elements/Beams/nlbeam_internalcontact.C
     Elements/Beams/nlbeam_sm2o.C
     Elements/Plates/cct.C
     Elements/Plates/dkt.C 
