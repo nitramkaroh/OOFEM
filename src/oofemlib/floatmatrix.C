@@ -2112,7 +2112,7 @@ bool FloatMatrix :: jaco_(FloatArray &eval, FloatMatrix &v, int nf)
     for ( i = 1; i <= neq; i++ ) {
         for ( j = i + 1; j <= neq; j++ ) {
             //if ( this->at(i, j) != this->at(j, i) ) {
-            if ( fabs( this->at(i, j) - this->at(j, i) ) > 1.0e-6 ) {
+	  if ( fabs( this->at(i, j) - this->at(j, i) ) > 1.0e-6 * max(1.,fabs(this->at(i,j))) ) {
                 OOFEM_ERROR("Not Symmetric matrix");
             }
         }

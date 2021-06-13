@@ -2982,6 +2982,30 @@ StructuralMaterial :: compute_dyadic_product_reduced(FloatMatrix &answer, const 
 
 
 void
+StructuralMaterial :: compute_dyadic_product_reduced(FloatMatrix &answer, const FloatArray &a, const FloatArray &b)
+{
+
+    answer.resize(6, 6);
+    answer.zero();
+    
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  for ( int l = 1; l <= 3; l++ ) {
+	    if(i <= j && k <= l){
+	      answer.at( giveSymVI(i, j), giveSymVI(k, l) ) = a.at(giveSymVI(i, j)) * b.at(giveSymVI(k, l));
+	    }
+	  }
+	}
+      }
+    }
+}
+
+
+
+
+
+void
 StructuralMaterial :: compute_sym_dyadic_product(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b)
 {
 

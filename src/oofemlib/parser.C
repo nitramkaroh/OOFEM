@@ -198,6 +198,11 @@ double Parser :: prim(bool get) // handle primaries
         double e = agr(true);
         return asinh(e);
     }
+    case LOG_FUNC: //natural logarithm
+    {
+      double e = agr(true);
+      return log(e);
+    }
 
     default:
         OOFEM_ERROR("primary expected");
@@ -330,6 +335,8 @@ Parser :: Token_value Parser :: get_token()
                 return curr_tok = ASIN_FUNC;
             } else if ( !strncmp(string_value, "acos", 4) ) {
                 return curr_tok = ACOS_FUNC;
+            } else if ( !strncmp(string_value, "log", 3) ) {
+                return curr_tok = LOG_FUNC;
             } else if ( !strncmp(string_value, "exp", 4) ) {
                 return curr_tok = EXP_FUNC;
             } else if ( !strncmp(string_value, "h", 1) ) {

@@ -20,8 +20,18 @@ NlBeam_SM2 :: NlBeam_SM2(int n, Domain *aDomain) : NLStructuralElement(n, aDomai
 {
     numberOfDofMans = 2;
     this->internalForces.resize(3);
+    this->fab_init.resize(3);
 
 }
+
+  void
+NlBeam_SM2 :: updateYourself(TimeStep *tStep)
+// Updates the receiver at end of step.
+{
+  Element :: updateYourself(tStep);
+  this->fab_init = this->internalForces;
+}
+
 
 
 void
@@ -468,7 +478,6 @@ Everything is done here in the local coordinate system aligned with the undeform
 bool
 NlBeam_SM2 :: findLeftEndForcesLocal(FloatArray &ub_target, FloatArray &fab_loc)
 {
-  FloatArray fab_init(fab_loc);
   FloatArray res, dforces, ub_loc;
   FloatMatrix jacobi(3,3);
   int iter = 0;
@@ -570,7 +579,7 @@ Note that the transformation matrix T is affected by angle alpha that specifies 
 void
 NlBeam_SM2 :: findLeftEndForces(const FloatArray &u, FloatArray &fab)
 {
-  FloatArray ub_loc, l, fab_loc, fab_init(fab); 
+  FloatArray ub_loc, l, fab_loc; 
   FloatMatrix T; 
   // compute displacements of the right end with respect to the auxiliary coordinate system
   construct_l(ub_loc, u.at(3));

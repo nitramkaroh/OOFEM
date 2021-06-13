@@ -84,7 +84,7 @@ namespace oofem {
 protected:
     int NIP = 100;
     double pitch = 10, beamLength = 0;
-    FloatArray internalForces;
+    FloatArray internalForces, fab_init;
     FloatArray s, ds, u, w, phi;
     FloatMatrix jacobi;
     double beam_tol = 1.e-6, beam_maxit = 100;
@@ -130,6 +130,9 @@ public:
 
      Interface *giveInterface(InterfaceType it) override;
      Element_Geometry_Type giveGeometryType() const override { return EGT_Composite; }
+
+     void updateYourself(TimeStep *tStep);
+
 
 protected:
 

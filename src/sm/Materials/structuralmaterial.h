@@ -731,6 +731,7 @@ public:
     void compute_dyadic_product(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b);
     void compute_dyadic_product(FloatMatrix &answer, const FloatArray &a, const FloatArray &b);
     void compute_dyadic_product_reduced(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b);
+    void compute_dyadic_product_reduced(FloatMatrix &answer, const FloatArray &a, const FloatArray &b);
     void compute_sym_dyadic_product(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b);
     void compute_sym_dyadic_product_reduced(FloatMatrix &answer, const FloatMatrix &a, const FloatMatrix &b);
 

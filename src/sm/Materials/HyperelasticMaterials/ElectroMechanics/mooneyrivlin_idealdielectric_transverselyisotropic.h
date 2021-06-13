@@ -147,6 +147,9 @@ protected:
     void compute_dPdF_dEdF_fake(FloatMatrix &dPdF,FloatMatrix &dEdF, const FloatMatrix &F, const FloatArray &D, GaussPoint *gp, TimeStep *tStep);
     void compute_dPdD_dEdD(FloatMatrix &dPdF,FloatMatrix &dEdF, const FloatMatrix &F, const FloatArray &D, GaussPoint *gp, TimeStep *tStep);
 
+
+    void computePseudoInverse(FloatMatrix &iDdd, FloatMatrix &b);
+
     
 };
  

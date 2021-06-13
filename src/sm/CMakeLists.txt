@@ -32,6 +32,7 @@ set (sm_element
     Elements/Beams/beam3d.C
     Elements/Beams/nlbeam_sm.C
     Elements/Beams/nlbeam_sm2.C
+    Elements/Beams/nlbeam_sm2o.C
     Elements/Plates/cct.C
     Elements/Plates/dkt.C 
     Elements/Plates/qdkt.C
@@ -257,6 +258,7 @@ set (sm_material
     Materials/HyperelasticMaterials/ogdennematicelastomermaterial.C
     Materials/HyperelasticMaterials/neohookean.C
     Materials/HyperelasticMaterials/doublewellmaterial.C
+    Materials/HyperelasticMaterials/martensitemat.C
     Materials/structuralfe2material.C
     Materials/rcsd.C 
     Materials/rcsde.C 

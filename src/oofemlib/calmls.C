@@ -59,7 +59,7 @@ namespace oofem {
 REGISTER_SparseNonLinearSystemNM(CylindricalALM)
 
 CylindricalALM :: CylindricalALM(Domain *d, EngngModel *m) :
-    SparseNonLinearSystemNM(d, m), calm_HPCWeights(), calm_HPCIndirectDofMask(), calm_HPCDmanDofSrcArray(), ccDofGroups()
+SparseNonLinearSystemNM(d, m), calm_HPCWeights(), calm_HPCIndirectDofMask(), calm_HPCDmanDofSrcArray(), ccDofGroups(), old_dX()
 {
     nsmax  = 60;       // default maximum number of sweeps allowed
     numberOfRequiredIterations = 3;
@@ -233,12 +233,17 @@ restart:
         p = parallel_context->accumulate(p);
     }
 
-    XR = parallel_context->localDotProduct(deltaXt, R);
+   
+    Lambda = ReachedLambda;
+    if(old_dX.giveSize()) {
+      XR = parallel_context->localDotProduct(deltaXt, old_dX);
+      DeltaLambda = deltaLambda = sgn(XR) * deltaL / p;
+    } else {
     /* XR is unscaled Bergan's param of current stiffness XR = deltaXt^T k deltaXt
      * this is used to test whether k has negative or positive slope */
-
-    Lambda = ReachedLambda;
-    DeltaLambda = deltaLambda = sgn(XR) * deltaL/ p;
+      XR = parallel_context->localDotProduct(deltaXt, R);
+      DeltaLambda = deltaLambda = sgn(XR) * deltaL / p;
+    }
     Lambda += DeltaLambda;
     //
     // A.3.
@@ -489,6 +494,8 @@ restart:
     status = NM_Success;
     solved = 1;
     ReachedLambda = Lambda;
+    old_dX = dX;
+
 
     return status;
 }
@@ -900,6 +907,18 @@ CylindricalALM :: initializeFrom(InputRecord *ir)
     }
 
     IR_GIVE_OPTIONAL_FIELD(ir, l12, _IFT_CylindricalALM_l12);
+    if ( ( calm_Control == calm_hpc_off ) || ( calm_Control == calm_hpc_on ) ) {
+      int rst = 0;
+      IR_GIVE_OPTIONAL_FIELD(ir, rst, _IFT_CylindricalALM_rootselectiontype);
+      if(rst == 0) {
+	rootselectiontype = RST_Cos;
+      } else if(rst == 1) {
+	rootselectiontype = RST_Dot;
+      }	  
+    }
+    
+
+
     
     this->giveLinearSolver()->initializeFrom(ir);
 
@@ -1104,23 +1123,35 @@ CylindricalALM :: computeDeltaLambda(double &deltaLambda, const FloatArray &dX, 
             a5 = cola(1);
         }
 
-	
-        double cos1 = ( a4 + a5 * lam1 ) / deltaL / deltaL;
-        double cos2 = ( a4 + a5 * lam2 ) / deltaL / deltaL;
-        if ( cos1 > cos2 ) {
-            deltaLambda = lam1;
-        } else {
-            deltaLambda = lam2;
-        }
-	if(l12 > 0) {
-	  if(lam1 > lam2) {
-	    deltaLambda = lam2;
-	  } else {
-	    deltaLambda = lam1;
-	  }
-	}
-	  
 
+	if(rootselectiontype == RST_Cos) {
+	  double cos1 = ( a4 + a5 * lam1 ) / deltaL / deltaL;
+	  double cos2 = ( a4 + a5 * lam2 ) / deltaL / deltaL;
+	  if ( cos1 > cos2 ) {
+            deltaLambda = lam1;
+	  } else {
+            deltaLambda = lam2;
+	  }
+	} else {
+	    double XX = parallel_context->localNorm(deltaXt);
+            XX *= XX;
+            double XXt = parallel_context->localDotProduct(dX, deltaXt);
+            double dXdX = parallel_context->localNorm(dX);
+            dXdX *= dXdX;
+            double dXX_ = parallel_context->localDotProduct(dX, deltaX_);
+            double X_X_ = parallel_context->localNorm(deltaX_);
+            X_X_ *= X_X_;
+	  
+	    double c1 = (dXdX + dXX_ + lam1 * XXt) + (Psi * Psi  * ((DeltaLambda0 + deltaLambda) * (DeltaLambda0 + deltaLambda) + (DeltaLambda0 + deltaLambda) * lam1)) ;
+	    double c2 = (dXdX + dXX_ + lam2 * XXt) + (Psi * Psi  * ((DeltaLambda0 + deltaLambda) * (DeltaLambda0 + deltaLambda) + (DeltaLambda0 + deltaLambda) * lam2));
+	    
+	    if ( c1 > c2 ) {
+	      deltaLambda = lam1;
+	    } else {
+	      deltaLambda = lam2;
+	    }
+	    
+	}
 
         //printf ("eta=%e, lam1=%e, lam2=%e", eta, lam1, lam2);
     } else if ( calm_Control == calml_hpc ) {
