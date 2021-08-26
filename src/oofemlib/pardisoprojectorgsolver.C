@@ -83,7 +83,7 @@ NM_Status PardisoProjectOrgSolver :: solve(SparseMtrx &A, FloatArray &b, FloatAr
     for ( int i = 0; i < n + 1; i++ ) {
         ia [ i ] += 1;
     }
-    int nnz = ia [ n ];
+    int nnz = ia [ n ] - 1;
     for ( int i = 0; i < nnz; i++ ) {
         ja [ i ] += 1;
     }

@@ -69,6 +69,9 @@
 #define _IFT_NlBeam_SM2_curvedbeamLength "curvedbeamlength"
 #define _IFT_NlBeam_SM2_coordinateFlag "cf"
 
+
+#define _IFT_NlBeam_SM2_coupling "coupling"
+
 //@}
 
 namespace oofem {
@@ -85,7 +88,7 @@ protected:
     int NIP = 100;
     double pitch = 10, beamLength = 0;
     FloatArray internalForces, fab_init;
-    FloatArray s, ds, u, w, phi;
+    FloatArray s, ds, u, w, phi, kappa;
     FloatMatrix jacobi;
     double beam_tol = 1.e-6, beam_maxit = 100;
     double section_tol = 1.e-6,section_maxit = 20;
@@ -105,6 +108,7 @@ protected:
     FloatArray tangentVector;
     enum CoordinateFlag{CF_s = 0, CF_x = 1};
     CoordinateFlag cf;
+    int coupling = 1;
     
 public:
     NlBeam_SM2(int n, Domain *aDomain);
@@ -131,7 +135,8 @@ public:
      Interface *giveInterface(InterfaceType it) override;
      Element_Geometry_Type giveGeometryType() const override { return EGT_Composite; }
 
-     void updateYourself(TimeStep *tStep);
+     void updateYourself(TimeStep *tStep) override;
+     void initForNewStep() override;
 
 
 protected:

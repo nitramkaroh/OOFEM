@@ -182,6 +182,7 @@ NRSolver :: initializeFrom(InputRecord *ir)
     this->followerLoadFlag = 0;
     IR_GIVE_OPTIONAL_FIELD(ir, this->followerLoadFlag, _IFT_NRSolver_followerLoad);
     residuumNorm  =   ir->hasField(_IFT_NRSolver_residuumNorm);
+    energyNorm  =   ir->hasField(_IFT_NRSolver_energyNorm);
     
     return SparseNonLinearSystemNM :: initializeFrom(ir);
 }
@@ -315,7 +316,7 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
 	  dX = dX0;
 	  ddX.zero();
 	  OOFEM_LOG_INFO("Analysis crashed, reducing time step\n");
-	  nite = 0;
+	  nite = -1;
 	  tStep->setSubStepNumber(nite);
 	  engngModel->reduceTimeStep(tStep);
 	  engngModel->setAnalysisCrash(false);
@@ -346,8 +347,8 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
 
 		  
 
-	  /*	  F.zero();
-	  this->solve(k, R, R0, X, dX, F, internalForcesEBENorm, l, rlm, nite, tStep);
+	  F.zero();
+	  /*this->solve(k, R, R0, X, dX, F, internalForcesEBENorm, l, rlm, nite, tStep);
 	  */
 	}
 
@@ -1165,52 +1166,78 @@ NRSolver :: checkConvergence(FloatArray &RT, FloatArray &F, FloatArray &rhs,  Fl
             }
 
             OOFEM_LOG_INFO( "  %s:", __DofIDItemToString( ( DofIDItem ) dg ).c_str() );
-
-            if ( rtolf.at(1) > 0.0 ) {
+	    if(!energyNorm) {
+	    
+	      if ( rtolf.at(1) > 0.0 ) {
                 //  compute a relative error norm
                 if ( ( dg_totalLoadLevel.at(dg) + internalForcesEBENorm.at(dg) ) > nrsolver_ERROR_NORM_SMALL_NUM && !residuumNorm ) {
-                    forceErr = sqrt( dg_forceErr.at(dg) / ( dg_totalLoadLevel.at(dg) + internalForcesEBENorm.at(dg) ) );
+		  forceErr = sqrt( dg_forceErr.at(dg) / ( dg_totalLoadLevel.at(dg) + internalForcesEBENorm.at(dg) ) );
                 } else {
-                    // If both external forces and internal ebe norms are zero, then the residual must be zero.
-                    //zeroNorm = true; // Warning about this afterwards.
-                    zeroFNorm = true;
-                    forceErr = sqrt( dg_forceErr.at(dg) );
+		  // If both external forces and internal ebe norms are zero, then the residual must be zero.
+		  //zeroNorm = true; // Warning about this afterwards.
+		  zeroFNorm = true;
+		  forceErr = sqrt( dg_forceErr.at(dg) );
                 }
 
                 if ( forceErr > rtolf.at(1) * NRSOLVER_MAX_REL_ERROR_BOUND || forceErr != forceErr ) {
-                    errorOutOfRange = true;
+		  errorOutOfRange = true;
                 }
                 if ( forceErr > rtolf.at(1) ) {
-                    answer = false;
+		  answer = false;
                 }
                 OOFEM_LOG_INFO(zeroFNorm ? " *%.3e" : "  %.3e", forceErr);
 
                 // Store the errors from the current iteration
                 if ( this->constrainedNRFlag ) {
-                    forceErrVec.at(dg) = forceErr;
+		  forceErrVec.at(dg) = forceErr;
                 }       
-            }
+	      }
 
-            if ( rtold.at(1) > 0.0 ) {
+	      if ( rtold.at(1) > 0.0 ) {
                 // compute displacement error
                 if ( dg_totalDisp.at(dg) >  nrsolver_ERROR_NORM_SMALL_NUM ) {
-                    dispErr = sqrt( dg_dispErr.at(dg) / dg_totalDisp.at(dg) );
+		  dispErr = sqrt( dg_dispErr.at(dg) / dg_totalDisp.at(dg) );
                 } else {
-                    ///@todo This is almost always the case for displacement error. nrsolveR_ERROR_NORM_SMALL_NUM is no good.
-                    //zeroNorm = true; // Warning about this afterwards.
-                    //zeroDNorm = true;
-                    dispErr = sqrt( dg_dispErr.at(dg) );
+		  ///@todo This is almost always the case for displacement error. nrsolveR_ERROR_NORM_SMALL_NUM is no good.
+		  //zeroNorm = true; // Warning about this afterwards.
+		  //zeroDNorm = true;
+		  dispErr = sqrt( dg_dispErr.at(dg) );
                 }
                 if ( dispErr  > rtold.at(1) * NRSOLVER_MAX_REL_ERROR_BOUND || dispErr != dispErr) {
-                    errorOutOfRange = true;
+		  errorOutOfRange = true;
                 }
                 if ( dispErr > rtold.at(1) ) {
-                    answer = false;
+		  answer = false;
                 }
                 OOFEM_LOG_INFO(zeroDNorm ? " *%.3e" : "  %.3e", dispErr);
-            }
-        }
-        OOFEM_LOG_INFO("\n");
+	      }
+
+	    } else {
+	      
+
+	      dispErr = sqrt( dg_dispErr.at(dg) );
+	      forceErr = sqrt( dg_forceErr.at(dg) );
+	      double energyError;
+	      if(nite > 0) {
+		energyError = sqrt(dg_dispErr.at(dg) * dg_forceErr.at(dg));
+		
+	      } else {
+		energyError = max(dg_dispErr.at(dg), dg_forceErr.at(dg));
+	      }
+
+	      if ( energyError > rtolf.at(1) ) {
+		  answer = false;
+	      }
+
+	      OOFEM_LOG_INFO(zeroDNorm ? " *%.3e" : "  %.3e", energyError);
+
+
+	      
+	    }
+
+	      
+	}
+	    OOFEM_LOG_INFO("\n");
         //if ( zeroNorm ) OOFEM_WARNING("Had to resort to absolute error measure (marked by *)");
     } else { // No dof grouping
         double dXX, dXdX;

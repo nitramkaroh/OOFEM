@@ -24,14 +24,22 @@ NlBeam_SM2 :: NlBeam_SM2(int n, Domain *aDomain) : NLStructuralElement(n, aDomai
 
 }
 
-  void
+void
 NlBeam_SM2 :: updateYourself(TimeStep *tStep)
 // Updates the receiver at end of step.
 {
-  Element :: updateYourself(tStep);
+  StructuralElement :: updateYourself(tStep);
   this->fab_init = this->internalForces;
 }
 
+
+void
+NlBeam_SM2 :: initForNewStep()
+// Updates the receiver at end of step.
+{
+  Element :: initForNewStep();
+  this->internalForces =   this->fab_init;
+}
 
 
 void
@@ -98,6 +106,9 @@ NlBeam_SM2 :: initializeFrom(InputRecord *ir)
     IR_GIVE_FIELD(ir, EI, _IFT_NlBeam_SM2_EI);
     IR_GIVE_OPTIONAL_FIELD(ir, RADIUS, _IFT_NlBeam_SM2_RADIUS);
     IR_GIVE_OPTIONAL_FIELD(ir, DEPTH, _IFT_NlBeam_SM2_DEPTH);
+
+
+    IR_GIVE_OPTIONAL_FIELD(ir, coupling, _IFT_NlBeam_SM2_coupling);
     
     this->computeLength();
 
@@ -108,25 +119,34 @@ NlBeam_SM2 :: initializeFrom(InputRecord *ir)
     auto nodeB  = this->giveNode(2);
     FloatArray pointA({nodeA->giveCoordinate(1), nodeA->giveCoordinate(3)});
     FloatArray pointB({nodeB->giveCoordinate(1), nodeB->giveCoordinate(3)});
+
+    
     tangentVector.clear();  
     IR_GIVE_OPTIONAL_FIELD(ir, tangentVector, _IFT_NlBeam_SM2_tangentVector);
       
     if(tangentVector.giveSize()) {
+      int n_cf = 0;
+      IR_GIVE_OPTIONAL_FIELD(ir, n_cf,  _IFT_NlBeam_SM2_coordinateFlag);
       IR_GIVE_FIELD(ir, u_0, _IFT_NlBeam_SM2_u0);
       IR_GIVE_FIELD(ir, w_0, _IFT_NlBeam_SM2_w0);
       IR_GIVE_FIELD(ir, phi_0, _IFT_NlBeam_SM2_phi0);
       IR_GIVE_FIELD(ir, kappa_0, _IFT_NlBeam_SM2_kappa0);
-      IR_GIVE_FIELD(ir, curvedbeamLength, _IFT_NlBeam_SM2_curvedbeamLength);
-      int n_cf = 0;
-      IR_GIVE_OPTIONAL_FIELD(ir, n_cf,  _IFT_NlBeam_SM2_coordinateFlag);
+      	
+	this->s.resize(NIP+1);
+	this->u0.resize(NIP+1);
+	this->w0.resize(NIP+1);
+	this->phi0.resize(NIP+1);
+	this->kappa0.resize(NIP+1);
+	this->phi0mid.resize(NIP);
 
-      this->s.resize(NIP+1);
-      this->u0.resize(NIP+1);
-      this->w0.resize(NIP+1);
-      this->phi0.resize(NIP+1);
-      this->kappa0.resize(NIP+1);
-      this->phi0mid.resize(NIP);
+      
+      if(n_cf == 5) {
+	
+	curvedbeamLength = beamLength;
 
+      } else {
+	IR_GIVE_FIELD(ir, curvedbeamLength, _IFT_NlBeam_SM2_curvedbeamLength);
+      }
       
       if(n_cf == 0) {
 	this->cf = CF_s;
@@ -141,7 +161,7 @@ NlBeam_SM2 :: initializeFrom(InputRecord *ir)
 	    phi0mid.at(i-1) = this->eval_phi0(s.at(i)-ds/2.);
 	  }
 	}
-      } else {
+      } if(n_cf == 1) {
 	this->cf = CF_x;
 	IR_GIVE_FIELD(ir, sx, _IFT_NlBeam_SM2_s);
 
@@ -186,6 +206,7 @@ NlBeam_SM2 :: initializeFrom(InputRecord *ir)
     this->u.resize(NIP+1);
     this->w.resize(NIP+1);
     this->phi.resize(NIP+1);
+    this->kappa.resize(NIP+1);
 
     this->vN.resize(NIP+1);
     this->vV.resize(NIP+1);
@@ -278,29 +299,51 @@ Functions defining the relations between internal forces and deformation variabl
 double 
 NlBeam_SM2 :: computeDeltaCurvatureFromInternalForces(double M, double N, double curvature)
 {
+  double delta_kappa;
+  if(coupling) {
   double eps = (N+M*curvature)/EA;
-  double delta_kappa = eps*curvature + M/(EI*(1.+0.15*DEPTH*DEPTH*curvature*curvature));
+  delta_kappa = eps*curvature + M/(EI*(1.+0.15*DEPTH*DEPTH*curvature*curvature));
+  } else {
+    delta_kappa = M/EI;
+ 
+  }
   return delta_kappa;
 }
 double 
 NlBeam_SM2 :: computeDerCurvatureMoment(double M, double N, double curvature)
 {
-  return curvature * curvature/(EA) + 1./(EI*(1.+0.15*DEPTH*DEPTH*(curvature*curvature)));
+  if(coupling) {
+    return curvature * curvature/(EA) + 1./(EI*(1.+0.15*DEPTH*DEPTH*(curvature*curvature)));
+  } else {
+    return 1./EI;
+  }
 }
 double 
 NlBeam_SM2 :: computeDerCurvatureNormalForce(double M, double N, double curvature)
 {
-  return curvature/(EA);
+  if(coupling) {
+    return curvature/(EA);
+  } else {
+    return 0;
+  }
 }
 double 
 NlBeam_SM2 :: computeCenterlineStrainFromInternalForces(double M, double N, double curvature)
 {
-  return (N+M*curvature)/EA;
+  if(coupling) {
+    return (N+M*curvature)/EA;
+  } else {
+    return N/EA;
+  }
 }
 double 
 NlBeam_SM2 :: computeDerStrainMoment(double M, double N, double curvature)
 {
+  if(coupling) {
   return curvature/(EA);
+  } else {
+    return 0;
+  }
 }
 double 
 NlBeam_SM2 :: computeDerStrainNormalForce(double M, double N)
@@ -410,6 +453,7 @@ NlBeam_SM2 :: integrateAlongCurvedBeamAndGetJacobi(const FloatArray &fab, FloatA
     // rotation at the end of the step
     ub.at(3) = delta_phi_mid+delta_kappa*ds/2.;
     this->phi.at(i) = ub.at(3);
+    this->kappa.at(i) = delta_kappa;
     // update Jacobi matrix
     FloatArray j_row3;
     j_row3 = dphi_mid;
@@ -482,7 +526,7 @@ NlBeam_SM2 :: findLeftEndForcesLocal(FloatArray &ub_target, FloatArray &fab_loc)
   FloatMatrix jacobi(3,3);
   int iter = 0;
   double tolerance = beam_tol;
-  if(ub_target.computeNorm() != 0) {
+  if(ub_target.computeNorm() > 1.e-10) {
     tolerance *= ub_target.computeNorm();
   }
   
@@ -602,7 +646,7 @@ NlBeam_SM2 :: findLeftEndForces(const FloatArray &u, FloatArray &fab)
     ub_loc_substep.beDifferenceOf(ub_loc, ub_loc_intermediate);
     int refinement_factor = 4;
     ub_loc_substep.times(1./refinement_factor);
-    int isubstep = 0, maxnsubsteps = 1024;
+    int isubstep = 0, maxnsubsteps = 2048;
     int nsubsteps = this->nsubsteps_init;
     while (isubstep < nsubsteps && nsubsteps <= maxnsubsteps){
       ub_loc_intermediate.add(ub_loc_substep);
@@ -615,11 +659,13 @@ NlBeam_SM2 :: findLeftEndForces(const FloatArray &u, FloatArray &fab)
 	nsubsteps = isubstep + 4*(nsubsteps-isubstep);
       }
     }
-    if (isubstep < nsubsteps){
+    
+    if (success == false){
       fab = fab_init;
       domain->giveEngngModel()->setAnalysisCrash(true);
       return;
     }
+
   }
 
   // transform local end forces to the global coordinate syste
@@ -637,13 +683,22 @@ NlBeam_SM2 :: giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, int 
 {
   // solution vector
   answer.resize(6);
-  FloatArray u, f_a(3);
+  FloatArray u, f_a(3), fab(3);
   this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, u);
   // only the first three entries of f are computed
+  
   this->findLeftEndForces(u, this->internalForces);
+  
   answer.at(1) = this->internalForces.at(1);
   answer.at(2) = this->internalForces.at(2);
   answer.at(3) = this->internalForces.at(3);  
+  
+  /*
+  this->findLeftEndForces(u, fab);
+  answer.at(1) = fab.at(1);
+  answer.at(2) = fab.at(2);
+  answer.at(3) = fab.at(3);  
+  */
   answer.at(4) = -answer.at(1);
   answer.at(5) = -answer.at(2);
   double c1 =  beamLength*sinAlpha + u.at(5) - u.at(2);
@@ -657,12 +712,12 @@ NlBeam_SM2 :: giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, int 
 {
   // solution vector
   answer.resize(6);
-  FloatArray f_a(3);
+  FloatArray f_a(3), iF(3);
   // only the first three entries of f are computed
-  this->findLeftEndForces(u, this->internalForces);
-  answer.at(1) = this->internalForces.at(1);
-  answer.at(2) = this->internalForces.at(2);
-  answer.at(3) = this->internalForces.at(3);  
+  this->findLeftEndForces(u, iF);
+  answer.at(1) = iF.at(1);
+  answer.at(2) = iF.at(2);
+  answer.at(3) = iF.at(3);  
   answer.at(4) = -answer.at(1);
   answer.at(5) = -answer.at(2);
   double c1 =  beamLength*sinAlpha + u.at(5) - u.at(2);
@@ -677,7 +732,7 @@ NlBeam_SM2 :: computeStiffnessMatrix_num(FloatMatrix &answer, MatResponseMode rM
   FloatArray u, iF, iFn;
   this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, u);
   this->giveInternalForcesVector_from_u(iF, tStep, u);
-  double eps = 1.e-10;
+  double eps = 1.e-9;
   answer.resize(6,6);
     
   FloatArray du;
@@ -708,20 +763,22 @@ and given end forces at the left end (must be provided, which means that typical
 void
 NlBeam_SM2 :: computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode rMode, TimeStep *tStep)
 {
-  FloatArray lprime, fab_loc, ub_loc, Tu, fab;
+  FloatArray lprime, fab_loc, ub_loc, Tu, fab(3);
   FloatMatrix T, Tprime, G, Ginv, TtGinv;
   answer.resize(6,6);
   // solution vector
   FloatArray u;
   this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, u);
-  //  this->findLeftEndForces(u, fab);
-
   // compute auxiliary matrices
   construct_T(T, u.at(3)); 
   construct_Tprime(Tprime, u.at(3)); 
   construct_lprime(lprime, u.at(3));
   // transform left-end forces to local coordinates
   fab_loc.beProductOf(T, this->internalForces);
+  //@todo:remove
+  /*this->findLeftEndForces(u, fab);
+  fab_loc.beProductOf(T, fab);
+  */
   // get Jacobi matrix in local coordinates (ub_loc is dummy, will not be used)
   integrateAlongBeamAndGetJacobi(fab_loc, ub_loc, G);
   Ginv.beInverseOf(G);
@@ -750,22 +807,29 @@ NlBeam_SM2 :: computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode rMode,
   // construct the sixth row (complete formula)
   double c1 = beamLength*sinAlpha + u.at(5) - u.at(2);
   double c2 = -beamLength*cosAlpha - u.at(4) + u.at(1);
+  /*  answer.at(6,1) =  fab.at(2);//this->internalForces.at(2);
+  answer.at(6,2) = -fab.at(1);//-this->internalForces.at(1);
+  answer.at(6,4) = -fab.at(2);//-this->internalForces.at(2);
+  answer.at(6,5) =  fab.at(1);//this->internalForces.at(1);
+  */
   answer.at(6,1) =  this->internalForces.at(2);
   answer.at(6,2) = -this->internalForces.at(1);
   answer.at(6,4) = -this->internalForces.at(2);
   answer.at(6,5) =  this->internalForces.at(1);
- 
+
+  
   for(int j = 1; j <= 6; j++) {
     answer.at(4,j) = -answer.at(1,j);
     answer.at(5,j) = -answer.at(2,j);
     answer.at(6,j) += c1 * answer.at(1,j) + c2 * answer.at(2,j) - answer.at(3,j);
   }
 
-  /*  
-  FloatMatrix K;
+  /*  FloatMatrix K;
   this->computeStiffnessMatrix_num(K, rMode, tStep);
-  int huhu = 1;
+  int test = 1;
   */
+  //  answer = K;
+  
   
 
 }
@@ -884,7 +948,7 @@ NlBeam_SM2 :: giveCompositeExportData_straight(std::vector< VTKPiece > &vtkPiece
  
     int numCells = this->NIP;
     const int numCellNodes  = 2; // linear line
-    int nNodes = 2 * numCellNodes;
+    int nNodes = numCells * numCellNodes;
 
     vtkPieces.at(0).setNumberOfCells(numCells);
     vtkPieces.at(0).setNumberOfNodes(nNodes);
@@ -892,7 +956,8 @@ NlBeam_SM2 :: giveCompositeExportData_straight(std::vector< VTKPiece > &vtkPiece
     int val    = 1;
     int offset = 0;
     IntArray nodes(numCellNodes);
- 
+    Node *nodeA = this->giveNode(1);
+
 
     FloatArray uab, ug(3);
     this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, uab);
@@ -900,14 +965,15 @@ NlBeam_SM2 :: giveCompositeExportData_straight(std::vector< VTKPiece > &vtkPiece
     double ds = beamLength/NIP;
     FloatMatrix T;
     this->construct_T(T, uab.at(3));
-    FloatArray nodeCoords;
+    FloatArray nodeCoords(3);
     IntArray connectivity(2);
     for ( int iElement = 1; iElement <= numCells; iElement++ ) {
       for (int iNode = 1; iNode <= numCellNodes; iNode++) {
 	double L = (iElement-1) * ds + (iNode -1) * ds;
-	nodeCoords.at(1) = L * cosAlpha;
-	nodeCoords.at(2) = L * sinAlpha;      
-	vtkPieces.at(0).setNodeCoords(iNode, nodeCoords);
+	nodeCoords.at(1) = nodeA->giveCoordinate(1) + L * cosAlpha;
+	nodeCoords.at(3) = nodeA->giveCoordinate(3) + L * sinAlpha;
+	nodeCoords.at(2) = 0;
+	vtkPieces.at(0).setNodeCoords(nodeNum, nodeCoords);
 	nodeNum++;
 	connectivity.at(iNode) = val++;
       }
@@ -937,12 +1003,12 @@ NlBeam_SM2 :: giveCompositeExportData_straight(std::vector< VTKPiece > &vtkPiece
 	    this->construct_l(l, uab.at(3), L);
 	    this->construct_T(T, uab.at(3));
 	    FloatArray u_l, u_g;
-	    u_l = {this->u.at(nN), this->w.at(nN), 0};
+	    u_l = {this->u.at(iNode), this->w.at(iNode), 0};
 	    u_l.subtract(l);
 	    u_g.beTProductOf(T, u_l);
 	    ug.at(1) = u_g.at(1) + uab.at(1);
-	    ug.at(2) = u_g.at(2) + uab.at(2);
-	    ug.at(3) = this->phi.at(i) + uab.at(3);
+	    ug.at(3) = u_g.at(2) + uab.at(2);
+	    ug.at(2) = 0;//this->phi.at(i) + uab.at(3);
 	    vtkPieces.at(0).setPrimaryVarInNode(i, nN, ug);
 	  }
         }
@@ -958,7 +1024,7 @@ NlBeam_SM2 :: printOutputAt(FILE *file, TimeStep *tStep)
   if(tangentVector.giveSize()) {
     this-> printOutputAt_CurvedBeam(file, tStep);
    } else {
-    this-> printOutputAt_StraightBeam(file, tStep);
+    //this-> printOutputAt_StraightBeam(file, tStep);
    }
 }
 
@@ -1120,29 +1186,35 @@ NlBeam_SM2 :: printOutputAt_CurvedBeam(FILE *file, TimeStep *tStep)
 
 
 
-  //transform displacements to global coordinate system
+
   FloatArray uab, ug(NIP+1), wg(NIP+1), phig(NIP+1), u_l, u_g;
-  FloatArray xg(NIP+1), zg(NIP+1);
+  FloatArray xg(NIP+1), zg(NIP+1), xs(3), x_g;
   this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, uab);
+  //transform displacements to global coordinate system
+  FloatMatrix T,T0;
+  this->construct_T(T0, 0);
+  this->construct_T(T, uab.at(3));
+  Node *nodeA = this->giveNode(1);
   ug.at(1) = uab.at(1);
   wg.at(1) = uab.at(2);
   phig.at(1) = uab.at(3);
-  double L = 0;
-  double dx = curvedbeamLength/NIP;
+  FloatArray l;
+  xg.at(1) = nodeA->giveCoordinate(1);
+  zg.at(1) = nodeA->giveCoordinate(3);
   for (int i=2; i <= NIP+1; i++) {
-    L = L + dx;
-    FloatArray l;
-    FloatMatrix T;
-    //double chLength = sqrt((L + eval_u0(L))*(L + eval_u0(L)) + eval_w0(L) * eval_w0(L));
-    double chLength = sqrt((L + u0.at(NIP+1))*(L + u0.at(NIP+1)) + w0.at(NIP+1) * w0.at(NIP+1));
+    double Ls = this->s.at(i);
     this->construct_T(T, uab.at(3));
-    this->construct_l(l, uab.at(3),  chLength);
-    
-    // u_l = {this->u.at(i)-eval_u0(L), this->w.at(i)-eval_w0(L), 0};
+    double L = sqrt((Ls + this->u0.at(i)) * (Ls + this->u0.at(i)) + this->w0.at(i) * this->w0.at(i));
+    this->construct_l(l, uab.at(3), L);
+    xs.at(1) = Ls + this->u0.at(i);
+    xs.at(2) = this->w0.at(i);
+    xs.at(3) = 0;
+    x_g.beTProductOf(T0, xs);
+    xg.at(i) = nodeA->giveCoordinate(1) + x_g.at(1);
+    zg.at(i) = nodeA->giveCoordinate(3) + x_g.at(2);
 
-    //@todo:fix this
-    //xg.at(i) = L + this->eval_u0(L);
-    //zg.at(i) = this->eval_w0(L);
+
+    
 
     u_l = {this->u.at(i), this->w.at(i), 0};
     u_l.subtract(l);
@@ -1156,7 +1228,7 @@ NlBeam_SM2 :: printOutputAt_CurvedBeam(FILE *file, TimeStep *tStep)
  
   
 
-  fprintf( FID, " function [x z u w phi N M]= %s \n", functionname.c_str() );
+  fprintf( FID, " function [x z u w phi kappa N M]= %s \n", functionname.c_str() );
 
    fprintf(FID, "x=[");
    for ( double val: xg ) {
@@ -1191,6 +1263,12 @@ NlBeam_SM2 :: printOutputAt_CurvedBeam(FILE *file, TimeStep *tStep)
    }
    fprintf(FID, "];\n");
 
+   fprintf(FID, "kappa=[");
+   for ( double val: this->kappa ) {
+     fprintf( FID, "%3.12f,", val );
+   }
+   fprintf(FID, "];\n");
+   
 
    fprintf(FID, "N=[");
    for ( double val: vN ) {

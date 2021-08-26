@@ -321,6 +321,9 @@ restart:
 	status = this->computeDeltaLambda(deltaLambda, dX, deltaXt, deltaX_, R, RR, eta, deltaL, DeltaLambda, neq);
         if (status ||  (engngModel->isAnalysisCrashed())) {
 	  engngModel->setAnalysisCrash(false);
+	  // init engng for the new step
+	  engngModel->initStepIncrements();
+
             irest++;
             if ( irest <= maxRestarts ) {
                 // convergence problems
@@ -328,9 +331,9 @@ restart:
                 // status |= NM_ForceRestart;
                 // reduce step length
                 deltaL =  deltaL * CALM_RESET_STEP_REDUCE;
-                if ( deltaL < minStepLength ) {
+                /*if ( deltaL < minStepLength ) {
                     deltaL = minStepLength;
-                }
+		    }*/
 
                 // restore previous total displacement vector
                 X = XInitial;
@@ -1383,9 +1386,11 @@ CylindricalALM :: do_lineSearch(FloatArray &r, const FloatArray &rInitial, const
             dl_failed = this->computeDeltaLambda(deltaLambda, dXm1, deltaXt, deltaX_, R, RR, currEta, deltaL, DeltaLambdam1, neq);
             if ( dl_failed ||  (engngModel->isAnalysisCrashed())) {
 	      engngModel->setAnalysisCrash(false);
-                eta.at(ils + 1) = 1.0;
-                deltaLambda = deltaLambdaForEta1;
-                break;
+	      // init engng for the new step
+	      engngModel->initStepIncrements();
+	      eta.at(ils + 1) = 1.0;
+	      deltaLambda = deltaLambdaForEta1;
+	      break;
             }
 
             DeltaLambda = DeltaLambdam1 + deltaLambda;

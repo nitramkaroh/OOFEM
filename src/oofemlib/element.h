@@ -782,6 +782,7 @@ public:
      * @see Element::updateInternalState
      */
     virtual void updateYourself(TimeStep *tStep);
+    virtual void initYourself(TimeStep *tStep){;}
     // initialization to state given by initial conditions
     /** Initialization according to state given by initial conditions.
      * Some type of problems may require initialization of state variables

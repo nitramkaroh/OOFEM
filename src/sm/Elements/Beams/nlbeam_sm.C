@@ -198,7 +198,10 @@ NlBeam_SM :: findLeftEndForcesLocal(FloatArray &ub_target, FloatArray &fab_loc)
   FloatArray res, dforces, ub_loc, f_init(fab_loc);
   FloatMatrix jacobi(3,3);
   int iter = 0;
-  double tolerance = beam_tol* ub_target.computeNorm();
+   double tolerance = beam_tol;
+  if(ub_target.computeNorm() > 1.e-10) {
+    tolerance *= ub_target.computeNorm();
+  }
   this->integrateAlongBeamAndGetJacobi(fab_loc, ub_loc, jacobi);
   res = ub_target-ub_loc; 
   double error = res.computeNorm();
@@ -322,7 +325,7 @@ NlBeam_SM :: findLeftEndForces(const FloatArray &u, FloatArray &fab)
 	nsubsteps = isubstep + 4*(nsubsteps-isubstep);
       }
     }
-    if (isubstep < nsubsteps){
+    if (success == false){
       fab = fab_init;
       domain->giveEngngModel()->setAnalysisCrash(true);
       return;
@@ -378,9 +381,15 @@ NlBeam_SM :: computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode rMode, 
   construct_Tprime(Tprime, u.at(3)); 
   construct_lprime(lprime, u.at(3));
   // transform left-end forces to local coordinates
-  fab_loc.beProductOf(T, this->internalForces);
+  FloatArray fab(3);
+  fab = this->internalForces;
+  //this->findLeftEndForces(u, fab);
+  //fab_loc.beProductOf(T, this->internalForces);
+  fab_loc.beProductOf(T, fab);
+
   // get Jacobi matrix in local coordinates (ub_loc is dummy, will not be used)
   integrateAlongBeamAndGetJacobi(fab_loc, ub_loc, G);
+
   Ginv.beInverseOf(G);
   // compute product Ttransposed*Ginverse
   TtGinv.beTProductOf(T,Ginv);
@@ -407,10 +416,10 @@ NlBeam_SM :: computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode rMode, 
   // construct the sixth row (complete formula)
   double c1 = beamLength*sin(pitch) + u.at(5) - u.at(2);
   double c2 = -beamLength*cos(pitch) - u.at(4) + u.at(1);
-  answer.at(6,1) =  this->internalForces.at(2);
-  answer.at(6,2) = -this->internalForces.at(1);
-  answer.at(6,4) = -this->internalForces.at(2);
-  answer.at(6,5) =  this->internalForces.at(1);
+  answer.at(6,1) =  fab.at(2);//this->internalForces.at(2);
+  answer.at(6,2) = -fab.at(1);//-this->internalForces.at(1);
+  answer.at(6,4) = -fab.at(2);//-this->internalForces.at(2);
+  answer.at(6,5) =  fab.at(1);//this->internalForces.at(1);
  
   for(int j = 1; j <= 6; j++) {
     answer.at(4,j) = -answer.at(1,j);
@@ -595,7 +604,7 @@ NlBeam_SM :: giveCompositeExportData(std::vector< VTKPiece > &vtkPieces, IntArra
 void
 NlBeam_SM :: printOutputAt(FILE *file, TimeStep *tStep)
 {
-
+  /*
   FILE *FID;
   
 
@@ -708,7 +717,7 @@ NlBeam_SM :: printOutputAt(FILE *file, TimeStep *tStep)
    fprintf(FID, "end\n");
 
    fclose(FID);
-
+  */
 }
   
 
