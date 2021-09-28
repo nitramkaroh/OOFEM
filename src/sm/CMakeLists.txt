@@ -331,7 +331,8 @@ set (sm_material
     Materials/Micromorphic/secondgradientmaterialextensioninterface.C
     # Electro-mechanics
     Materials/HyperelasticMaterials/ElectroMechanics/mooneyrivlin_idealdielectric.C
-    Materials/HyperelasticMaterials/ElectroMechanics/mooneyrivlin_idealdielectric_transverselyisotropic.C    
+    Materials/HyperelasticMaterials/ElectroMechanics/mooneyrivlin_idealdielectric_transverselyisotropic.C
+    Materials/HyperelasticMaterials/ElectroMechanics/mooneyrivlin_idealdielectric_transverselyisotropic2.C    
     Materials/ElectroMechanics/electromechanicalms.C
     )
 
