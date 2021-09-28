@@ -158,6 +158,8 @@ protected:
     void construct_Tprime(FloatMatrix &T, const double phia);
     void construct_l(FloatArray &l, double phia);
     void construct_l(FloatArray &l, double phia, double L);
+    void construct_l(FloatArray &l, double phia, double L, double cB, double sB);
+ 
     void construct_lprime(FloatArray &l, const double phia);
   
     void findLeftEndForces(const FloatArray &u, FloatArray &fab);

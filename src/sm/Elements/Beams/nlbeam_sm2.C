@@ -565,6 +565,8 @@ NlBeam_SM2 :: construct_T(FloatMatrix &T, const double phia)
 
   T.at(2,1) = - T.at(1,2);
   T.at(3,3) = 1.;
+
+  
 }
 
 /*
@@ -602,6 +604,15 @@ NlBeam_SM2 :: construct_l(FloatArray &l, double phia, double L)
  
 }
 
+
+void
+NlBeam_SM2 :: construct_l(FloatArray &l, double phia, double L, double cB, double sB)
+{
+  l.resize(3);
+  l.at(1) = L * (cos(phia)*cB - sin(phia) * sB - cB);
+  l.at(2) = L * (sB * cos(phia) + cB * sin(phia) - sB);
+ 
+}
 
 
 void
@@ -924,7 +935,9 @@ NlBeam_SM2 :: giveCompositeExportData_curved(std::vector< VTKPiece > &vtkPieces,
 	  
 	    double Ls = s.at(iNode);
 	    double L = sqrt((Ls + this->u0.at(iNode)) * (Ls + this->u0.at(iNode)) + this->w0.at(iNode) * this->w0.at(iNode));
-	    this->construct_l(l, uab.at(3), L);
+	    double cB = (Ls + this->u0.at(iNode))/ L;
+	    double sB = this->w0.at(iNode)/ L;
+	    this->construct_l(l, uab.at(3), Ls, cB, sB);
 	    FloatArray u_l, u_g;
 	    u_l = {this->u.at(iNode), this->w.at(iNode), 0};
 	    u_l.subtract(l);
@@ -1221,6 +1234,12 @@ NlBeam_SM2 :: printOutputAt_CurvedBeam(FILE *file, TimeStep *tStep)
     u_g.beTProductOf(T, u_l);    
     ug.at(i) = u_g.at(1) + ug.at(1);
     wg.at(i) = u_g.at(2) + wg.at(1);
+    if(i == NIP + 1) {
+      if(abs(ug.at(i)- uab.at(4))>1.e-6 || abs(wg.at(i) -uab.at(5)) > 1.e-6){
+	OOFEM_WARNING("Error in postprocessing");
+    }
+
+    }
     //phig.at(i) = this->phi.at(i) -eval_phi0(L)  + phig.at(1);
     phig.at(i) = this->phi.at(i)  + phig.at(1);
   }
