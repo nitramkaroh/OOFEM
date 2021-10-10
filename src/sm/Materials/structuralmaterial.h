@@ -742,6 +742,8 @@ public:
 
     void compute_3order_dyadic_product(FloatMatrix &answer, const FloatMatrix &ma, const FloatArray &ab);
 
+    void compute_3order_lower_dyadic_product(FloatMatrix &answer, const FloatMatrix &ma, const FloatArray &ab);
+
     void compute_dot_product(FloatMatrix &answer, const FloatMatrix &a, const FloatArray &b, int index);
 
     

@@ -2785,6 +2785,12 @@ StructuralMaterial :: compute_dI2_Cdev_dF(FloatArray &answer, const FloatMatrix 
 
 }
 
+
+
+
+
+
+
 void
 StructuralMaterial :: compute_d2I1_Cdev_dF2(FloatMatrix &answer, const FloatMatrix &F)
 {
@@ -3116,6 +3122,23 @@ StructuralMaterial :: compute_3order_dyadic_product(FloatMatrix &answer, const F
     }
     
 }
+
+
+void
+StructuralMaterial :: compute_3order_lower_dyadic_product(FloatMatrix &answer, const FloatMatrix &ma, const FloatArray &ab)
+{
+    answer.resize(9, 3);
+    answer.zero();
+    
+    for ( int i = 1; i <= 3; i++ ) {
+      for ( int j = 1; j <= 3; j++ ) {
+	for ( int k = 1; k <= 3; k++ ) {
+	  answer.at( giveVI(i, j), k ) = ma.at(i, k) * ab.at(j);
+	}
+      }
+    }  
+}
+
 
 
 void

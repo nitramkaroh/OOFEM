@@ -72,6 +72,9 @@ protected:
   double iEps1, iEps2, iEps3, iEps4, iEps5;
   FloatArray N;
   double alpha, beta;
+  double a_I8pol = 1., b_I8pol = 1., c_I8pol = 1.;
+  double a_K2_Cinf_pol = 1., b_K2_Cinf_pol = 1.;
+  double a_K2_Dinf_pol = 1., b_K2_Dinf_pol = 1.;
   
 public:
    MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2(int n, Domain * d);
@@ -117,82 +120,152 @@ public:
 protected:
     virtual MaterialStatus *CreateStatus(GaussPoint *gp) const { return new ElectroMechanicalMaterialStatus(1, domain, gp); }
     int computeAcousticTensorMinEigenvalue(GaussPoint *gp, TimeStep *tStep);
+    ///////////////////////////////////////
 
 
+
+
+    /// Invariant F:F
+    double compute_I1(double J, const FloatArray &vH, const FloatArray &vF);
+    /// Invariant H:H
+    double compute_I2(double J, const FloatArray &vH, const FloatArray &vF);
+    /// Invariant J^{-2/3}F:F
+    double compute_I1_dev(double J, const FloatArray &vH, const FloatArray &vF);
+    /// Invariant J^{-4/3}F:F
+    double compute_I2_dev(double J, const FloatArray &vH, const FloatArray &vF);
+    /// Invariant (I2_dev)^{3/2}
+    double compute_I2_dev_pol(double J, const FloatArray &vH, const FloatArray &vF);
+    /// Invariant det F = 1/3 F:H
+    double compute_I3(double J, const FloatArray &vH, const FloatArray &vF);
     /// Invariant FN \cdot FN
-    double compute_I4(const FloatMatrix &F);
+    double compute_I4(double J, const FloatArray &vH, const FloatArray &vF);
     /// Invariant HN \cdot HN
-    double compute_I5(const FloatMatrix &F);
+    double compute_I5(double J, const FloatArray &vH, const FloatArray &vF);
     /// Invariant D_0 \cdot  D_0
     double compute_I6(const FloatArray &D);
     /// Invariant FD \cdot FD
-    double compute_I7(const FloatMatrix &F, const FloatArray &D);
+    double compute_I7(double J, const FloatArray &vH, const FloatArray &vF,   const FloatArray &D);
     /// Invariant HD \cdot HD
-    double compute_I8(const FloatMatrix &F, const FloatArray &D);
-    /// (N\cdotD)^2
-    double compute_I9(const FloatArray &D);
-    /// (FN \cdot FD)^2
-    double compute_I10(const FloatMatrix &F, const FloatArray &D_0);
-
-
-    void compute_dI1dF(FloatArray &answer, const FloatMatrix &F);
-    void compute_dI2dF(FloatArray &answer, const FloatMatrix &F);
-    
-    void compute_dI4dF(FloatArray &answer, const FloatMatrix &F);
-    void compute_dI5dF(FloatArray &answer, const FloatMatrix &F);
-    // dI6dF is zero
-    void compute_dI7dF(FloatArray &answer, const FloatMatrix &F, const FloatArray &D);
-    void compute_dI8dF(FloatArray &answer, const FloatMatrix &F, const FloatArray &D);
-    // dI9dF is zero
-    void compute_dI10dF(FloatArray &answer, const FloatMatrix &F, const FloatArray &D);
-    ///////////////////////////////////////////////////////////////
-    
-    // dI4dF and dI5dF are zero
-    void compute_dI6dD(FloatArray &answer, const FloatArray &D);
-    void compute_dI7dD(FloatArray &answer, const FloatMatrix &F, const FloatArray &D);
-    void compute_dI8dD(FloatArray &answer, const FloatMatrix &F, const FloatArray &D);
-    void compute_dI9dD(FloatArray &answer, const FloatArray &D);
-    void compute_dI10dD(FloatArray &answer, const FloatMatrix &F, const FloatArray &D);
-    ///////////////////////////////////////////////////////////////
-    void compute_d2I1dF2(FloatMatrix &answer, const FloatMatrix &F);
-    void compute_d2I2dF2(FloatMatrix &answer, const FloatMatrix &F);
-    void compute_d2I4dF2(FloatMatrix &answer, const FloatMatrix &F);
-    void compute_d2I5dF2(FloatMatrix &answer, const FloatMatrix &F);
-    // d2I6dF2 is zero
-    void compute_d2I7dF2(FloatMatrix &answer, const FloatMatrix &F, const FloatArray &D);
-    void compute_d2I8dF2(FloatMatrix &answer, const FloatMatrix &F, const FloatArray &D);
-    void compute_d2I9dF2(FloatMatrix &answer, const FloatArray &D);
-    void compute_d2I10dF2(FloatMatrix &answer, const FloatMatrix &F, const FloatArray &D);
-    ////////////////////////////////////////////////////////////////
-    void compute_d2I6dD2(FloatMatrix &answer, const FloatArray &D);
-    void compute_d2I7dD2(FloatMatrix &answer, const FloatMatrix &F, const FloatArray &D);
-    void compute_d2I8dD2(FloatMatrix &answer, const FloatMatrix &F, const FloatArray &D);
-    void compute_d2I9dD2(FloatMatrix &answer, const FloatArray &D);
-    void compute_d2I10dD2(FloatMatrix &answer, const FloatMatrix &F, const FloatArray &D);
-    ////////////////////////////////////////////////////////////////
-    void compute_d2I7dFdD(FloatMatrix &answer, const FloatMatrix &F, const FloatArray &D);
-    void compute_d2I8dFdD(FloatMatrix &answer, const FloatMatrix &F, const FloatArray &D);
-    void compute_d2I10dFdD(FloatMatrix &answer, const FloatMatrix &F, const FloatArray &D);    
-
-    void compute_dI4dF_num(FloatArray &answer, const FloatMatrix &F);
-    void compute_dI7dF_num(FloatArray &answer, const FloatMatrix &F, const FloatArray &D);
-    void compute_dI10dF_num(FloatArray &answer, const FloatMatrix &F, const FloatArray &D);
-    void compute_dI7dD_num(FloatArray &answer, const FloatMatrix &F, const FloatArray &D);
-    void compute_dI10dD_num(FloatArray &answer, const FloatMatrix &F, const FloatArray  &D);
-    void compute_d2I4dF2_num(FloatMatrix &answer,const FloatMatrix &F);
-    void compute_d2I7dF2_num(FloatMatrix &answer,const FloatMatrix &F, const FloatArray &D);
-    void compute_d2I10dF2_num(FloatMatrix &answer,const FloatMatrix &F, const FloatArray &D);
-    void  compute_d2I7dFdD_num(FloatMatrix &answer, const FloatMatrix &F, const FloatArray &D);
-    void  compute_d2I10dFdD_num(FloatMatrix &answer, const FloatMatrix &F, const FloatArray &D);
-    void  compute_d2I7dD2_num(FloatMatrix &answer, const FloatMatrix &F, const FloatArray &D);
-
-
-    void compute_dPdF_dEdF(FloatMatrix &dPdF,FloatMatrix &dEdF, const FloatMatrix &F, const FloatArray &D, GaussPoint *gp, TimeStep *tStep);
-    void compute_dPdF_dEdF_fake(FloatMatrix &dPdF,FloatMatrix &dEdF, const FloatMatrix &F, const FloatArray &D, GaussPoint *gp, TimeStep *tStep);
-    void compute_dPdD_dEdD(FloatMatrix &dPdF,FloatMatrix &dEdF, const FloatMatrix &F, const FloatArray &D, GaussPoint *gp, TimeStep *tStep);
-
-
-    void computePseudoInverse(FloatMatrix &iDdd, FloatMatrix &b);
+    double compute_I8(double J, const FloatArray &vH, const FloatArray &vF,   const FloatArray &D);
+    double compute_I8_pol(double J, const FloatArray &vH, const FloatArray &vF,   const FloatArray &D);
+    // D\cdot N
+    double compute_K1_Cinf(const FloatArray &D);
+    // d \cdot FN
+    double compute_K2_Cinf(double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    double compute_K2_Cinf_pol(double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    double compute_K1_Dinf(const FloatArray &D);
+    double compute_K2_Dinf(double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    double compute_K2_Dinf_pol(double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    //derivatives
+    void compute_dI1_dF(FloatArray &dIdF, const double J, const FloatArray &vH, const FloatArray &vF);
+    void compute_dI2_dF(FloatArray &dIdF, const double J, const FloatArray &vH, const FloatArray &vF);  
+    void compute_dI3_dF(FloatArray &dIdF, const double J, const FloatArray &vH, const FloatArray &vF);
+    void compute_dI1dev_dF(FloatArray &dIdF, const double J, const FloatArray &H, const FloatArray &F);
+    void compute_dI2dev_dF(FloatArray &dIdF, const double J, const FloatArray &vH, const FloatArray &vF);   
+    void compute_dI2devpol_dF(FloatArray &dIdF, const double J, const FloatArray &vH, const FloatArray &vF);
+    void compute_dI4_dF(FloatArray &dIdF, const double J, const FloatArray &vH, const FloatArray &vF);
+    void compute_dI5_dF(FloatArray &dIdF, const double J, const FloatArray &H, const FloatArray &F);
+    void compute_dI6_dD(FloatArray &dIdF, const FloatArray &D);
+    void compute_dI7_dF_dD(FloatArray &dIdF, FloatArray &dIdD, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_dI8_dF_dD(FloatArray &dIdF, FloatArray &dIdD, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_dI8pol_dF_dD(FloatArray &dIdF, FloatArray &dIdD, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_dK1Cinf_dD(FloatArray &answer, const FloatArray &D);
+    void compute_dK2Cinf_dF_dD(FloatArray &dIdF,FloatArray &dIdD, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_dK2Cinfpol_dF_dD(FloatArray &dIdF,FloatArray &dIdD, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_dK1Dinf_dD(FloatArray &answer, const FloatArray &D);
+    void compute_dK2Dinf_dF_dD(FloatArray &dIdF,FloatArray &dIdD, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_dK2Dinfpol_dF_dD(FloatArray &dIdF,FloatArray &dIdD, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    void compute_d2I1_dF2(FloatMatrix &d2IdF2,const double J, const FloatArray &vH, const FloatArray &vF);
+    void compute_d2I2_dF2(FloatMatrix &d2IdF2, const double J, const FloatArray &vH, const FloatArray &vF);   
+    void compute_d2I3_dF2(FloatMatrix &d2IdF2, const double J, const FloatArray &H, const FloatArray &F);
+    void compute_d2I1dev_dF2(FloatMatrix &d2IdF2, const double J, const FloatArray &vH, const FloatArray &vF);
+    void compute_d2I2dev_dF2(FloatMatrix &d2IdF2, const double J, const FloatArray &vH, const FloatArray &vF);
+    void compute_d2I2devpol_dF2(FloatMatrix &d2IdF2, const double J, const FloatArray &vH, const FloatArray &vF);
+    void compute_d2I4_dF2(FloatMatrix &d2IdF2, const double J, const FloatArray &vH, const FloatArray &vF);
+    void compute_d2I5_dF2(FloatMatrix &d2IdF2, const double J, const FloatArray &vH, const FloatArray &vF);
+    void compute_d2I6_dD2(FloatMatrix &answer, const FloatArray &D);
+    void compute_d2I7_dF2(FloatMatrix &d2IdF2, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_d2I7_dD2(FloatMatrix &d2IdD2, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_d2I7_dFdD(FloatMatrix &d2IdFdD, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_d2I8_dF2(FloatMatrix &d2IdF2, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_d2I8_dD2(FloatMatrix &d2IdD2, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_d2I8_dFdD(FloatMatrix &d2IdFdD, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_d2I8pol_dF2(FloatMatrix &d2IdF2, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_d2I8pol_dD2(FloatMatrix &d2IdD2, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_d2I8pol_dFdD(FloatMatrix &d2IdFdD, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_d2K1Dinf_dD2(FloatMatrix &d2IdD2, const FloatArray &D);
+    void compute_d2K2Cinf_dF2(FloatMatrix &d2IdF2, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_d2K2Cinf_dD2(FloatMatrix &d2IdD2, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_d2K2Cinf_dFdD(FloatMatrix &d2IdFdD, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_d2K2Cinfpol_dF2(FloatMatrix &d2IdF2, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_d2K2Cinfpol_dD2(FloatMatrix &d2IdD2, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_d2K2Cinfpol_dFdD(FloatMatrix &d2IdFdD, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_d2K2Dinf_dF2(FloatMatrix &d2IdF2, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_d2K2Dinf_dD2(FloatMatrix &d2IdF2, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_d2K2Dinf_dFdD(FloatMatrix &d2IdFdD, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_d2K2Dinfpol_dF2(FloatMatrix &d2IdF2, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_d2K2Dinfpol_dD2(FloatMatrix &d2IdD2, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    void compute_d2K2Dinfpol_dFdD(FloatMatrix &d2IdFdD, const double J, const FloatArray &vH, const FloatArray &vF,  const FloatArray &D);
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void compute_dI1dF_num(FloatArray &answer, const double J, const FloatArray &vH, const FloatArray &vF);
+void compute_dI2dF_num(FloatArray &answer, const double J, const FloatArray &vH, const FloatArray &vF);
+void compute_dI1devdF_num(FloatArray &answer, const double J, const FloatArray &vH, const FloatArray &vF);
+void compute_dI2devdF_num(FloatArray &answer, const double J, const FloatArray &vH, const FloatArray &vF);
+void compute_dI2devpoldF_num(FloatArray &answer, const double J, const FloatArray &vH, const FloatArray &vF);
+void compute_dI4dF_num(FloatArray &answer, const double J, const FloatArray &vH, const FloatArray &vF);
+void compute_dI5dF_num(FloatArray &answer, const double J, const FloatArray &vH, const FloatArray &vF);
+void compute_dI7dF_num(FloatArray &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_dI8dF_num(FloatArray &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_dI8poldF_num(FloatArray &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_dK2CdF_num(FloatArray &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_dK2CpoldF_num(FloatArray &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_dK2DdF_num(FloatArray &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_dK2DpoldF_num(FloatArray &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void compute_dI6dD_num(FloatArray &answer,  const FloatArray &D);
+void compute_dI7dD_num(FloatArray &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_dI8dD_num(FloatArray &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_dI8poldD_num(FloatArray &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_dK1CdD_num(FloatArray &answer, const FloatArray &D);
+void compute_dK2CdD_num(FloatArray &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_dK2CpoldD_num(FloatArray &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_dK1DdD_num(FloatArray &answer, const FloatArray &D);
+void compute_dK2DdD_num(FloatArray &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D); 
+void compute_dK2DpoldD_num(FloatArray &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void compute_d2I1dF2_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF);
+void compute_d2I1devdF2_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF);
+ void compute_d2I2dF2_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF);
+void compute_d2I2devdF2_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF);
+void compute_d2I2devpoldF2_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF);
+void compute_d2I4dF2_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF);
+void compute_d2I5dF2_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF);
+void compute_d2I7dF2_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_d2I8dF2_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_d2I8poldF2_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_d2K2CdF2_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_d2K2CpoldF2_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_d2K2DdF2_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_d2K2DpoldF2_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void compute_d2I6dD2_num(FloatMatrix &answer, const FloatArray &D);
+void compute_d2I7dD2_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_d2I8dD2_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_d2I8poldD2_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_d2K2CdD2_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_d2K2CpoldD2_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_d2K1DdD2_num(FloatMatrix &answer,  const FloatArray &D);
+void compute_d2K2DdD2_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_d2K2DpoldD2_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void compute_d2I7dFdD_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_d2I8dFdD_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_d2I8poldFdD_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_d2K2CdFdD_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+ void compute_d2K2CpoldFdD_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_d2K2DdFdD_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
+void compute_d2K2DpoldFdD_num(FloatMatrix &answer, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D);
 
     
 };
