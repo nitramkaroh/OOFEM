@@ -47,16 +47,19 @@
 ///@name Input fields for MicromorphLEmat
 //@{
 #define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_Name "mooneyrivlin_idealdielectric_transverselyisotropic_mat2"
-#define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_epsilon1 "epsilon1"
-#define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_epsilon2 "epsilon2"
-#define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_epsilon3 "epsilon3"
-#define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_epsilon4 "epsilon4"
-#define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_epsilon5 "epsilon5"
+#define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_epsilon1 "eps1"
+#define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_epsilon2 "eps2"
+#define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_epsilon3 "eps3"
+#define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_epsilon4 "eps4"
+#define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_epsilon5 "eps5"
 #define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_mu1 "mu1"
 #define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_mu2 "mu2"
 #define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_mu3 "mu3"
 #define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_lambda "lambda"
 #define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_n "n"
+
+#define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_alpha "alpha"
+#define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_beta "beta"
 
 //@}
 
@@ -121,6 +124,8 @@ protected:
     virtual MaterialStatus *CreateStatus(GaussPoint *gp) const { return new ElectroMechanicalMaterialStatus(1, domain, gp); }
     int computeAcousticTensorMinEigenvalue(GaussPoint *gp, TimeStep *tStep);
     ///////////////////////////////////////
+    void compute_dPdD_dEdD(FloatMatrix &dPdD,FloatMatrix &dEdD, const FloatMatrix &F, const FloatArray &D, GaussPoint *gp, TimeStep *tStep);
+    void compute_dPdF_dEdF(FloatMatrix &dPdF,FloatMatrix &dEdF, const FloatMatrix &F, const FloatArray &D, GaussPoint *gp, TimeStep *tStep);
 
 
 

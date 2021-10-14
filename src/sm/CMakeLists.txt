@@ -146,6 +146,8 @@ set (sm_element
     Elements/ElectroMechanics/baseelectromechanicalelement_3fields.C
     Elements/ElectroMechanics/3D/lspaceelectromechanicalelement.C
     Elements/ElectroMechanics/3D/lspaceelectromechanicalelement_3fields.C
+    Elements/ElectroMechanics/3D/lspaceelectromechanicalelement_3fields_d0.C
+    Elements/ElectroMechanics/3D/qspaceelectromechanicalelement_3fields.C
     )
 
 set (sm_interface_elements

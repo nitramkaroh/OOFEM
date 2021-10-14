@@ -238,6 +238,9 @@ public:
      * @return Frobenius norm.
      */
     double computeFrobeniusNorm() const;
+
+    double doubleDotProduct(const FloatMatrix &B) const;
+
     /**
      * Computes the operator norm of the receiver.
      * @param p Norm type, '1' for 1 norm, '2' for 2 norm.
