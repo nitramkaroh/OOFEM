@@ -1,0 +1,459 @@
+/*
+ *
+ *                 #####    #####   ######  ######  ###   ###
+ *               ##   ##  ##   ##  ##      ##      ## ### ##
+ *              ##   ##  ##   ##  ####    ####    ##  #  ##
+ *             ##   ##  ##   ##  ##      ##      ##     ##
+ *            ##   ##  ##   ##  ##      ##      ##     ##
+ *            #####    #####   ##      ######  ##     ##
+ *
+ *
+ *             OOFEM : Object Oriented Finite Element Code
+ *
+ *               Copyright (C) 1993 - 2013   Borek Patzak
+ *
+ *
+ *
+ *       Czech Technical University, Faculty of Civil Engineering,
+ *   Department of Structural Mechanics, 166 29 Prague, Czech Republic
+ *
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Lesser General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2.1 of the License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; if not, write to the Free Software
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
+
+#include "Elements/ElectroMechanics/3D/lspaceelectromechanicalelement_d0.h"
+#include "fei3dhexalin.h"
+#include "node.h"
+#include "gausspoint.h"
+#include "gaussintegrationrule.h"
+#include "floatmatrix.h"
+#include "floatarray.h"
+#include "intarray.h"
+#include "domain.h"
+#include "mathfem.h"
+#include "crosssection.h"
+#include "classfactory.h"
+#include "masterdof.h"
+
+
+namespace oofem {
+REGISTER_Element(LSpaceElectroMechanicalElement_D0);
+
+FEI3dHexaLin LSpaceElectroMechanicalElement_D0 :: interpolation;
+
+  LSpaceElectroMechanicalElement_D0 :: LSpaceElectroMechanicalElement_D0(int n, Domain *domain) : LSpace(n, domain), BaseElectroMechanicalElement(n, domain)
+    // Constructor.
+{
+  D.resize(3);
+  deltaU.resize(24);
+  deltaPhi.resize(8);
+}
+
+IRResultType
+LSpaceElectroMechanicalElement_D0 :: initializeFrom(InputRecord *ir)
+{
+    IRResultType result = LSpace :: initializeFrom(ir);
+    if ( result != IRRT_OK ) {
+        return result;
+    }
+
+    t = 1; //check by default
+    IR_GIVE_OPTIONAL_FIELD(ir, t, _IFT_LSpaceElectroMechanicalElement_D0_T);
+
+    return IRRT_OK;
+}
+
+
+  
+
+FEInterpolation *LSpaceElectroMechanicalElement_D0 :: giveInterpolation() const { return & interpolation; }
+
+
+
+void
+LSpaceElectroMechanicalElement_D0 :: postInitialize()
+{
+    BaseElectroMechanicalElement :: postInitialize();
+    LSpace :: postInitialize();
+    
+}
+
+
+
+void
+LSpaceElectroMechanicalElement_D0 :: computeElectricFieldBmatrixAt(GaussPoint *gp, FloatMatrix &answer)
+{
+    FEInterpolation *interp = this->giveInterpolation();
+    FloatMatrix dNdx; 
+    interp->evaldNdx( dNdx, gp->giveNaturalCoordinates(), FEIElementGeometryWrapper(this) );
+
+    answer.resize(3, this->giveNumberOfElectricDofs());
+    answer.zero();
+
+    for ( int i = 1; i <= dNdx.giveNumberOfRows(); i++ ) {
+        answer.at(1,  i ) = dNdx.at(i, 1);
+        answer.at(2,  i ) = dNdx.at(i, 2);
+	answer.at(3,  i ) = dNdx.at(i, 3);
+    }
+
+ 
+}
+
+
+void
+LSpaceElectroMechanicalElement_D0 :: computeElectricDisplacementNmatrixAt(GaussPoint *gp, FloatMatrix &answer)
+{
+
+    answer.resize(3,3);
+    answer.beUnitMatrix();
+}
+  
+
+void
+LSpaceElectroMechanicalElement_D0 :: giveDofManDofIDMask(int inode, IntArray &answer) const
+{
+  answer = {D_u, D_v, D_w, E_phi};
+}
+  
+
+void
+LSpaceElectroMechanicalElement_D0 :: giveDofManDofIDMask_u(IntArray &answer)
+{
+  answer = {D_u, D_v, D_w};
+}
+
+
+void
+LSpaceElectroMechanicalElement_D0 :: giveDofManDofIDMask_e(IntArray &answer)
+{
+
+  answer = {E_phi};
+
+}
+
+
+
+
+void
+LSpaceElectroMechanicalElement_D0 :: computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode rMode, TimeStep *tStep)
+{
+  //set displacement and nonlocal location array
+    answer.resize(this->giveNumberOfDofs(), this->giveNumberOfDofs());
+    answer.zero();
+
+
+    NLStructuralElement *elem = this->giveStructuralElement();
+    SimpleElectroMechanicalCrossSection_3Fields *cs = this->giveCrossSection();
+
+    FloatMatrix B_u, B_phi, N_d, Duu, Dud, Ddd, DuuBu, DueNd, DudNd, DddNd, DudBd;
+    FloatMatrix Kuu, Kud, Kdu, Kdd, Kde, Ked;
+    
+    for ( GaussPoint *gp: *elem->giveIntegrationRule(0) ) {
+      this->computeElectricFieldBmatrixAt(gp, B_phi);
+      this->computeElectricDisplacementNmatrixAt(gp, N_d);  
+      if( elem->giveGeometryMode() == 0) {
+	/*FloatArray strain;
+	  this->computeStrainVector(strain, gp, tStep);
+	  this->computePressure(pressure,gp, tStep);   
+	  mixedPressureMat->giveRealStressVector(stress, gp, strain,pressure, tStep);
+	*/
+      } else {
+	elem->computeBHmatrixAt(gp, B_u);
+	cs->giveElectroMechanicalConstitutiveMatrix_dPdF(Duu, rMode, gp, tStep);
+	cs->giveElectroMechanicalConstitutiveMatrix_dPdD(Dud, rMode, gp, tStep);
+	cs->giveElectroMechanicalConstitutiveMatrix_dEdD(Ddd, rMode, gp, tStep);
+      }
+      double dV  = elem->computeVolumeAround(gp);
+      DuuBu.beProductOf(Duu, B_u);
+      DudNd.beProductOf(Dud, N_d);
+      DddNd.beProductOf(Ddd, N_d);      
+      Kuu.plusProductUnsym(B_u, DuuBu, dV);
+      Kud.plusProductUnsym(B_u, DudNd, dV);
+      Kdd.plusProductUnsym(N_d, DddNd, dV);
+      Ked.plusProductUnsym(B_phi, N_d, dV);
+
+    }
+      
+
+    FloatMatrix iKdd, Kuphi, Kphiu, Kud_invKdd, Kphiphi, Kphid_invKdd, Kphid;
+    iKdd.beInverseOf(Kdd);
+    //
+    this->setInverseOfKdd(iKdd);
+    this->setKud(Kud);
+    this->setKphid(Ked);
+    //
+    Kud_invKdd.beProductOf(Kud, iKdd);
+    //////////////////////////////////
+    FloatMatrix Kud_invKdd_Kdu;
+    Kud_invKdd_Kdu.beProductTOf(Kud_invKdd, Kud);
+    Kuu.subtract(Kud_invKdd_Kdu);
+    //
+    Kuphi.beProductTOf(Kud_invKdd, Ked);
+    Kuphi.times(-1.);
+    Kphiu.beTranspositionOf(Kuphi);
+    //////////////////////////////////
+    Kphid_invKdd.beProductOf(Ked, iKdd);
+    Kphiphi.beProductTOf(Kphid_invKdd, Ked);
+    Kphiphi.times(-1.);
+    //////////////////////////////////	
+    answer.assemble(Kuu, locationArray_u);
+    answer.assemble(Kuphi, locationArray_u, locationArray_e);
+    answer.assemble(Kphiu, locationArray_e, locationArray_u);
+    answer.assemble(Kphiphi, locationArray_e, locationArray_e);   
+
+}
+
+
+
+  void
+  LSpaceElectroMechanicalElement_D0 :: computeStiffnessMatrices(FloatMatrix &iKdd, FloatMatrix &Kud, FloatMatrix &Ked, MatResponseMode rMode, TimeStep *tStep)
+{
+  //set displacement and nonlocal location array
+    iKdd.resize(3,3);
+    iKdd.zero();
+
+    Kud.resize(24,3);
+    Kud.zero();
+
+    Ked.resize(8,3);
+    Ked.zero();
+
+
+
+    NLStructuralElement *elem = this->giveStructuralElement();
+    SimpleElectroMechanicalCrossSection_3Fields *cs = this->giveCrossSection();
+
+    FloatMatrix B_u, B_phi, N_d, Duu, Dud, Ddd, DuuBu, DueNd, DudNd, DddNd, DudBd;
+    FloatMatrix Kuu, Kdu, Kdd, Kde;
+    
+    for ( GaussPoint *gp: *elem->giveIntegrationRule(0) ) {
+      this->computeElectricFieldBmatrixAt(gp, B_phi);
+      this->computeElectricDisplacementNmatrixAt(gp, N_d);  
+      if( elem->giveGeometryMode() == 0) {
+	/*FloatArray strain;
+	  this->computeStrainVector(strain, gp, tStep);
+	  this->computePressure(pressure,gp, tStep);   
+	  mixedPressureMat->giveRealStressVector(stress, gp, strain,pressure, tStep);
+	*/
+      } else {
+	elem->computeBHmatrixAt(gp, B_u);
+	cs->giveElectroMechanicalConstitutiveMatrix_dPdF(Duu, rMode, gp, tStep);
+	cs->giveElectroMechanicalConstitutiveMatrix_dPdD(Dud, rMode, gp, tStep);
+	cs->giveElectroMechanicalConstitutiveMatrix_dEdD(Ddd, rMode, gp, tStep);
+      }
+      double dV  = elem->computeVolumeAround(gp);
+      DuuBu.beProductOf(Duu, B_u);
+      DudNd.beProductOf(Dud, N_d);
+      DddNd.beProductOf(Ddd, N_d);      
+      Kuu.plusProductUnsym(B_u, DuuBu, dV);
+      Kud.plusProductUnsym(B_u, DudNd, dV);
+      Kdd.plusProductUnsym(N_d, DddNd, dV);
+      Ked.plusProductUnsym(B_phi, N_d, dV);
+
+    }
+      
+
+    FloatMatrix Kuphi, Kphiu, Kud_invKdd, Kphiphi, Kphid_invKdd, Kphid;
+    iKdd.beInverseOf(Kdd);
+}
+
+
+
+
+void
+LSpaceElectroMechanicalElement_D0 :: giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord)
+{
+    NLStructuralElement *elem = this->giveStructuralElement();
+    FloatArray BP, BD, vP, vE, NE, gradPhi, electricDisplacement;
+    FloatMatrix B_u, B_phi, N_d;
+   
+    answer.resize(this->giveNumberOfDofs());
+    answer.zero();
+    
+    FloatArray answer_u(this->giveNumberOfDisplacementDofs());
+    answer_u.zero();
+    FloatArray answer_phi(this->giveNumberOfElectricDofs());
+    answer_phi.zero();
+    FloatArray f_d(3);
+    f_d.zero();
+    
+    this->updateElectricDisplacementVector(tStep);
+    for ( GaussPoint *gp: *elem->giveIntegrationRule(0) ) {
+      this->compute_FirstPKStressVector_ElectricFieldVector(vP, vE, gp, tStep);
+      this->computeElectricPotentialGradientVector(gradPhi, gp, tStep);
+      this->computeElectricDisplacementVector(electricDisplacement, gp, tStep);
+      //
+      double dV  = elem->computeVolumeAround(gp);
+      // Compute nodal internal forces at nodes as f_u = \int_V B^T*vP dV
+      elem->computeBHmatrixAt(gp, B_u, tStep, 0);
+      BP.beTProductOf(B_u, vP);
+      answer_u.add(dV, BP);
+      // Compute nodal internal forces at nodes as f_\phi = \int B^T* vD dV     
+      this->computeElectricFieldBmatrixAt(gp, B_phi);      
+      BD.beTProductOf(B_phi, electricDisplacement);
+      answer_phi.add(dV, BD);
+      // Compute nodal internal forces at nodes as f_d = \int N^T(E + gradPhi) dB
+      this->computeElectricDisplacementNmatrixAt(gp, N_d);
+      vE.add(gradPhi);
+      NE.beTProductOf(N_d, vE);
+      f_d.add(dV, NE);     
+    }
+    
+
+    FloatArray iKdd_fd, Kphid_iKdd_fd, Kud_iKdd_fd;
+    FloatMatrix iKdd, Kud, Kphid;
+
+    this->computeStiffnessMatrices(iKdd, Kud, Kphid, TangentStiffness, tStep);    
+    //
+    this->setFd(f_d);
+    //
+    //    this->giveInverseOfKdd(iKdd);
+    iKdd_fd.beProductOf(iKdd, f_d);
+    //
+    Kphid_iKdd_fd.beProductOf(Kphid, iKdd_fd);
+    Kud_iKdd_fd.beProductOf(Kud, iKdd_fd);
+    //
+    answer_u.subtract(Kud_iKdd_fd);
+    answer_phi.subtract(Kphid_iKdd_fd);
+        
+    answer.assemble(answer_u, locationArray_u);
+    answer.assemble(answer_phi, locationArray_e);
+
+
+    
+
+}
+
+
+
+
+void
+LSpaceElectroMechanicalElement_D0 :: updateElectricDisplacementVector(TimeStep *tStep)
+{
+  /// compute \Delta D_0
+
+  FloatArray f_d;
+  FloatMatrix iKdd, Kud, Kphid;
+  //
+  //this->computeStiffnessMatrices(iKdd, Kud, Kphid, TangentStiffness, tStep);
+  //old matrices
+  this->giveInverseOfKdd(iKdd);
+  this->giveKud(Kud);
+  this->giveKphid(Kphid);
+  
+  this->giveFd(f_d);
+  //  this->giveFphi(fphi);
+  IntArray IdMask_u, IdMask_e;
+  this->giveDofManDofIDMask_u( IdMask_u );
+  this->giveDofManDofIDMask_e( IdMask_e );
+  FloatArray d_u, d_phi;
+  //
+  this->giveStructuralElement()->computeVectorOf(IdMask_u, VM_Incremental, tStep, d_u);
+  this->giveStructuralElement()->computeVectorOf(IdMask_e, VM_Incremental, tStep, d_phi);
+  //
+  FloatArray ddu, ddphi;
+  ddu = d_u - deltaU;
+  ddphi = d_phi - deltaPhi;
+  //
+  deltaU = d_u;
+  deltaPhi = d_phi;
+  //
+  FloatArray Kdu_du, Kdphi_dphi;
+  Kdu_du.beTProductOf(Kud, ddu);
+  Kdphi_dphi.beTProductOf(Kphid, ddphi);
+  //
+  f_d.times(-1);
+  f_d.subtract(Kdu_du);
+  f_d.subtract(Kdphi_dphi);
+  FloatArray deltaD;
+  deltaD.beProductOf(iKdd, f_d);
+  //@todo: test it using the code below
+  //FloatMatrix iKphid;
+  //  iKphid.beInverseOf(Kphid);
+  //  testDeltaD.beProductOf(iKphid,fphi);
+  //
+  D.add(deltaD);
+}
+
+
+
+void
+LSpaceElectroMechanicalElement_D0 :: computeElectricDisplacementVector(FloatArray &answer,GaussPoint *gp, TimeStep *tStep)
+{
+  /// compute \Delta D_0
+  answer = this->D;
+}
+
+
+
+
+  
+SimpleElectroMechanicalCrossSection_3Fields*
+LSpaceElectroMechanicalElement_D0 :: giveCrossSection()
+// Returns the crossSection of the receiver.
+{
+  //NLStructuralElement *elem = this->giveElement();
+  return static_cast< SimpleElectroMechanicalCrossSection_3Fields* >( this->giveStructuralElement()->giveCrossSection() );
+}
+
+
+void
+LSpaceElectroMechanicalElement_D0 :: compute_FirstPKStressVector_ElectricFieldVector(FloatArray &P, FloatArray &E, GaussPoint *gp, TimeStep *tStep)
+{
+    NLStructuralElement *elem = this->giveStructuralElement();
+    SimpleElectroMechanicalCrossSection_3Fields *cs = this->giveCrossSection();
+
+    FloatArray electricDisplacemenet;
+    if( elem->giveGeometryMode() == 0) {
+      /*FloatArray strain;
+      this->computeStrainVector(strain, gp, tStep);
+      this->computePressure(pressure,gp, tStep);   
+      mixedPressureMat->giveRealStressVector(stress, gp, strain,pressure, tStep);
+      */
+    } else {
+      FloatArray F, electricDisplacement;
+      elem->computeDeformationGradientVector(F, gp, tStep);
+      this->computeElectricDisplacementVector(electricDisplacement, gp, tStep);   
+      cs->give_FirstPKStressVector_ElectricFieldVector(P, E, gp, F, electricDisplacement, tStep);
+    }
+    
+}
+
+
+void
+LSpaceElectroMechanicalElement_D0 :: computeElectricPotentialGradientVector(FloatArray &answer,GaussPoint *gp, TimeStep *tStep)
+{
+    IntArray IdMask_phi;
+    FloatArray d_phi;
+    FloatMatrix B_phi;
+    this->giveDofManDofIDMask_e( IdMask_phi );
+    this->giveStructuralElement()->computeVectorOf(IdMask_phi, VM_Total, tStep, d_phi);
+    this->computeElectricFieldBmatrixAt(gp, B_phi);  
+    answer.beProductOf(B_phi,d_phi);
+}
+
+
+
+void
+LSpaceElectroMechanicalElement_D0 :: updateYourself(TimeStep *tStep)
+{
+  LSpace::updateYourself(tStep);
+  deltaU.zero();
+  deltaPhi.zero();
+
+}
+
+
+  
+} // end namespace oofem

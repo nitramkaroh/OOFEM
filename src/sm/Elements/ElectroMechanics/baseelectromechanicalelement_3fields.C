@@ -56,6 +56,7 @@
 namespace oofem {
 BaseElectroMechanicalElement_3Fields :: BaseElectroMechanicalElement_3Fields(int n, Domain *domain)
 {
+  
 }
 
     

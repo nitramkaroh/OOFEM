@@ -95,7 +95,7 @@ LSpaceElectroMechanicalElement_3Fields_D0 :: computeElectricPotentialBmatrixAt(G
 	answer.at(3,  i ) = dNdx.at(i, 3);
     }
 
-    answer.times(-1.);
+ 
 }
 
 

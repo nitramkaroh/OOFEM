@@ -32,7 +32,7 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "Elements/ElectroMechanics/3D/qspaceelectromechanicalelement_3fields.h"
+#include "Elements/ElectroMechanics/3D/qllspaceelectromechanicalelement_3fields.h"
 #include "fei3dhexalin.h"
 #include "fei3dhexaquad.h"
 #include "node.h"
@@ -49,25 +49,26 @@
 
 
 namespace oofem {
-REGISTER_Element(QSpaceElectroMechanicalElement_3Fields);
+  
+REGISTER_Element(QLLSpaceElectroMechanicalElement_3Fields);
 
-FEI3dHexaLin QSpaceElectroMechanicalElement_3Fields :: interpolation_lin;
-FEI3dHexaQuad QSpaceElectroMechanicalElement_3Fields :: interpolation;
+FEI3dHexaLin QLLSpaceElectroMechanicalElement_3Fields :: interpolation_lin;
+FEI3dHexaQuad QLLSpaceElectroMechanicalElement_3Fields :: interpolation;
 
 
-  QSpaceElectroMechanicalElement_3Fields :: QSpaceElectroMechanicalElement_3Fields(int n, Domain *domain) : QSpace(n, domain), BaseElectroMechanicalElement_3Fields(n, domain)
+  QLLSpaceElectroMechanicalElement_3Fields :: QLLSpaceElectroMechanicalElement_3Fields(int n, Domain *domain) : QSpace(n, domain), BaseElectroMechanicalElement_3Fields(n, domain)
     // Constructor.
 {
 }
 
 
-FEInterpolation *QSpaceElectroMechanicalElement_3Fields :: giveInterpolation() const { return & interpolation; }
-FEInterpolation* QSpaceElectroMechanicalElement_3Fields :: giveInterpolation_lin() const { return & interpolation_lin; }
+FEInterpolation *QLLSpaceElectroMechanicalElement_3Fields :: giveInterpolation() const { return & interpolation; }
+FEInterpolation* QLLSpaceElectroMechanicalElement_3Fields :: giveInterpolation_lin() const { return & interpolation_lin; }
 
 
 
 void
-QSpaceElectroMechanicalElement_3Fields :: postInitialize()
+QLLSpaceElectroMechanicalElement_3Fields :: postInitialize()
 {
     BaseElectroMechanicalElement_3Fields :: postInitialize();
     QSpace :: postInitialize();
@@ -77,9 +78,9 @@ QSpaceElectroMechanicalElement_3Fields :: postInitialize()
 
 
 void
-QSpaceElectroMechanicalElement_3Fields :: computeElectricPotentialBmatrixAt(GaussPoint *gp, FloatMatrix &answer)
+QLLSpaceElectroMechanicalElement_3Fields :: computeElectricPotentialBmatrixAt(GaussPoint *gp, FloatMatrix &answer)
 {
-    FEInterpolation *interp = this->giveInterpolation();
+    FEInterpolation *interp = this->giveInterpolation_lin();
     FloatMatrix dNdx; 
     interp->evaldNdx( dNdx, gp->giveNaturalCoordinates(), FEIElementGeometryWrapper(this) );
 
@@ -97,7 +98,7 @@ QSpaceElectroMechanicalElement_3Fields :: computeElectricPotentialBmatrixAt(Gaus
 
 
 void
-QSpaceElectroMechanicalElement_3Fields :: computeElectricDisplacementNmatrixAt(GaussPoint *gp, FloatMatrix &answer)
+QLLSpaceElectroMechanicalElement_3Fields :: computeElectricDisplacementNmatrixAt(GaussPoint *gp, FloatMatrix &answer)
 {
     FEInterpolation *interp = this->giveInterpolation_lin();
     FloatArray N; 
@@ -107,28 +108,28 @@ QSpaceElectroMechanicalElement_3Fields :: computeElectricDisplacementNmatrixAt(G
   
 
 void
-QSpaceElectroMechanicalElement_3Fields :: giveDofManDofIDMask(int inode, IntArray &answer) const
+QLLSpaceElectroMechanicalElement_3Fields :: giveDofManDofIDMask(int inode, IntArray &answer) const
 {
   //answer = {D_u, D_v, D_w, E_phi, E_D1, E_D2, E_D3};
   
   if(inode <= 8) {
     answer = {D_u, D_v, D_w, E_phi, E_D1, E_D2, E_D3};
   } else {
-    answer = {D_u, D_v, D_w, E_phi};
+    answer = {D_u, D_v, D_w};
   }
   
 }
   
 
 void
-QSpaceElectroMechanicalElement_3Fields :: giveDofManDofIDMask_u(IntArray &answer)
+QLLSpaceElectroMechanicalElement_3Fields :: giveDofManDofIDMask_u(IntArray &answer)
 {
   answer = {D_u, D_v, D_w};
 }
 
 
 void
-QSpaceElectroMechanicalElement_3Fields :: giveDofManDofIDMask_phi(IntArray &answer)
+QLLSpaceElectroMechanicalElement_3Fields :: giveDofManDofIDMask_phi(IntArray &answer)
 {
 
   answer = {E_phi};
@@ -136,7 +137,7 @@ QSpaceElectroMechanicalElement_3Fields :: giveDofManDofIDMask_phi(IntArray &answ
 }
 
 void
-QSpaceElectroMechanicalElement_3Fields :: giveDofManDofIDMask_d(IntArray &answer)
+QLLSpaceElectroMechanicalElement_3Fields :: giveDofManDofIDMask_d(IntArray &answer)
 {
   answer = {E_D1, E_D2, E_D3};
 }

@@ -164,6 +164,7 @@ BaseElectroMechanicalElement :: computeElectricField(FloatArray &answer,GaussPoi
     this->giveStructuralElement()->computeVectorOf(IdMask_e, VM_Total, tStep, d_e);
     this->computeElectricFieldBmatrixAt(gp, B_e);  
     answer.beProductOf(B_e,d_e);
+    answer.times(-1.);
 }
 
 
@@ -276,7 +277,7 @@ BaseElectroMechanicalElement :: computeStiffnessMatrix(FloatMatrix &answer, MatR
       DueBe.beProductOf(Due, B_e);
       DeeBe.beProductOf(Dee, B_e);      
       Kuu.plusProductUnsym(B_u, DuuBu, dV);
-      Kue.plusProductUnsym(B_u, DueBe, dV);
+      Kue.plusProductUnsym(B_u, DueBe, -dV);
       Kee.plusProductUnsym(B_e, DeeBe, dV);
 
     }

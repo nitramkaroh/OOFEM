@@ -192,8 +192,6 @@ protected:
     void findInitialShape(FloatArray &ub_target, FloatArray &fab_loc, const FloatArray &ds, const FloatArray &kappa_0, FloatArray &u_0, FloatArray &w_0, FloatArray &phi_0, double NIP_0);
     void integrateAlongBeamAndFindInitialShape(const FloatArray &fab, FloatArray &ub, FloatMatrix &jacobi, const FloatArray &ds, FloatArray &kappa_0, FloatArray &u_0, FloatArray &w_0, FloatArray &phi_0, double NIP_0);
 
-
-
     
     void computeStiffnessMatrix_num(FloatMatrix &answer, MatResponseMode rMode, TimeStep *tStep);    
     void giveInternalForcesVector_from_u(FloatArray &answer, TimeStep *tStep, const FloatArray &u);

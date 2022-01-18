@@ -52,6 +52,8 @@
 #define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_epsilon3 "eps3"
 #define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_epsilon4 "eps4"
 #define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_epsilon5 "eps5"
+#define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_epsilon6 "eps6"
+#define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_a "a"
 #define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_mu1 "mu1"
 #define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_mu2 "mu2"
 #define _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_mu3 "mu3"
@@ -72,12 +74,13 @@ namespace oofem {
 protected:
   MooneyRivlinMaterial *hyperelasticMaterial;
   double lambda, mu1, mu2, mu3;
-  double iEps1, iEps2, iEps3, iEps4, iEps5;
+  double iEps1, iEps2, iEps3, iEps4, iEps5, iEps6;
   FloatArray N;
   double alpha, beta;
   double a_I8pol = 1., b_I8pol = 1., c_I8pol = 1.;
-  double a_K2_Cinf_pol = 1., b_K2_Cinf_pol = 1.;
-  double a_K2_Dinf_pol = 1., b_K2_Dinf_pol = 1.;
+  double a_K2_Cinf_pol = 0.001, b_K2_Cinf_pol = 5.;
+  double a_K2_Dinf_pol = 1., b_K2_Dinf_pol = 0.1;
+  double a = 0;
   
 public:
    MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2(int n, Domain * d);
@@ -116,19 +119,36 @@ public:
                                                     MatResponseMode mode,
                                                     GaussPoint *gp, TimeStep *tStep);
 
-    
+
+
+    //////////////////////////////////////////////////////////////
+    virtual void give3dMaterialStiffnessMatrix_dPdF_from(FloatMatrix &answer,
+                                                    MatResponseMode mode,
+							 GaussPoint *gp, TimeStep *tStep, const FloatArray &vF, const FloatArray &D);
+
+    virtual void give3dMaterialStiffnessMatrix_dPdD_from(FloatMatrix &answer,
+                                                    MatResponseMode mode,
+							 GaussPoint *gp, TimeStep *tStep, const FloatArray &vF, const FloatArray &D);
+	
+    virtual void give3dMaterialStiffnessMatrix_dEdD_from(FloatMatrix &answer,
+                                                    MatResponseMode mode,
+							 GaussPoint *gp, TimeStep *tStep, const FloatArray &vF, const FloatArray &D);
+
+
+    /////////////////////////////////////////////////////////////
     
     virtual int giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType type, TimeStep *tStep);
 
 protected:
     virtual MaterialStatus *CreateStatus(GaussPoint *gp) const { return new ElectroMechanicalMaterialStatus(1, domain, gp); }
     int computeAcousticTensorMinEigenvalue(GaussPoint *gp, TimeStep *tStep);
+    void computeAcousticTensor(FloatArray &answer, GaussPoint *gp, TimeStep *tStep);
     ///////////////////////////////////////
     void compute_dPdD_dEdD(FloatMatrix &dPdD,FloatMatrix &dEdD, const FloatMatrix &F, const FloatArray &D, GaussPoint *gp, TimeStep *tStep);
     void compute_dPdF_dEdF(FloatMatrix &dPdF,FloatMatrix &dEdF, const FloatMatrix &F, const FloatArray &D, GaussPoint *gp, TimeStep *tStep);
 
 
-
+    void computeEigs(FloatArray &eval, const FloatMatrix &Q);
 
     /// Invariant F:F
     double compute_I1(double J, const FloatArray &vH, const FloatArray &vF);

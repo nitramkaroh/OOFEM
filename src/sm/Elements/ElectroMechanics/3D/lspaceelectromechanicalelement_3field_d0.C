@@ -32,9 +32,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "Elements/ElectroMechanics/3D/qspaceelectromechanicalelement_3fields.h"
+#include "Elements/ElectroMechanics/3D/lspaceelectromechanicalelement_3fields.h"
 #include "fei3dhexalin.h"
-#include "fei3dhexaquad.h"
 #include "node.h"
 #include "gausspoint.h"
 #include "gaussintegrationrule.h"
@@ -49,41 +48,67 @@
 
 
 namespace oofem {
-REGISTER_Element(QSpaceElectroMechanicalElement_3Fields);
+REGISTER_Element(LSpaceElectroMechanicalElement_3Fields_D0);
 
-FEI3dHexaLin QSpaceElectroMechanicalElement_3Fields :: interpolation_lin;
-FEI3dHexaQuad QSpaceElectroMechanicalElement_3Fields :: interpolation;
+FEI3dHexaLin LSpaceElectroMechanicalElement_3Fields_D0 :: interpolation;
 
-
-  QSpaceElectroMechanicalElement_3Fields :: QSpaceElectroMechanicalElement_3Fields(int n, Domain *domain) : QSpace(n, domain), BaseElectroMechanicalElement_3Fields(n, domain)
+  LSpaceElectroMechanicalElement_3Fields_D0 :: LSpaceElectroMechanicalElement_3Fields_D0(int n, Domain *domain) : LSpace(n, domain), BaseElectroMechanicalElement(n, domain)
     // Constructor.
 {
+
+  this->D0Node.reset( new ElementDofManager(1, aDomain, this) );
+  this->D0Node->appendDof( new MasterDof(this->D0Node.get(), E_D1) );
+  this->D0Node->appendDof( new MasterDof(this->D0Node.get(), E_D2) );
+  this->D0Node->appendDof( new MasterDof(this->D0Node.get(), E_D3) );
+
 }
 
 
-FEInterpolation *QSpaceElectroMechanicalElement_3Fields :: giveInterpolation() const { return & interpolation; }
-FEInterpolation* QSpaceElectroMechanicalElement_3Fields :: giveInterpolation_lin() const { return & interpolation_lin; }
+FEInterpolation *LSpaceElectroMechanicalElement_3Fields_D0 :: giveInterpolation() const { return & interpolation; }
 
 
 
 void
-QSpaceElectroMechanicalElement_3Fields :: postInitialize()
+LSpaceElectroMechanicalElement_3Fields_D0 :: postInitialize()
 {
     BaseElectroMechanicalElement_3Fields :: postInitialize();
-    QSpace :: postInitialize();
+    LSpace :: postInitialize();
+
+
+    delete dofBCmap;
+    dofBCmap = NULL;
+
+    mBC.clear();
+    IR_GIVE_OPTIONAL_FIELD(ir, mBC, _IFT_DofManager_bc);
+    bool hasBc = mBC.giveSize() != 0;
+    IntArray dofIDArry(3);
+    dofIDArry
+    ///@todo This should eventually be removed, still here to preserve backwards compatibility:
+    // check sizes
+    if ( hasBc ) {
+        if ( mBC.giveSize() != dofIDArry.giveSize() ) {
+            OOFEM_ERROR("bc size mismatch. Size is %d and need %d", mBC.giveSize(), dofIDArry.giveSize());
+        }
+        this->dofBCmap = new std :: map< int, int >();
+        for ( int i = 1; i <= mBC.giveSize(); ++i ) {
+            if ( mBC.at(i) > 0 ) {
+                ( * this->dofBCmap ) [ dofIDArry.at(i) ] = mBC.at(i);
+            }
+        }
+    }
     
 }
 
 
 
 void
-QSpaceElectroMechanicalElement_3Fields :: computeElectricPotentialBmatrixAt(GaussPoint *gp, FloatMatrix &answer)
+LSpaceElectroMechanicalElement_3Fields_D0 :: computeElectricFieldBmatrixAt(GaussPoint *gp, FloatMatrix &answer)
 {
     FEInterpolation *interp = this->giveInterpolation();
     FloatMatrix dNdx; 
     interp->evaldNdx( dNdx, gp->giveNaturalCoordinates(), FEIElementGeometryWrapper(this) );
 
-    answer.resize(3, this->giveNumberOfElectricPotentialDofs());
+    answer.resize(3, this->giveNumberOfElectricDofs());
     answer.zero();
 
     for ( int i = 1; i <= dNdx.giveNumberOfRows(); i++ ) {
@@ -92,43 +117,25 @@ QSpaceElectroMechanicalElement_3Fields :: computeElectricPotentialBmatrixAt(Gaus
 	answer.at(3,  i ) = dNdx.at(i, 3);
     }
 
-    // answer.times(-1.);
 }
 
 
 void
-QSpaceElectroMechanicalElement_3Fields :: computeElectricDisplacementNmatrixAt(GaussPoint *gp, FloatMatrix &answer)
+LSpaceElectroMechanicalElement_3Fields_D0 :: giveDofManDofIDMask(int inode, IntArray &answer) const
 {
-    FEInterpolation *interp = this->giveInterpolation_lin();
-    FloatArray N; 
-    interp->evalN( N, gp->giveNaturalCoordinates(), FEIElementGeometryWrapper(this) );
-    answer.beNMatrixOf(N, 3);
+  answer = {D_u, D_v, D_w, E_phi, E_D1, E_D2, E_D3};
 }
   
 
 void
-QSpaceElectroMechanicalElement_3Fields :: giveDofManDofIDMask(int inode, IntArray &answer) const
-{
-  //answer = {D_u, D_v, D_w, E_phi, E_D1, E_D2, E_D3};
-  
-  if(inode <= 8) {
-    answer = {D_u, D_v, D_w, E_phi, E_D1, E_D2, E_D3};
-  } else {
-    answer = {D_u, D_v, D_w, E_phi};
-  }
-  
-}
-  
-
-void
-QSpaceElectroMechanicalElement_3Fields :: giveDofManDofIDMask_u(IntArray &answer)
+LSpaceElectroMechanicalElement_3Fields_D0 :: giveDofManDofIDMask_u(IntArray &answer)
 {
   answer = {D_u, D_v, D_w};
 }
 
 
 void
-QSpaceElectroMechanicalElement_3Fields :: giveDofManDofIDMask_phi(IntArray &answer)
+LSpaceElectroMechanicalElement_3Fields_D0 :: giveDofManDofIDMask_e(IntArray &answer)
 {
 
   answer = {E_phi};
@@ -136,11 +143,13 @@ QSpaceElectroMechanicalElement_3Fields :: giveDofManDofIDMask_phi(IntArray &answ
 }
 
 void
-QSpaceElectroMechanicalElement_3Fields :: giveDofManDofIDMask_d(IntArray &answer)
+LSpaceElectroMechanicalElement_3Fields_D0 :: giveDofManDofIDMask_d(IntArray &answer)
 {
+
   answer = {E_D1, E_D2, E_D3};
+
 }
 
-
+  
 
 } // end namespace oofem

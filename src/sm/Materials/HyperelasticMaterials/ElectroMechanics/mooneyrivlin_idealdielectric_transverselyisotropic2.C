@@ -65,13 +65,15 @@ MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: initializeFrom(In
     IR_GIVE_OPTIONAL_FIELD(ir, this->beta, _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_beta);
 
     
-    double epsilon1 = 0, epsilon2 = 0, epsilon3 = 0, epsilon4 = 0, epsilon5 = 0;
+    double epsilon1 = 0, epsilon2 = 0, epsilon3 = 0, epsilon4 = 0, epsilon5 = 0, epsilon6 = 0;
     IR_GIVE_OPTIONAL_FIELD(ir, epsilon1, _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_epsilon1);
     IR_GIVE_OPTIONAL_FIELD(ir, epsilon2, _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_epsilon2);
     IR_GIVE_OPTIONAL_FIELD(ir, epsilon3, _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_epsilon3);
     IR_GIVE_OPTIONAL_FIELD(ir, epsilon4, _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_epsilon4);
     IR_GIVE_OPTIONAL_FIELD(ir, epsilon5, _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_epsilon5);
-
+    IR_GIVE_OPTIONAL_FIELD(ir, epsilon6, _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_epsilon6);
+    IR_GIVE_OPTIONAL_FIELD(ir, a, _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_a);    
+    
     if(epsilon1 == 0) {
       this->iEps1 = 0.;
     } else {
@@ -104,8 +106,14 @@ MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: initializeFrom(In
       this->iEps5 = 0.;
     } else {
       this->iEps5 = 1. / epsilon5;
-
     }
+
+    if(epsilon6 == 0) {
+      this->iEps6 = 0.;
+    } else {
+      this->iEps6 = 1. / epsilon6;
+    }
+    
 
     IR_GIVE_FIELD(ir, this->N, _IFT_MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2_n);
     N.normalize();
@@ -159,10 +167,16 @@ MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: give_FirstPKStres
     this->compute_dK2Dinf_dF_dD(dK2DdF,dK2DdD, J, vH, vF, D);
     this->compute_dK2Dinfpol_dF_dD(dK2DpoldF,dK2DpoldD,J, vH, vF, D);
     ///////////////////////////////////
-    FloatArray dI6dD, dK1CdD, dK1DdD;
+    FloatArray dI6dD, dK1DdD;
     this->compute_dI6_dD(dI6dD, D);
     this->compute_dK1Dinf_dD(dK1DdD, D);
     ///////////////////////////////////
+    FloatArray dK2CdF, dK2CdD;
+    double K2C = this->compute_K2_Cinf(J, vH, vF, D);
+    this->compute_dK2Cinf_dF_dD(dK2CdF, dK2CdD, J, vH, vF, D);
+    FloatArray dK1CdD;
+    this->compute_dK1Cinf_dD(dK1CdD, D);
+    //////////////////////////////////////
     // isotropic mechanical invariants
     vP.add(0.5 * mu1, dI1devdF);
     vP.add(0.5 * mu2, dI2devpoldF);
@@ -180,14 +194,23 @@ MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: give_FirstPKStres
     //
     vP.add(   0.5 * this->iEps4 , dK2DpoldF);
     vP.add(   0.5 * this->iEps5 , dK2DdF);
+    ////////////////////////////////////
+    //// contribution of K2C
+    ///////////////////////////////////
+    vP.add(this->a, dK2CdF);
     ///////////////////////////////////
      // Electric field
     E.add( 0.5 * this->iEps2, dI6dD);    
     E.add( 0.5 * this->iEps1 / J , dI7dD);
     E.add( 0.5 * this->iEps3, dK1DdD);
     E.add( 0.5 * this->iEps4, dK2DpoldD);   
-    E.add( 0.5 * this->iEps5, dK2DdD);    
-
+    E.add( 0.5 * this->iEps5, dK2DdD);
+    ////////////////////////////////////
+    //// contribution of K2C^2/J
+    E.add(this->a, dK2CdD);
+    E.add(-this->a, dK1CdD);
+    ////////////////////////////////////
+    
     status->letTempPVectorBe(vP);
     status->letTempFVectorBe(vF);
     status->letTempEVectorBe(E);
@@ -205,7 +228,7 @@ MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: give3dMaterialSti
     // hyperelasticMaterial->give3dMaterialStiffnessMatrix_dPdF(answer, mode, gp, tStep); 
     FloatArray vF = status->giveTempFVector();
     //  FloatArray E = status->giveTempEVector();
-    FloatArray D = status->giveTempDVector();
+    FloatArray D = status->giveTempDVector(); 
     // First Piola-Kirchhoff stress
     FloatMatrix F;
     F.beMatrixForm(vF);
@@ -256,7 +279,7 @@ MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: give3dMaterialSti
     answer.add( 0.5 * mu3 * pow(I4, alpha-1), d2I4dF2);
     answer.add( 0.5 * mu3 * (alpha - 1.) * pow(I4, alpha-2), dI4dI4);
     answer.add( 0.5 * mu3 * pow(I5, beta-1.), d2I5dF2);
-    answer.add( 0.5 * mu3 * (beta - 1) * pow(I4, beta-2), dI5dI5);
+    answer.add( 0.5 * mu3 * (beta - 1) * pow(I5, beta-2), dI5dI5);
     answer.add(       mu3 / J / J, HH);
     answer.add( -     mu3  / J, d2I3dF2);
     // Isotropic stiffness - electromechanical
@@ -269,10 +292,29 @@ MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: give3dMaterialSti
     answer.add( - 0.5 * iEps1 / J / J, dI7H);
     answer.add( - 0.5 * iEps1 / J / J, HdI7);
     answer.add( - 0.5 * iEps1 * I7 / J / J, d2I3dF2);
+    ///////////////////////////////////////////////////
+    FloatArray dI7dF_num;
+    FloatMatrix d2I7dF2_num;
+    this->compute_dI7dF_num(dI7dF_num, J, vH, vF, D);
+    this->compute_d2I7dF2_num(d2I7dF2_num,J, vH, vF, D);
+    ///////////////////////////////////////////////////
     // Anisotropic stiffness - electromechanical
     answer.add( 0.5 * iEps4, d2K2DpoldF2);
     // nonpolyconvex invariant
     answer.add( 0.5 * iEps5, d2K2DdF2);
+    ////////////////////////////////////
+    //// contribution of K2C
+    ///////////////////////////////////
+    FloatMatrix d2K2CdF2;
+    this->compute_d2K2Cinf_dF2(d2K2CdF2, J, vH, vF, D);
+    //
+    answer.add( this->a, d2K2CdF2);
+    /*    
+    FloatMatrix d2K2DpoldF2num;
+    this->compute_d2K2DpoldF2_num(d2K2DpoldF2num,J, vH, vF, D);
+    FloatMatrix di(d2K2DpoldF2num);
+    di.subtract(d2K2DpoldF2);
+
 
     FloatMatrix dPdF, dEdF;
     this->compute_dPdF_dEdF(dPdF, dEdF, F, D, gp, tStep);
@@ -280,12 +322,12 @@ MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: give3dMaterialSti
     FloatMatrix diff(answer);
     diff.subtract(dPdF);
     double n = diff.computeFrobeniusNorm();
-    if(n > 100000.0) {
+    if(n > 10000.0) {
       int test = 1;
     }
 
 
-
+    */
 
     
 }
@@ -317,6 +359,11 @@ MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: give3dMaterialSti
     //
     answer.add(  0.5 * this->iEps1 / J, d2I7dFdD);
     answer.add(- 0.5 * this->iEps1 / J / J, H_dI7);
+    /////////////////////////////////////////////////
+    FloatArray dI7dD_num;
+    FloatMatrix d2I7dFdD_num;
+    this->compute_dI7dD_num(dI7dD_num, J, vH, vF, D);
+    this->compute_d2I7dFdD_num(d2I7dFdD_num, J, vH, vF, D);
     ///////////////////////////////////////////////// 
     FloatMatrix d2K2DdFdD, d2K2DpoldFdD;
     this->compute_d2K2Dinf_dFdD(d2K2DdFdD, J, vH, vF, D);
@@ -324,10 +371,18 @@ MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: give3dMaterialSti
     //
     answer.add(  0.5 * this->iEps4, d2K2DpoldFdD);
     answer.add(  0.5 * this->iEps5, d2K2DdFdD);
+    ////////////////////////////////////
+    //// contribution of K2C
+    ///////////////////////////////////
+    FloatMatrix d2K2CdFdD;
+    this->compute_d2K2Cinf_dFdD(d2K2CdFdD, J, vH, vF, D);
+    //
+    answer.add( this->a, d2K2CdFdD);   
     if(mode == SecantStiffness) {
       answer.times(0);
     }
 
+    /*
     FloatMatrix dPdD, dEdD, dPdF, dEdF;
     FloatMatrix F;
     F.beMatrixForm(vF);
@@ -336,16 +391,19 @@ MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: give3dMaterialSti
     FloatMatrix diff(answer);
     diff.subtract(dPdD);
     double n = diff.computeFrobeniusNorm();
-    if(n > 1000000.0) {
+    FloatMatrix d2K2DpoldFdD_num;
+    this->compute_d2K2DpoldFdD_num(d2K2DpoldFdD_num,J, vH, vF, D);
+    if(n > 10000.0) {
       FloatArray dI7dF_num;
       FloatMatrix d2I7dFdD_num, d2K2DpoldFdD_num;
-      this->compute_dI7dF_num(dI7dF_num, J, vH, vF, D);
       this->compute_dI7dF_num(dI7dF_num, J, vH, vF, D);
       this->compute_d2I7dFdD_num(d2I7dFdD_num, J, vH, vF, D);
       this->compute_d2K2Dinfpol_dFdD(d2K2DpoldFdD_num,J, vH, vF, D);
 
       int test = 1;
     }
+    */
+    
 }
 
 void
@@ -356,6 +414,222 @@ MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: give3dMaterialSti
     ElectroMechanicalMaterialStatus *status = static_cast< ElectroMechanicalMaterialStatus* >( this->giveStatus(gp) );
     FloatArray vF = status->giveTempFVector();
     FloatArray D = status->giveTempDVector();
+    // H stands for cofactor of F
+    FloatArray vH;
+    // compute cofactor using tensor cross product
+    hyperelasticMaterial->compute_2order_tensor_cross_product( vH, vF, vF );
+    vH.times(0.5);
+    //
+    double J = 1./3. * vH.dotProduct( vF );
+    //
+    FloatMatrix d2I6dD2, d2I7dD2, d2K1DdD2, d2K2DpoldD2, d2K2DdD2;
+    //
+    this->compute_d2I6_dD2(d2I6dD2, D);
+    this->compute_d2I7_dD2(d2I7dD2, J, vH, vF, D);
+    ////////////////////////////////////////////////
+    FloatMatrix d2I7dD2_num;
+    this->compute_d2I7dD2_num(d2I7dD2_num,J, vH, vF, D);
+    ///////////////////////////////////////////////////
+    this->compute_d2K1Dinf_dD2(d2K1DdD2, D);
+    this->compute_d2K2Dinfpol_dD2(d2K2DpoldD2, J, vH, vF, D);
+    this->compute_d2K2Dinf_dD2(d2K2DdD2, J, vH, vF, D);
+    //
+    answer.add( 0.5 * iEps2, d2I6dD2);
+    //
+    answer.add( 0.5 * iEps1 / J, d2I7dD2);
+    //
+    answer.add( 0.5 * iEps3, d2K1DdD2);
+    //
+    answer.add( 0.5 * iEps4, d2K2DpoldD2);
+    //
+    answer.add( 0.5 * iEps5, d2K2DdD2);
+
+    /*
+    FloatMatrix dPdD, dEdD;
+    FloatMatrix F;
+    F.beMatrixForm(vF);
+    this->compute_dPdD_dEdD(dPdD, dEdD, F, D, gp, tStep);
+    
+    FloatMatrix d2K2DpoldD2_num;
+    this->compute_d2K2DpoldD2_num(d2K2DpoldD2_num,J, vH, vF, D);
+    
+    FloatMatrix diff(answer);
+    diff.subtract(dEdD);
+    double n = diff.computeFrobeniusNorm();
+    if(n > 10000) {
+      FloatMatrix d2I6dD2_num, d2I7dD2_num, d2K1DdD2_num, d2K2DpoldD2_num;
+      this->compute_d2I6dD2_num(d2I6dD2_num, D);
+      this->compute_d2I7dD2_num(d2I7dD2_num, J, vH, vF, D);
+      this->compute_d2K1DdD2_num(d2K1DdD2_num, D);
+      this->compute_d2K2DpoldD2_num(d2K2DpoldD2_num,J, vH, vF, D);
+      int test = 1;
+    }
+    */
+}
+
+void
+MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: give3dMaterialStiffnessMatrix_dPdF_from(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep, const FloatArray &vF, const FloatArray &D)
+{
+    ElectroMechanicalMaterialStatus *status = static_cast< ElectroMechanicalMaterialStatus* >( this->giveStatus(gp) );
+    // First Piola-Kirchhoff stress
+    FloatMatrix F;
+    F.beMatrixForm(vF);
+    // H stands for cofactor of F
+    FloatArray vH;
+    // compute cofactor using tensor cross product
+    hyperelasticMaterial->compute_2order_tensor_cross_product( vH, vF, vF );
+    vH.times(0.5);
+    //
+    double J = 1./3. * vH.dotProduct( vF );
+    //
+    FloatMatrix H, HH;
+    H.beMatrixForm(vH);
+    ////////////////////////////////////    
+    answer.resize(9,9);
+    //
+    double I4 = this->compute_I4(J, vH, vF);
+    double I5 = this->compute_I5(J, vH, vF);
+    double I7 = this->compute_I7(J, vH, vF, D);
+    //
+    FloatArray dI4dF, dI5dF, dI7dF, dI7dD;
+    FloatMatrix d2I1devdF2, d2I2devpoldF2,d2I3dF2, d2I4dF2, d2I5dF2, d2I7dF2, d2K2DdF2, d2K2DpoldF2;
+    HH.beDyadicProductOf(vH,vH);
+    this->compute_d2I1dev_dF2(d2I1devdF2, J, vH, vF);
+    this->compute_d2I2devpol_dF2(d2I2devpoldF2, J, vH, vF);
+    this->compute_d2I3_dF2(d2I3dF2, J, vH, vF);
+    //   
+    this->compute_dI4_dF(dI4dF, J, vH, vF);
+    this->compute_d2I4_dF2(d2I4dF2, J, vH, vF);
+    //
+    this->compute_dI5_dF(dI5dF, J, vH, vF);
+    this->compute_d2I5_dF2(d2I5dF2, J, vH, vF);
+    //
+    this->compute_dI7_dF_dD(dI7dF, dI7dD, J, vH, vF, D);
+    this->compute_d2I7_dF2(d2I7dF2, J, vH, vF, D);
+    //
+    this->compute_d2K2Dinfpol_dF2(d2K2DpoldF2, J, vH, vF, D);
+    this->compute_d2K2Dinf_dF2(d2K2DdF2, J, vH, vF, D);
+    // Isotropic stiffness - mechanical only
+    answer.add(0.5 * mu1, d2I1devdF2);
+    answer.add(0.5 * mu2, d2I2devpoldF2);
+    answer.add( lambda * ( J - 1 ) , d2I3dF2);
+    answer.add( lambda , HH);
+    // Anisotropic stiffness - mechanical only
+    FloatMatrix dI4dI4, dI5dI5;
+    dI4dI4.beDyadicProductOf(dI4dF, dI4dF);
+    dI5dI5.beDyadicProductOf(dI5dF, dI5dF);
+    answer.add( 0.5 * mu3 * pow(I4, alpha-1), d2I4dF2);
+    answer.add( 0.5 * mu3 * (alpha - 1.) * pow(I4, alpha-2), dI4dI4);
+    answer.add( 0.5 * mu3 * pow(I5, beta-1.), d2I5dF2);
+    answer.add( 0.5 * mu3 * (beta - 1) * pow(I5, beta-2), dI5dI5);
+    answer.add(       mu3 / J / J, HH);
+    answer.add( -     mu3  / J, d2I3dF2);
+    // Isotropic stiffness - electromechanical
+    //2nd derivative of I7/J
+    FloatMatrix HdI7, dI7H;
+    dI7H.beDyadicProductOf(dI7dF, vH);
+    HdI7.beDyadicProductOf(vH, dI7dF);
+    answer.add(   0.5 * iEps1 / J, d2I7dF2);
+    answer.add(         iEps1 * I7 / J / J/ J,  HH);
+    answer.add( - 0.5 * iEps1 / J / J, dI7H);
+    answer.add( - 0.5 * iEps1 / J / J, HdI7);
+    answer.add( - 0.5 * iEps1 * I7 / J / J, d2I3dF2);
+    // Anisotropic stiffness - electromechanical
+    answer.add( 0.5 * iEps4, d2K2DpoldF2);
+    // nonpolyconvex invariant
+    answer.add( 0.5 * iEps5, d2K2DdF2);
+    ////////////////////////////////////
+    //// contribution of K2C^2/J
+    ///////////////////////////////////
+    double K2C = this->compute_K2_Cinf(J, vH, vF, D);
+    FloatArray dK2CdF, dK2CdD;
+    //
+    this->compute_dK2Cinf_dF_dD(dK2CdF, dK2CdD, J, vH, vF, D);
+    FloatMatrix d2K2CdF2, dK2CdK2C, dK2C_H, H_dK2C;
+    //
+    dK2CdK2C.beDyadicProductOf(dK2CdF,dK2CdF);
+    dK2C_H.beDyadicProductOf(dK2CdF, vH);
+    H_dK2C.beDyadicProductOf(vH,dK2CdF);
+    //
+    this->compute_d2K2Cinf_dF2(d2K2CdF2, J, vH, vF, D);
+    //
+    answer.add( iEps6 * K2C / J, d2K2CdF2);
+    //
+    answer.add( iEps6 *K2C / J / J, dK2C_H);
+    //
+    answer.add( iEps6 *K2C / J / J, H_dK2C);
+    //
+    answer.add( 0.5 * iEps6 * K2C * K2C / J / J / J, HH);
+    //
+    FloatMatrix Fx;
+    hyperelasticMaterial->compute_tensor_cross_product_tensor(Fx, vF);
+    answer.add( 0.5 * iEps6 * K2C * K2C / J / J , Fx);
+
+    
+}
+
+
+void
+MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: give3dMaterialStiffnessMatrix_dPdD_from(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep, const FloatArray &vF, const FloatArray &D)
+{
+    answer.resize(9,3);
+    // H stands for cofactor of F
+    FloatArray vH;
+    // compute cofactor using tensor cross product
+    hyperelasticMaterial->compute_2order_tensor_cross_product( vH, vF, vF );
+    vH.times(0.5);
+    //
+    double J = 1./3. * vH.dotProduct( vF );
+    ////////////////////////////////////
+    FloatArray dI7dF, dI7dD;
+    this->compute_dI7_dF_dD(dI7dF, dI7dD, J, vH, vF, D);
+    //
+    FloatMatrix d2I7dFdD, H_dI7;
+    H_dI7.beDyadicProductOf(vH, dI7dD);
+    //
+    this->compute_d2I7_dFdD(d2I7dFdD, J, vH, vF, D);
+    //
+    answer.add(  0.5 * this->iEps1 / J, d2I7dFdD);
+    answer.add(- 0.5 * this->iEps1 / J / J, H_dI7);
+    ///////////////////////////////////////////////// 
+    FloatMatrix d2K2DdFdD, d2K2DpoldFdD;
+    this->compute_d2K2Dinf_dFdD(d2K2DdFdD, J, vH, vF, D);
+    this->compute_d2K2Dinfpol_dFdD(d2K2DpoldFdD,J, vH, vF, D);
+    //
+    answer.add(  0.5 * this->iEps4, d2K2DpoldFdD);
+    answer.add(  0.5 * this->iEps5, d2K2DdFdD);
+
+    ////////////////////////////////////
+    //// contribution of K2C^2/J
+    ///////////////////////////////////
+    double K2C = this->compute_K2_Cinf(J, vH, vF, D);
+    //
+    FloatArray dK2CdF, dK2CdD;
+    this->compute_dK2Cinf_dF_dD(dK2CdF, dK2CdD, J, vH, vF, D);
+    //
+    FloatMatrix dK2CdK2dD, dK2CdFdD,H_dK2dD;
+    dK2CdK2dD.beDyadicProductOf(dK2CdF,dK2CdD);
+    H_dK2dD.beDyadicProductOf(vH,dK2CdD);
+    //
+    this->compute_d2K2Cinf_dFdD(dK2CdFdD, J, vH, vF, D);
+    //
+    answer.add( this->iEps6 * K2C / J, dK2CdFdD);
+    answer.add( this->iEps6 / J, dK2CdK2dD);
+    answer.add( - this->iEps6 * K2C / J / J, H_dK2dD);
+
+    
+    if(mode == SecantStiffness) {
+      answer.times(0);
+    }
+    
+}
+
+
+void
+MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: give3dMaterialStiffnessMatrix_dEdD_from(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep, const FloatArray &vF, const FloatArray &D)
+{
+
+    answer.resize(3,3);
     // H stands for cofactor of F
     FloatArray vH;
     // compute cofactor using tensor cross product
@@ -382,49 +656,50 @@ MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: give3dMaterialSti
     //
     answer.add( 0.5 * iEps5, d2K2DdD2);
 
-    
-    FloatMatrix dPdD, dEdD;
-    FloatMatrix F;
-    F.beMatrixForm(vF);
-    this->compute_dPdD_dEdD(dPdD, dEdD, F, D, gp, tStep);
-
-    FloatMatrix diff(answer);
-    diff.subtract(dEdD);
-    double n = diff.computeFrobeniusNorm();
-    if(n > 10000000000) {
-      FloatMatrix d2I6dD2_num, d2I7dD2_num, d2K1DdD2_num, d2K2DpoldD2_num;
-      this->compute_d2I6dD2_num(d2I6dD2_num, D);
-      this->compute_d2I7dD2_num(d2I7dD2_num, J, vH, vF, D);
-      this->compute_d2K1DdD2_num(d2K1DdD2_num, D);
-      this->compute_d2K2DpoldD2_num(d2K2DpoldD2_num,J, vH, vF, D);
-      int test = 1;
-    }
 
 }
+
 
 
 
 int
 MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: computeAcousticTensorMinEigenvalue(GaussPoint *gp, TimeStep *tStep)
 {
-   FloatMatrix Duu, Ddd, Dud;
-   this->give3dMaterialStiffnessMatrix_dPdF(Duu, TangentStiffness, gp, tStep);
-   this->give3dMaterialStiffnessMatrix_dEdD(Ddd, TangentStiffness, gp, tStep);
-   this->give3dMaterialStiffnessMatrix_dPdD(Dud, TangentStiffness, gp, tStep);
+
+  FloatMatrix Duu, Ddd, Dud, minQ;
+  /*if(tStep->giveNumber() >= 1 && gp->giveElement()->giveNumber()==6601) {
+
+    FloatArray vF, D;
+    vF={1.258406, 1.020216, 0.934341, -0.003643, 0.064165, -0.011682, -0.032953, -0.735274, 0.482873};
+    D={0.000933, 0.001340, -0.007123};  
+    
+    this->give3dMaterialStiffnessMatrix_dPdF_from(Duu, TangentStiffness, gp, tStep, vF, D);
+    this->give3dMaterialStiffnessMatrix_dEdD_from(Ddd, TangentStiffness, gp, tStep, vF, D);
+    this->give3dMaterialStiffnessMatrix_dPdD_from(Dud, TangentStiffness, gp, tStep, vF, D);
+  } else {
+  */
+    this->give3dMaterialStiffnessMatrix_dPdF(Duu, TangentStiffness, gp, tStep);
+    this->give3dMaterialStiffnessMatrix_dEdD(Ddd, TangentStiffness, gp, tStep);
+    this->give3dMaterialStiffnessMatrix_dPdD(Dud, TangentStiffness, gp, tStep);
+    
+    //}
    FloatMatrix iDdd;
    iDdd.beInverseOf(Ddd);
-   double minE;
+   double minE = 0;
+   double minEig = 0;
    FloatArray n(3);
+   FloatArray minN;
    FloatMatrix nn, I(3,3);
    int nStepsI, nStepsJ;
-   nStepsI = nStepsJ = 20;
+   nStepsI = 80;
+   nStepsJ = 40;
    int index = 0;
    for(int iStep = 1; iStep <= nStepsI; iStep ++) {
-     double theta = (iStep - 1.)/(nStepsI-1.) * 2. * 3.14159265358979323; 
+     double phi = (iStep - 1.)/(nStepsI-1.) * 2. * 3.14159265358979323; 
      for(int jStep = 1; jStep <= nStepsJ; jStep++) {
-       double phi = (jStep - 1.)/(nStepsJ-1.) * 2. * 3.14159265358979323; 
-       n.at(1) = sin(theta) * cos(phi);
-       n.at(2) = sin(theta) * sin(phi);
+       double theta = (jStep - 1.)/(nStepsJ-1.) * 3.14159265358979323; 
+       n.at(1) = cos(phi) * sin(theta);
+       n.at(2) = sin(phi) * sin(theta);
        n.at(3) = cos(theta);
        index++;
        I.beUnitMatrix();
@@ -437,36 +712,335 @@ MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: computeAcousticTe
        Omega.subtract(I);
        FloatMatrix iDddOmega;
        iDddOmega.beProductOf(iDdd,Omega);
-       FloatMatrix G(3,3), Q(3,3);
+
+       FloatMatrix C, Dud_Omega_DudT, Dud_Omega;
+       Dud_Omega.beProductOf(Dud,iDddOmega);
+       Dud_Omega_DudT.beProductTOf(Dud_Omega,Dud);
+       C = Duu;
+       C.add(Dud_Omega_DudT);
+       
+
+       
+       FloatMatrix Q(3,3);
+       Q.zero();
        for(int i = 1; i <= 3; i ++) {
 	 for(int j = 1; j <= 3; j ++) {
 	   for(int k = 1; k <= 3; k ++) {
 	     for(int l = 1; l <= 3; l ++) {
-	       Q.at(j, l) += Duu.at(sm::giveVI(i,j), sm::giveVI(k,l)) * n.at(i) * n.at(k);
+	       Q.at(i,k) += C.at(sm::giveVI(i,j), sm::giveVI(k,l)) * n.at(j) * n.at(l);
+
 	     }
 	   }
 	 }
        }
-       
-       FloatMatrix iDddO_G, G_iDddO_G, At;
-       iDddO_G.beProductTOf(iDddOmega, G);
-       G_iDddO_G.beProductOf(G, iDddO_G);
-       At = Q;
-       At.add(G_iDddO_G);
-       double a = At.at(1,1);
-       double b = At.at(1,1)*At.at(2,2) - At.at(1,2) * At.at(2,1);
-       double c = At.giveDeterminant();
+       double a = Q.at(1,1)/this->mu1;
+       double b = (Q.at(1,1)*Q.at(2,2) - Q.at(1,2) * Q.at(2,1))/this->mu1/this->mu1;
+       double c = Q.giveDeterminant()/this->mu1/this->mu1/this->mu1;
        double m = min(min(a,b),c);
+       FloatArray eval;
+       FloatMatrix v;
+       this->computeEigs(eval, Q);
        if(index == 1) {
 	 minE = m;
+	 minEig = min(eval.at(1),min(eval.at(2),eval.at(3)));
+	 minQ = Q;
        } else {
-	 minE = min(minE, m);
+	 if( m < minE) {
+	   minN = n;
+	   minE = m;
+	 } 
+	 double minEigQ = min(eval.at(1),min(eval.at(2),eval.at(3)));
+	 if(minEigQ < minEig) {
+	   minEig = minEigQ;
+	   minQ = Q;
+	 }
        }
        
      }
    }
-   
+
+   //   if(minE < 0) {
+     
+   if(tStep->giveNumber() >= 1 && gp->giveElement()->giveNumber()==6601) {
+       ElectroMechanicalMaterialStatus *status = static_cast< ElectroMechanicalMaterialStatus* >( this->giveStatus(gp) );
+       FloatArray vF = status->giveTempFVector();
+       FloatArray D = status->giveTempDVector();
+       FloatArray vP = status->giveTempPVector();
+       FloatArray E = status->giveTempEVector();
+       char s_gp[10];
+       sprintf( s_gp, "_gp_%d", gp->giveNumber() );
+       //       sprintf(gp, "_gp_%d", gp->giveNumber());
+       FILE *FID;  
+       std :: string fileName, functionname, temp;
+       if(tStep->giveNumber()== 50) {
+	 fileName = "Stiffness50";
+	 fileName += s_gp;
+	 functionname = "Stiffness50";
+	 functionname += s_gp;
+       } else if(tStep->giveNumber()== 51) {
+	 fileName = "Stiffness51";
+	 fileName += s_gp;
+	 functionname = "Stiffness51";
+	 functionname += s_gp;
+       } else if(tStep->giveNumber()== 52) {
+	 fileName = "Stiffness52";
+	 fileName += s_gp;
+	 functionname = "Stiffness52";
+	 functionname += s_gp;
+       } else if(tStep->giveNumber()== 1) {
+	 fileName = "Stiffness1";
+	 fileName += s_gp;
+	 functionname = "Stiffness1";
+	 functionname += s_gp;
+       }
+       fileName += ".m";
+       if ( ( FID = fopen(fileName.c_str(), "w") ) == NULL ) {
+	 OOFEM_ERROR("failed to open file %s", fileName.c_str() );
+       }
+       
+       fprintf( FID, " function [P, E, F, D, Kuu, Kud, Kdd, n, minEig]= %s \n", functionname.c_str() );
+       fprintf(FID, "P=[");
+       for(int i = 1; i <= 9; i++) {
+	 if(i == 9) {
+	   fprintf( FID, "%f;", vP.at(i) );
+	 } else {
+	   fprintf( FID, "%f, ", vP.at(i) );
+	 }
+       }
+       fprintf(FID, "];\n");
+       
+       fprintf(FID, "E=[");
+       for(int i = 1; i <= 3; i++) {
+	 if(i == 3) {
+	   fprintf( FID, "%f;", E.at(i) );
+	 } else {
+	   fprintf( FID, "%f, ", E.at(i) );
+	 }
+       }
+       fprintf(FID, "];\n");
+       
+       fprintf(FID, "F=[");
+       for(int i = 1; i <= 9; i++) {
+	 if(i == 9) {
+	   fprintf( FID, "%f;", vF.at(i) );
+	 } else {
+	   fprintf( FID, "%f, ", vF.at(i) );
+	 }
+       }
+       fprintf(FID, "];\n");     
+       
+       fprintf(FID, "D=[");
+       for(int i = 1; i <= 3; i++) {
+	 if(i == 3) {
+	   fprintf( FID, "%f;", D.at(i) );
+	 } else {
+	   fprintf( FID, "%f, ", D.at(i) );
+	 }
+       }
+       fprintf(FID, "];\n");
+       
+       
+       fprintf(FID, "Kuu=[");
+       for(int i = 1; i <= Duu.giveNumberOfRows(); i++) {
+	 for(int j = 1; j <= Duu.giveNumberOfColumns(); j++) {
+	   if(j == Duu.giveNumberOfRows()) {
+	     fprintf( FID, "%f;", Duu.at(i,j) );
+	   } else {
+	     fprintf( FID, "%f, ", Duu.at(i,j) );
+	   }
+	 }
+       } 
+       fprintf(FID, "];\n");
+       
+       
+       fprintf(FID, "Kud=[");
+       for(int i = 1; i <= Dud.giveNumberOfRows(); i++) {
+	 for(int j = 1; j <= Dud.giveNumberOfColumns(); j++) {
+	   if(j == Dud.giveNumberOfRows()) {
+	     fprintf( FID, "%f;", Dud.at(i,j) );
+	   } else {
+	     fprintf( FID, "%f, ", Dud.at(i,j) );
+	   }
+	 }
+       }
+       fprintf(FID, "];\n");
+       
+       fprintf(FID, "Kdd=[");
+       for(int i = 1; i <= Ddd.giveNumberOfRows(); i++) {
+	 for(int j = 1; j <= Ddd.giveNumberOfColumns(); j++) {
+	   if(j == Duu.giveNumberOfRows()) {
+	     fprintf( FID, "%f;", Ddd.at(i,j) );
+	   } else {
+	     fprintf( FID, "%f, ", Ddd.at(i,j) );
+	   }
+	 }
+       }
+       fprintf(FID, "];\n");
+
+       fprintf(FID, "Q=[");
+       for(int i = 1; i <= 3; i++) {
+	 for(int j = 1; j <= 3; j++) {
+	   if(j == 3) {
+	     fprintf( FID, "%f;", minQ.at(i,j) );
+	   } else {
+	     fprintf( FID, "%f, ", minQ.at(i,j) );
+	   }
+	 }
+       }
+
+       
+       fprintf(FID, "];\n");
+       
+       fprintf(FID, "n=[");
+       for ( double val: minN ) {
+	 fprintf( FID, "%f,", val );
+       }
+       fprintf(FID, "];\n");
+
+       
+       fprintf(FID, "minE=[%f]\n;", minE);
+       fprintf(FID, "minEig=[%f]\n;", minEig);
+       
+       
+       fprintf(FID, "end\n");
+       
+       fclose(FID);   
+   }
+   if(minE < 0 && minEig < 0) {
+     //minE = minEig;
+   }
    return minE;
+
+}
+
+
+
+
+void
+MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: computeAcousticTensor(FloatArray &answer, GaussPoint *gp, TimeStep *tStep)
+{
+
+  FloatMatrix Duu, Ddd, Dud;
+  this->give3dMaterialStiffnessMatrix_dPdF(Duu, TangentStiffness, gp, tStep);
+  this->give3dMaterialStiffnessMatrix_dEdD(Ddd, TangentStiffness, gp, tStep);
+  this->give3dMaterialStiffnessMatrix_dPdD(Dud, TangentStiffness, gp, tStep);
+  
+  FloatMatrix iDdd;
+  iDdd.beInverseOf(Ddd);
+  double minE = 0;
+  double minEig = 0;
+  FloatArray n(3);
+  FloatArray minN;
+  FloatMatrix nn, I(3,3);
+  int nStepsI, nStepsJ;
+  nStepsI = 50;
+  nStepsJ = 25;
+  int index = 0;
+  for(int iStep = 1; iStep <= nStepsI; iStep ++) {
+    double phi = (iStep - 1.)/(nStepsI-1.) * 2. * 3.14159265358979323; 
+    for(int jStep = 1; jStep <= nStepsJ; jStep++) {
+      double theta = (jStep - 1.)/(nStepsJ-1.) * 3.14159265358979323; 
+      n.at(1) = cos(phi) * sin(theta);
+      n.at(2) = sin(phi) * sin(theta);
+      n.at(3) = cos(theta);
+      index++;
+      I.beUnitMatrix();
+      FloatArray iDddn;
+      iDddn.beProductOf(iDdd, n);
+      FloatMatrix Omega;
+      Omega.beDyadicProductOf(n, iDddn);
+      double niDddn = n.dotProduct(iDddn);
+      Omega.times(1./ niDddn);
+      Omega.subtract(I);
+      FloatMatrix iDddOmega;
+      iDddOmega.beProductOf(iDdd,Omega);
+      
+      FloatMatrix C, Dud_Omega_DudT, Dud_Omega;
+      Dud_Omega.beProductOf(Dud,iDddOmega);
+      Dud_Omega_DudT.beProductTOf(Dud_Omega,Dud);
+      C = Duu;
+      C.add(Dud_Omega_DudT);
+      
+      
+      
+      FloatMatrix Q(3,3);
+      Q.zero();
+      for(int i = 1; i <= 3; i ++) {
+	for(int j = 1; j <= 3; j ++) {
+	  for(int k = 1; k <= 3; k ++) {
+	    for(int l = 1; l <= 3; l ++) {
+	      Q.at(i,k) += C.at(sm::giveVI(i,j), sm::giveVI(k,l)) * n.at(j) * n.at(l);
+	      
+	    }
+	  }
+	}
+      }
+       double a = Q.at(1,1);
+       double b = Q.at(1,1)*Q.at(2,2) - Q.at(1,2) * Q.at(2,1);
+       double c = Q.giveDeterminant();
+       double m = min(min(a,b),c);
+       if(index == 1) {
+	 minE = m;
+       } else {
+	 if(m < minE) {
+	   minN = n;
+	   minE = m;
+	   answer.at(1) = Q.at(1,1);
+	   answer.at(2) = Q.at(1,2);
+	   answer.at(3) = Q.at(1,3);
+	   answer.at(4) = Q.at(1,2);
+	   answer.at(5) = Q.at(2,2);
+	   answer.at(6) = Q.at(2,3);
+	   answer.at(7) = Q.at(1,3);
+	   answer.at(8) = Q.at(2,3);
+	   answer.at(9) = Q.at(3,3);
+	   
+	 }
+       }
+    }
+  }
+}
+
+
+
+
+
+void
+MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: computeEigs(FloatArray &eval, const FloatMatrix &Q)
+{
+  eval.resize(3);
+  eval.zero();
+  double pi = 3.14159265358979323;
+  double p1 = Q.at(1,2)*Q.at(1,2) + Q.at(1,3)*Q.at(1,3) + Q.at(2,3)*Q.at(2,3);
+  if(p1==0){
+    eval.at(1) = Q.at(1,1);
+    eval.at(2) = Q.at(2,2);
+    eval.at(3) = Q.at(3,3);
+  } else {
+    double q = (Q.at(1,1) + Q.at(2,2) + Q.at(3,3))/3.;
+    double p2 = (Q.at(1,1)-q)*(Q.at(1,1)-q) + (Q.at(2,2)-q)*(Q.at(2,2)-q) + (Q.at(3,3)-q)*(Q.at(3,3)-q) + 2.*p1;
+    double p = sqrt(p2/6);
+    FloatMatrix B(Q), I(3,3);
+    I.beUnitMatrix();
+    I.times(q);
+    B.subtract(I);
+    B.times(1./p);
+    double r = B.giveDeterminant()/2.;
+    double phi;
+    if(r <= -1) {
+      phi = pi/3.;
+    }else if(r>=1) {
+      phi = 0;
+    } else {
+      phi = acos(r) / 3.;
+    }
+    eval.at(1) = q + 2.*p *cos(phi);
+    eval.at(2) = q + 2.*p *cos(phi+2./3.*pi);
+    eval.at(3) = 3.*q -eval.at(1) - eval.at(2);
+    
+  }
+
+
 }
 
 
@@ -487,7 +1061,10 @@ MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: giveIPValue(Float
   } else if ( type == IST_AcousticTensorMinEigenvalue ) {
     answer.resize(1);
     answer.at(1) = this->computeAcousticTensorMinEigenvalue(gp, tStep);
-  } else {
+  } else if (type == IST_DamageTensor) {
+    answer.resize(9);
+    this->computeAcousticTensor(answer, gp, tStep);
+  }else {
       return  this->hyperelasticMaterial->giveIPValue(answer, gp, type, tStep);
   }
 }
@@ -692,10 +1269,11 @@ double
 MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: compute_K2_Cinf_pol(double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D)
 {
   double I4 = this->compute_I4(J, vH, vF);
+  double I5 = this->compute_I5(J, vH, vF);
   double I7 = this->compute_I7(J, vH, vF, D);
   double K2_Cinf = this->compute_K2_Cinf(J, vH, vF, D);
   //
-  return (this->a_K2_Cinf_pol * this->a_K2_Cinf_pol  * I4  + this->b_K2_Cinf_pol * this->b_K2_Cinf_pol * I7  + 2. * this->a_K2_Cinf_pol * this->b_K2_Cinf_pol * K2_Cinf);
+  return (this->a_K2_Cinf_pol * this->a_K2_Cinf_pol  * (I4 + I5 - 2.* log(J))  + this->b_K2_Cinf_pol * this->b_K2_Cinf_pol * I7  + 2. * this->a_K2_Cinf_pol * this->b_K2_Cinf_pol * K2_Cinf);
 }
 
 double
@@ -932,13 +1510,23 @@ void
 MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: compute_dK2Cinfpol_dF_dD(FloatArray &dIdF,FloatArray &dIdD, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D)
 {
 
-  FloatArray dI4dF, dI7dF, dK2CdF;
+  FloatArray dI4dF, dI5dF, dI7dF, dK2CdF;
   FloatArray dI7dD, dK2CdD;
   this->compute_dI4_dF(dI4dF, J, vH, vF);
+  //new, is it correct?
+  this->compute_dI5_dF(dI5dF, J, vH, vF);
+  FloatArray cofF(vH);
+  cofF.times(-2./J);
+  ///
   this->compute_dI7_dF_dD(dI7dF, dI7dD, J, vH, vF, D);
   this->compute_dK2Cinf_dF_dD(dK2CdF, dK2CdD, J, vH, vF, D);
   //
   dIdF.add(this->a_K2_Cinf_pol * this->a_K2_Cinf_pol, dI4dF);
+  /////////////////new/////////////////////////////////////
+  dIdF.add(this->a_K2_Cinf_pol * this->a_K2_Cinf_pol, dI5dF);
+  dIdF.add(this->a_K2_Cinf_pol * this->a_K2_Cinf_pol, cofF);
+  ////////////////////
+  //
   dIdF.add(this->b_K2_Cinf_pol * this->b_K2_Cinf_pol, dI7dF);
   dIdF.add(2. * this->a_K2_Cinf_pol * this->b_K2_Cinf_pol, dK2CdF);
   //
@@ -1413,12 +2001,19 @@ void
 MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: compute_d2K2Cinfpol_dF2(FloatMatrix &d2IdF2, const double J, const FloatArray &vH, const FloatArray &vF, const FloatArray &D)
 {
 
-  FloatMatrix d2I4dF2, d2I7dF2, d2K2CdF2;
+  FloatMatrix d2I4dF2, d2I5dF2, Fx, HH, d2I7dF2, d2K2CdF2;
   this->compute_d2I4_dF2(d2I4dF2, J, vH, vF);
+  this->compute_d2I5_dF2(d2I5dF2, J, vH, vF);
+  hyperelasticMaterial->compute_tensor_cross_product_tensor(Fx, vF);
+  HH.beDyadicProductOf(vH,vH);
   this->compute_d2I7_dF2(d2I7dF2, J, vH, vF, D);
   this->compute_d2K2Cinf_dF2(d2K2CdF2, J, vH, vF, D);
   //
   d2IdF2.add(this->a_K2_Cinf_pol * this->a_K2_Cinf_pol, d2I4dF2);
+  d2IdF2.add(this->a_K2_Cinf_pol * this->a_K2_Cinf_pol, d2I5dF2);
+  d2IdF2.add(-2.0 * this->a_K2_Cinf_pol * this->a_K2_Cinf_pol / J, Fx);
+  d2IdF2.add(2.0 * this->a_K2_Cinf_pol * this->a_K2_Cinf_pol / J / J, HH);
+
   d2IdF2.add(this->b_K2_Cinf_pol * this->b_K2_Cinf_pol, d2I7dF2);
   d2IdF2.add(2. * this->a_K2_Cinf_pol * this->b_K2_Cinf_pol, d2K2CdF2);    
 }

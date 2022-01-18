@@ -16,19 +16,25 @@ REGISTER_Element(NlBeamInternalContact);
 
   NlBeamInternalContact :: NlBeamInternalContact (int n, Domain *aDomain) : NlBeam_SM(n, aDomain), Jacobi(3,3), Jacobi44(4,4), Kblock(3,3)
 {
+  this->internalForces.resize(3);
 }
 
-
-// ====================================================
-// AUXILIARY FUNCTIONS, TO BE REPLACED BY STANDARD ONES
-// ====================================================
 
  IRResultType
 NlBeamInternalContact :: initializeFrom(InputRecord *ir)
 {
     IRResultType result;                // Required by IR_GIVE_FIELD macro
     // first call parent
-    NlBeam_SM :: initializeFrom(ir);    
+    NlBeam_SM :: initializeFrom(ir);
+
+
+    IR_GIVE_FIELD(ir, leftSegmentLength, _IFT_NlBeamInternalContact_LeftSegmentLength );
+    IR_GIVE_FIELD(ir, rightSegmentLength, _IFT_NlBeamInternalContact_RightSegmentLength );
+    IR_GIVE_FIELD(ir, leftActiveSegmentLength, _IFT_NlBeamInternalContact_LeftActiveSegmentLength );
+    IR_GIVE_FIELD(ir, rightActiveSegmentLength, _IFT_NlBeamInternalContact_RightActiveSegmentLength );
+    int cmode;
+    IR_GIVE_FIELD(ir, cmode, _IFT_NlBeamInternalContact_ContactMode);
+    contactMode = (ContactModeType) cmode;
     return IRRT_OK;
 }
 
@@ -65,7 +71,7 @@ double
 NlBeamInternalContact :: evalContactLoadingFunction(double Nc, double Qc, ContactModeType cmode)
 {
   double fc;  
-  if (cmode == CM_AA || cmode == CM_AB || cmode == CM_AC || cmode==CM_CA) {
+  if (cmode == CMT_AA || cmode == CMT_AB || cmode == CMT_AC || cmode==CMT_CA) {
     // right segment above the left one
       fc = fabs(Nc) - friction*Qc; 
   } else {
@@ -81,7 +87,7 @@ NlBeamInternalContact :: evalDerContactLoadingFunction(double Nc, double dN, dou
   // contribution of normal force increment
   double dfc = signum(Nc)*dN;
   // contribution of shear force increment
-  if (cmode==CM_AA || cmode==CM_AB || cmode==CM_AC || cmode==CM_CA) {
+  if (cmode==CMT_AA || cmode==CMT_AB || cmode==CMT_AC || cmode==CMT_CA) {
     // right segment above the left one
     dfc -= friction*dQ; 
   } else { // right segment below the left one
@@ -92,18 +98,17 @@ NlBeamInternalContact :: evalDerContactLoadingFunction(double Nc, double dN, dou
 
 
 bool
-//NlBeamInternalContact :: integrateAlongSegment(FloatArrayF<3> fab, double deltaPhi, double Lb, FloatArrayF<3> ub, FloatMatrixF<3,4> jac_b, double* Lc, FloatArrayF<3> uc, FloatMatrixF<3,4> jac_c, bool inflection_only)
-NlBeamInternalContact :: integrateAlongSegment(FloatArray fab, double deltaPhi, double Lb, FloatArray ub, FloatMatrix jac_b, double &Lc, FloatArray uc, FloatMatrix jac_c, bool inflection_only)
+NlBeamInternalContact :: integrateAlongSegment(FloatArray &fab, double deltaPhi, double Lb, FloatArray &ub, FloatMatrix &jac_b, double &Lc, FloatArray &uc, FloatMatrix &jac_c, bool inflection_only)
 {
   
   bool inflection_detected = false;
-  FloatMatrix jacobi, jacobi_prev, jac_s;
+  FloatMatrix jacobi(3,3), jacobi_prev(3,3), jac_s(3,3);
   // initialization at the left end
   double Xab = fab.at(1);
   double Zab = fab.at(2);
   double Mab = fab.at(3);
   double M = -Mab;
-  FloatArray dM;
+  FloatArray dM(3);
   dM.zero();
   dM.at(3) = -1;
   double kappa = computeCurvatureFromMoment(M);
@@ -111,13 +116,15 @@ NlBeamInternalContact :: integrateAlongSegment(FloatArray fab, double deltaPhi, 
   FloatArray dkappa;
   dkappa = dM;
   dkappa.times(1./dMdkappa);
-  FloatArray u, u_prev;
+  FloatArray u(3), u_prev;
+  u_prev = ub;
  
   // basic loop over spatial steps  
   int nstep = ceil(Lb/DX); // the spatial step size is fixed and the segment length does not need to be its integer multiple
   double x = 0;
   for (int istep = 1; istep <= nstep; istep++){
     x += DX;
+    ///@todo: check the following line
     u_prev = u;
     // rotation at midstep and its derivatives with respect to the left-end forces
     double phi_mid = u_prev.at(3) + kappa * DX / 2.;
@@ -141,8 +148,8 @@ NlBeamInternalContact :: integrateAlongSegment(FloatArray fab, double deltaPhi, 
     for (int j = 1; j <= 3; j++) {
       dM.at(j) = Xab*jacobi.at(2,j)-Zab*jacobi.at(1,j);
     }
-    dM.at(1) += u[1];
-    dM.at(2) += -(x+u[0]);
+    dM.at(1) += u.at(2);
+    dM.at(2) += -(x+u.at(1));
     dM.at(3) += -1.;
     kappa = computeCurvatureFromMoment(M);
     dMdkappa = computeDerMomentFromCurvature(kappa);
@@ -158,7 +165,7 @@ NlBeamInternalContact :: integrateAlongSegment(FloatArray fab, double deltaPhi, 
     // update Jacobi matrix
     for (int j = 1; j <= 3; j++){
       jacobi.at(1,j) += DX*(dN_mid.at(j)/EA)*cos(phi_mid) - DX*(1.+N_mid/EA)*sin(phi_mid)*dphi_mid.at(j);
-      jacobi.at(2,j) -= DX*(dN_mid[j]/EA)*sin(phi_mid) + DX*(1.+N_mid/EA)*cos(phi_mid)*dphi_mid.at(j);
+      jacobi.at(2,j) -= DX*(dN_mid.at(j)/EA)*sin(phi_mid) + DX*(1.+N_mid/EA)*cos(phi_mid)*dphi_mid.at(j);
       jacobi.at(3,j) = dphi_mid.at(j)+dkappa.at(j)*DX/2.;
     }
      
@@ -213,7 +220,7 @@ NlBeamInternalContact :: transform_ub2ua(const FloatArray &ub, FloatArray &answe
   answer.resize(3);
   answer.at(1) = (beamLength+ub.at(1))*cos(ub.at(3)) - ub.at(2)*sin(ub.at(3)) - beamLength;
   answer.at(2) = (beamLength+ub.at(1))*sin(ub.at(3)) + ub.at(2)*cos(ub.at(3));
-  answer.at(3) = -ub[2];
+  answer.at(3) = -ub.at(3);
 }
 
 void
@@ -260,7 +267,7 @@ NlBeamInternalContact :: checkRightSegmentLengthAdmissibility(double Lc)
 bool
 NlBeamInternalContact :: checkRotationAdmissibility(double deltaPhi, ContactModeType cmode)
 {
-  if (cmode == CM_AC || cmode == CM_CB) // right segment must rotate counterclockwise wrt to the left one
+  if (cmode == CMT_AC || cmode == CMT_CB) // right segment must rotate counterclockwise wrt to the left one
     return (sin(deltaPhi)>=0.); 
   else // right segment must rotate clockwise
     return (sin(deltaPhi)<=0.); 
@@ -278,7 +285,7 @@ NlBeamInternalContact :: findLeftEndForcesLocal_Tip_SoS(const FloatArray &ub_tar
   FloatArray res(3), fba(3), uac(3),  dforces(3), ubc(3);
   FloatMatrix jacobi_ac(3,4), jacobi_bc(3,4), jacobi(3,3);
   double Mca, error;
-  double phib = ub_target[2];
+  double phib = ub_target.at(3);
   double c = cos(phib);
   double s = sin(phib);
   // transformation matrix 
@@ -326,14 +333,14 @@ NlBeamInternalContact :: findLeftEndForcesLocal_Tip_SoS(const FloatArray &ub_tar
       FloatArray re(res);
       re.at(1) *= weight_disp;
       re.at(2) *= weight_disp;
-      re.at(2) *= weight_mom;
+      re.at(3) *= weight_mom;
       error = re.computeNorm();
     } else { // sliding
       res.at(3) = evalContactLoadingFunction(Nca, Qca, cmode);
       FloatArray re(res);
       re.at(1) *= weight_disp;
       re.at(2) *= weight_disp;
-      re.at(2) *= weight_force;
+      re.at(3) *= weight_force;
       error = re.computeNorm();
     }
     // check the convergence criterion
@@ -360,7 +367,7 @@ NlBeamInternalContact :: findLeftEndForcesLocal_Tip_SoS(const FloatArray &ub_tar
       // prepare derivatives of internal forces at the contact point
       for ( int j = 1; j <= 3; j++){
 	//@todo:check
-	dN.at(j) = (fab.at(1)*sin(uac.at(3))+fab.at(2)*cos(uac.at(3))) * jacobi_ac.at(3,2);
+	dN.at(j) = (fab.at(1)*sin(uac.at(3))+fab.at(2)*cos(uac.at(3))) * jacobi_ac.at(3,j);
  	dQ.at(j) = (-fab.at(1)*cos(uac.at(3))+fab.at(2)*sin(uac.at(3))) * jacobi_ac.at(3,j);
       }
       dN.at(1) += -cos(uac.at(3));
@@ -392,7 +399,7 @@ NlBeamInternalContact :: findLeftEndForcesLocal_Tip_SoS(const FloatArray &ub_tar
 	dMc.at(j) += fab.at(1)*jacobi_ac.at(2,j)-fab.at(2)*jacobi_ac.at(1,j);
 	dLac.at(j) = -dMc.at(j)/dMdx; // derivatives of the position of inflection point wrt the left-end forces
       }
-      for (int j = 0; j <= 3; j++){
+      for (int j = 1; j <= 3; j++){
 	jacobi.at(1,j) += (1.+jacobi_ac.at(1,4))*dLac.at(j);
 	jacobi.at(2,j) += jacobi_ac.at(2,4)*dLac.at(j);
       }  
@@ -432,14 +439,14 @@ NlBeamInternalContact :: suggestedMode(double deltaPhi, bool seglength_ok, Conta
   // if the tip in contact has slipped beyond the other tip, it is possible that the other tip gets activated
   if (!seglength_ok){
     switch (current_cmode){
-    case CM_AC:
-      return CM_CB;
-    case CM_BC:
-      return CM_CA;
-    case CM_CA:
-      return CM_BC;
-    case CM_CB:
-      return CM_AC;
+    case CMT_AC:
+      return CMT_CB;
+    case CMT_BC:
+      return CMT_CA;
+    case CMT_CA:
+      return CMT_BC;
+    case CMT_CB:
+      return CMT_AC;
     }
   }
   // now we know that the tip in contact has NOT slipped beyond the other tip
@@ -449,34 +456,34 @@ NlBeamInternalContact :: suggestedMode(double deltaPhi, bool seglength_ok, Conta
   // otherwise we can expect a change into a smooth mode, depending on which boundary
   // of the admissible interval has been crossed
   switch (current_cmode){
-  case CM_AC:
+  case CMT_AC:
     if (deltaPhi>=0.)
-      return CM_AC;
+      return CMT_AC;
     else if (deltaPhi>-M_PI/2.)
-      return CM_AA;
+      return CMT_AA;
     else
-      return CM_AB;
-  case CM_BC:
+      return CMT_AB;
+  case CMT_BC:
     if (deltaPhi<=0.)
-      return CM_BC;
+      return CMT_BC;
     else if (deltaPhi<M_PI/2.)
-      return CM_BB;
+      return CMT_BB;
     else
-      return CM_BA;
-  case CM_CA: 
+      return CMT_BA;
+  case CMT_CA: 
     if (deltaPhi<=0.)
-      return CM_CA;
+      return CMT_CA;
     else if (deltaPhi<M_PI/2.)
-      return CM_AA;
+      return CMT_AA;
     else
-      return CM_BA;
-  case CM_CB: 
+      return CMT_BA;
+  case CMT_CB: 
     if (deltaPhi>=0.)
-      return CM_CB;
+      return CMT_CB;
     if (deltaPhi>-M_PI/2.)
-      return CM_BB;
+      return CMT_BB;
     else
-      return CM_AB;
+      return CMT_AB;
   }
   return current_cmode;
 }
@@ -492,10 +499,10 @@ NlBeamInternalContact :: findLeftEndForcesLocal_Tip(FloatArray &ub_target, Float
   
   bool tipIsOnRightSegment;
   switch(cmode){
-  case CM_AC: case CM_BC:
+  case CMT_AC: case CMT_BC:
     tipIsOnRightSegment = true;
     break;
-  case CM_CA: case CM_CB:
+  case CMT_CA: case CMT_CB:
     tipIsOnRightSegment = false;
     break;
   default:
@@ -553,7 +560,7 @@ NlBeamInternalContact :: findLeftEndForcesLocal_Tip(FloatArray &ub_target, Float
   if (!success){
     trialLeftActiveSegmentLength = leftSegmentLength;
     trialRightActiveSegmentLength = rightSegmentLength;
-    return CM_N;
+    return CMT_N;
   }
   // a solution for sliding has been found but its admissibility still needs to be checked
   rotation_ok = checkRotationAdmissibility(deltaPhi, cmode);
@@ -601,7 +608,7 @@ NlBeamInternalContact :: findLeftEndForcesLocal_Smooth_Rolling(FloatArray &ub_ta
   while (iter++<MAXIT_BEAM){
     // integrate along beam of length L
      bool inflection_found = integrateAlongSegment(fab, deltaPhi, L, ub_loc, jac_b, Lac, uc, jac_c_dummy, false);
-     Jacobi = jac_b;
+     Jacobi.beSubMatrixOf(jac_b,1,3,1,3);
      
      Nc = -fab.at(1)*cos(uc.at(3))+fab.at(2)*sin(uc.at(3));
      Qc = -fab.at(1)*sin(uc.at(3))-fab.at(2)*cos(uc.at(3));
@@ -612,8 +619,8 @@ NlBeamInternalContact :: findLeftEndForcesLocal_Smooth_Rolling(FloatArray &ub_ta
     // take into account the fact that, due to previous sliding,
     // the current beam length may differ from the initial distance between joints
     // (displacement ub_target[0] is taken with respect to the initial length of the beam)
-    res.at(0) += beamLength - L;
-    double error = L2norm(weight_disp*res[0], weight_disp*res[1], res[2]);
+    res.at(1) += beamLength - L;
+    double error = L2norm(weight_disp*res.at(1), weight_disp*res.at(2), res.at(2));
     if (error<TOL_BEAM){// converged
       if (!inflection_found)
 	return false;// converged but no inflexion detected
@@ -658,7 +665,8 @@ NlBeamInternalContact :: findLeftEndForcesLocal_Smooth_Sliding(FloatArray &ub_ta
     // evaluate the residual and check the convergence criterion
     res = ub_loc;
     res.subtract(ub_target);
-    res.at(1) = evalContactLoadingFunction(Nc, Qc, cmode);
+    res.resizeWithValues(4);
+    res.at(4) = evalContactLoadingFunction(Nc, Qc, cmode);
     // take into account the fact that, due to sliding,
     // the current beam length may differ from the initial distance between joints
     // (displacement ub_target[0] is taken with respect to the initial length of the beam)
@@ -667,7 +675,7 @@ NlBeamInternalContact :: findLeftEndForcesLocal_Smooth_Sliding(FloatArray &ub_ta
     FloatArray re(res);
     re.at(1) *= weight_disp;
     re.at(2) *= weight_disp;
-    re.at(2) *= weight_force;
+    re.at(3) *= weight_force;
 
     double error = re.computeNorm();
    
@@ -679,7 +687,11 @@ NlBeamInternalContact :: findLeftEndForcesLocal_Smooth_Sliding(FloatArray &ub_ta
     // prepare the Jacobi matrix for the set of 4 equations
     if (!converged || stiffEvalMode){
       // evaluate the first three rows
-      Jacobi44 = jac_b;
+      for(int i = 1; i <= 3; i++) {
+	for (int j = 1; j <= 4; j++) {
+	  Jacobi44.at(i,j) = jac_b.at(i,j);
+	}
+      }
       // correct one entry by a term that reflects the line res[0] += L - beamLength;
       Jacobi44.at(1,4) += 1.;
       // derivatives of internal forces at the contact point
@@ -705,7 +717,10 @@ NlBeamInternalContact :: findLeftEndForcesLocal_Smooth_Sliding(FloatArray &ub_ta
    // compute the iterative correction of left-end forces and of active beam length
     jac = Jacobi44;
     jac.solveForRhs(res,dforces);
-    fab.subtract(dforces);
+    for(int i = 1; i <= 3; i++) {
+      fab.at(i) -= dforces.at(i);
+    }
+    
     L -= dforces.at(4);
   }
   // no convergence in MAXIT_BEAM iterations
@@ -729,9 +744,9 @@ NlBeamInternalContact :: findLeftEndForcesLocal_Smooth(FloatArray &ub_target, Fl
     deltaPhi = 0.;
     Lac = trialLeftActiveSegmentLength;
     Lbc = trialRightActiveSegmentLength;
-    if (cmode==CM_AB) {
+    if (cmode==CMT_AB) {
       deltaPhi = M_PI;
-    } else if (cmode==CM_BA) {
+    } else if (cmode==CMT_BA) {
       deltaPhi = -M_PI;
     }
     bool success = findLeftEndForcesLocal_Smooth_Rolling(ub_target, fab, deltaPhi, Lac, Lbc, Nc, Qc);
@@ -760,22 +775,22 @@ NlBeamInternalContact :: findLeftEndForcesLocal_Smooth(FloatArray &ub_target, Fl
   success = findLeftEndForcesLocal_Smooth_Sliding(ub_target, fab, deltaPhi, Lac, Lbc, cmode);
   if (success){ // the active segment lengths change due to sliding
     if ((Lac+Lbc)>leftSegmentLength+rightSegmentLength)
-      return CM_N; // most likely jumps to no contact
+      return CMT_N; // most likely jumps to no contact
     else if (Lac > leftSegmentLength){
       trialLeftActiveSegmentLength = leftSegmentLength;
       trialRightActiveSegmentLength = Lbc;
-      if (cmode == CM_AA)
-	return CM_CA; // most likely changes into tip contact
+      if (cmode == CMT_AA)
+	return CMT_CA; // most likely changes into tip contact
       else
-	return CM_CB;
+	return CMT_CB;
     }
     else if (Lbc > rightSegmentLength) {
       trialLeftActiveSegmentLength = Lac;
       trialRightActiveSegmentLength = rightSegmentLength;
-      if (cmode == CM_AA)
-	return CM_AC; // most likely changes into tip contact 
+      if (cmode == CMT_AA)
+	return CMT_AC; // most likely changes into tip contact 
       else
-	return CM_BC;
+	return CMT_BC;
     }
     // admissible solution
     trialLeftActiveSegmentLength = Lac;
@@ -783,7 +798,7 @@ NlBeamInternalContact :: findLeftEndForcesLocal_Smooth(FloatArray &ub_target, Fl
     return cmode;
   }
   else
-    return CM_N; // most likely smoothly changes into no contact
+    return CMT_N; // most likely smoothly changes into no contact
 }
 
 
@@ -794,27 +809,27 @@ NlBeamInternalContact :: predictContactMode(FloatArray &ub)
   
   double phib = ub.at(3);
   if (sin(phib)==0.) // if both segments are parallel, the no-contact mode is always possible
-    return CM_N;
+    return CMT_N;
   double Lbc = -ub.at(2)/sin(phib);
   if (Lbc<0. || Lbc>rightSegmentLength) {
-    return CM_N;
+    return CMT_N;
   }
-  double Lac = beamLength+ub[0]-Lbc*cos(phib);
+  double Lac = beamLength+ub.at(1)-Lbc*cos(phib);
   if (Lac < 0. || Lac > leftSegmentLength) {
-    return CM_N;
+    return CMT_N;
   }
   if (rightSegmentLength - Lbc < leftSegmentLength - Lac) { // right tip probably touches the left segment first 
     if (ub.at(2)>0.) {
-      return CM_BC;
+      return CMT_BC;
     } else {
-      return CM_AC;
+      return CMT_AC;
     }
   }
   // left tip probably touches the right segment first
   if (ub.at(2) > 0.) {
-    return CM_CA;
+    return CMT_CA;
   }
-  return CM_CB;
+  return CMT_CB;
 }
 
 
@@ -835,7 +850,7 @@ NlBeamInternalContact :: findTipContactTime(FloatArray &u_prev, FloatArray &du, 
     if (fabs(f) < TOL_CONTACT_TIME * segLength) {
 	return t;// converged solution
     }
-    double fp = du[1] + segLength*cos(u_prev[2]+t*du[2])*du[2];
+    double fp = du.at(2) + segLength*cos(u_prev.at(3)+t*du.at(3))*du.at(3);
     if (fp!=0.) {
 	t -= f/fp;
     }
@@ -876,7 +891,7 @@ NlBeamInternalContact :: predictContactMode(FloatArray ub, FloatArray ub_prev)
   bool right_hits = (tb >= 0. && tb <= 1. && xb >= 0. && xb <= leftSegmentLength);
 
   if (!left_hits && !right_hits) {
-    return CM_N;
+    return CMT_N;
   }
   if (left_hits && right_hits) {
     left_hits = ta < tb;
@@ -884,18 +899,18 @@ NlBeamInternalContact :: predictContactMode(FloatArray ub, FloatArray ub_prev)
   if (left_hits) {
     trialLeftActiveSegmentLength = leftSegmentLength;
     trialRightActiveSegmentLength = xa;
-    if (ua[1]-ua_prev[1]+leftSegmentLength*(sin(ua[2])-sin(ua_prev[2])) > 0.) {
-      return CM_CA;
+    if (ua.at(2)-ua_prev.at(2)+leftSegmentLength*(sin(ua.at(3))-sin(ua_prev.at(3))) > 0.) {
+      return CMT_CA;
     } else {
-      return CM_CB;
+      return CMT_CB;
     }
   }
   trialLeftActiveSegmentLength = xb;
   trialRightActiveSegmentLength = rightSegmentLength;
   if (ub.at(2)-ub_prev.at(2)+rightSegmentLength*(sin(ub.at(3))-sin(ub_prev.at(3))) > 0.) {
-    return CM_AC;
+    return CMT_AC;
   } else {
-    return CM_BC;
+    return CMT_BC;
   }
 }
 
@@ -910,23 +925,23 @@ NlBeamInternalContact :: findLeftEndForcesLocal(FloatArray &ub, FloatArray &ub_p
   for (int attempt = 1; attempt <= MAXIT_CONTACT_MODE; attempt++) {
     switch (assumed_cmode){
       // smooth modes
-    case CM_AA:
-    case CM_BB:
-    case CM_AB:
-    case CM_BA:
+    case CMT_AA:
+    case CMT_BB:
+    case CMT_AB:
+    case CMT_BA:
       trialContactMode = findLeftEndForcesLocal_Smooth(ub, fab, assumed_cmode);
       break;
       // tip modes
-    case CM_AC:
-    case CM_BC:
-    case CM_CA:
-    case CM_CB:
+    case CMT_AC:
+    case CMT_BC:
+    case CMT_CA:
+    case CMT_CB:
       trialContactMode = findLeftEndForcesLocal_Tip(ub, fab, assumed_cmode);
       break;
       // no-contact mode
-    case CM_N:
+    case CMT_N:
       fab.zero();
-      if (contactMode != CM_N) {
+      if (contactMode != CMT_N) {
 	trialContactMode = predictContactMode(ub);
       } else {
 	trialContactMode = predictContactMode(ub, ub_prev);
@@ -1048,6 +1063,9 @@ NlBeamInternalContact :: findLeftEndForces(FloatArray &u, FloatArray &u_prev, Fl
   if(!findLeftEndForcesLocal(ub_loc, ub_prev_loc, fab_loc)) {
     return false;
   }
+  contactMode = trialContactMode;
+  leftActiveSegmentLength = trialLeftActiveSegmentLength;
+  rightActiveSegmentLength = trialRightActiveSegmentLength;
 
   fab.beTProductOf(T,fab_loc);
   return true;
@@ -1065,30 +1083,32 @@ NlBeamInternalContact :: giveInternalForcesVector(FloatArray &answer, TimeStep *
      in cases when it is know that the actual process is sliding. This is used when the stiffness
      is evaluated after previous evaluation of internal forces for the same iterated increment.
   */
-  
-  // solution vector
   answer.resize(6);
-  FloatArray u, ui, u_prev, f;
-  this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, u);
-  this->computeVectorOf({D_u, D_w, R_v}, VM_Incremental, tStep, ui);
-  u_prev = u - ui;
-
-  Process = trialProcess = PT_Unknown;
-  this->findLeftEndForces(u, u_prev, f); // only the first three entries of f are computed
-  answer.at(1) =  f.at(1);
-  answer.at(2) =  f.at(2);
-  answer.at(3) =  f.at(3);  
-  answer.at(4) = -f.at(1);
-  answer.at(5) = -f.at(2);
-  double c1 = beamLength*sin(pitch) + u.at(5) - u.at(2);
-  double c2 = -beamLength*cos(pitch) - u.at(4) + u.at(1);
-  answer.at(6) = c1 * answer.at(1) + c2 * answer.at(2) - answer.at(3);
+  if(!useUpdatedGpRecord) {
+    // solution vector
+    FloatArray u, ui, u_prev, f(3);
+    this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, u);
+    this->computeVectorOf({D_u, D_w, R_v}, VM_Incremental, tStep, ui);
+    u_prev = u - ui;
+    Process = trialProcess = PT_Unknown;
+    this->findLeftEndForces(u, u_prev, this->internalForces); // only the first three entries of f are computed
+    //
+  }
+    answer.at(1) = this->internalForces.at(1);
+    answer.at(2) = this->internalForces.at(2);
+    answer.at(3) = this->internalForces.at(3);  
+    answer.at(4) = -answer.at(1);
+    answer.at(5) = -answer.at(2);
+    double c1 = beamLength*sin(pitch) + u.at(5) - u.at(2);
+    double c2 = -beamLength*cos(pitch) - u.at(4) + u.at(1);
+    answer.at(6) = c1 * answer.at(1) + c2 * answer.at(2) - answer.at(3);
+  
 }
-
 
 void
 NlBeamInternalContact :: computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode rMode, TimeStep *tStep)
 {
+  answer.resize(6,6);
   FloatArray u(6), ui(6), u_prev(6), f(6);
   this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, u);
   this->computeVectorOf({D_u, D_w, R_v}, VM_Incremental, tStep, ui);
@@ -1098,11 +1118,12 @@ NlBeamInternalContact :: computeStiffnessMatrix(FloatMatrix &answer, MatResponse
   FloatMatrix T(3,3), Tprime(3,3), Ginv(3,3), Ginv44(4,4), TtGinv(3,3);
 
   stiffEvalMode = true;
-  bool success = findLeftEndForces(u, u_prev, fab);
+  //@todo: solve how to get fab for stiffness calculation
+  //bool success = findLeftEndForces(u, u_prev, fab);
   stiffEvalMode = false;
-  if (!success) {
+  /*if (!success) {
     return;
-  }
+    }*/
 
   // compute auxiliary matrices
   double phia = u.at(3);
@@ -1117,10 +1138,10 @@ NlBeamInternalContact :: computeStiffnessMatrix(FloatMatrix &answer, MatResponse
   // get Jacobi matrix in local coordinates and invert it
   switch (trialContactMode) {
     // smooth modes
-  case CM_AA:
-  case CM_BB:
-  case CM_AB:
-  case CM_BA:
+  case CMT_AA:
+  case CMT_BB:
+  case CMT_AB:
+  case CMT_BA:
     L_prev = leftActiveSegmentLength + rightActiveSegmentLength;
     L = trialLeftActiveSegmentLength + trialRightActiveSegmentLength;
     if (fabs(L - L_prev) > TOL_LENGTH * beamLength) { // sliding
@@ -1131,17 +1152,19 @@ NlBeamInternalContact :: computeStiffnessMatrix(FloatMatrix &answer, MatResponse
     }
     break;
     // tip modes
-  case CM_AC:
-  case CM_BC:
+  case CMT_AC:
+  case CMT_BC:
     Ginv.beSubMatrixOf(Kblock,1,3,1,3);
     break;
     // no-contact mode
-  case CM_N:
+  case CMT_N:
     answer.zero();
     return;
     // this should never happen
   default:
-    OOFEM_ERROR("Mode %d has not been implemented yet in evalStiffnessMatrix\n",trialContactMode);
+    //@todo: fix it
+    Ginv.beSubMatrixOf(Kblock,1,3,1,3);
+    //comment OOFEM_ERROR("Mode %d has not been implemented yet in evalStiffnessMatrix\n",trialContactMode);
   }
 
   TtGinv.beTProductOf(T, Ginv);
@@ -1168,8 +1191,8 @@ NlBeamInternalContact :: computeStiffnessMatrix(FloatMatrix &answer, MatResponse
   answer.addSubVectorCol(col3_1, 1,3);
   answer.addSubVectorCol(col3_2, 1,3);
   // construct the sixth row (complete formula)
-  double c1 = beamLength*sin(alpha) + u[4] - u[1];
-  double c2 = -beamLength*cos(alpha) - u[3] + u[0];
+  double c1 = beamLength*sin(alpha) + u.at(5) - u.at(2);
+  double c2 = -beamLength*cos(alpha) - u.at(4) + u.at(1);
   answer.at(6,1) =  fab.at(2);
   answer.at(6,2) = -fab.at(1);
   answer.at(6,4) = -fab.at(2);
@@ -1180,157 +1203,173 @@ NlBeamInternalContact :: computeStiffnessMatrix(FloatMatrix &answer, MatResponse
 
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////
-// All functions below serve only for the purpose of testing and plotting the results.
-// They will not be needed by OOFEM.
-/////////////////////////////////////////////////////////////////////////////////////////////
 
-/*
-  An auxiliary function for plotting of the deformed segment shape.
-  The Jacobi matrix is not evaluated.
-*/
 
-/*
-void NlBeamInternalContact ::  integrateAlongSegmentAndPlot(double fab[3], double Lb, double segmentLength, double u0[2], double T[2][2], FILE* outfile)
+Interface *NlBeamInternalContact :: giveInterface(InterfaceType it)
 {
-  if (outfile==NULL) return;
-  double ub[3], Lc, uc[3], uplot[2];
+    switch ( it ) {
+    case VTKXMLExportModuleElementInterfaceType:
+      return static_cast< VTKXMLExportModuleElementInterface * >( this );
+    default:
+      return StructuralElement :: giveInterface(it);
+    }
+}
+
+void
+NlBeamInternalContact :: giveCompositeExportData(std::vector< VTKPiece > &vtkPieces, IntArray &primaryVarsToExport, IntArray &internalVarsToExport, IntArray cellVarsToExport, TimeStep *tStep )
+{
+  //two segments
+  vtkPieces.resize(2);
+  
+  FloatArray ul, xLeft, xRight;
+  FloatMatrix uMatrixLeft, uMatrixRight, T;
+  ul.resize(2);
+  T = {{1, 0},{0, 1}};
+  this->computeSegmentDisplacements(uMatrixLeft,this->internalForces, leftActiveSegmentLength, leftSegmentLength, u, T );
+  FloatArray uab, ub(3);
+  this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, uab);
+  ub.beSubArrayOf(uab,{4,5,6});
+  ///
+  u.at(1) = beamLength+ub.at(1);
+  u.at(2) = ub.at(2);
+  double alphab = M_PI + ub.at(3);
+  double c = cos(alphab);
+  double s = sin(alphab);
+  T = {{c, -s},{s, c}};
+  // transformation of forces and moment
+  FloatArray f;
+  transform_fab2fba(ub, this->internalForces, f);
+  this->computeSegmentDisplacements(uMatrixRight,this->internalForces, leftActiveSegmentLength, leftSegmentLength, u, T );
+
+  
+  ///???
+  int numCells = this->NIP;
+  const int numCellNodes  = 2; // linear line
+  int nNodes = numCells * numCellNodes;
+  int nNodesLeft, nNodesRight;
+
+    vtkPieces.at(1).setNumberOfCells(numCells);
+    vtkPieces.at(1).setNumberOfNodes(nNodes);
+
+    int val    = 1;
+    int offset = 0;
+    IntArray nodes(numCellNodes);
+    Node *nodeA = this->giveNode(1);
+
+    this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, uab);
+    int nodeNum = 1;
+    FloatArray nodeCoords(3);
+    IntArray connectivity(2);
+    for ( int iElement = 1; iElement <= numCells; iElement++ ) {
+      for (int iNode = 1; iNode <= numCellNodes; iNode++) {
+	vtkPieces.at(0).setNodeCoords(nodeNum, nodeCoords);
+	nodeNum++;
+	connectivity.at(iNode) = val++;
+      }
+      vtkPieces.at(0).setConnectivity(iElement, connectivity);
+      offset += 2;
+      vtkPieces.at(0).setOffset(iElement, offset);
+      vtkPieces.at(0).setCellType(iElement, 3);
+    }
+
+
+    int n = primaryVarsToExport.giveSize();
+    vtkPieces [ 0 ].setNumberOfPrimaryVarsToExport(n, nNodes);
+    for ( int i = 1; i <= n; i++ ) {
+        UnknownType utype = ( UnknownType ) primaryVarsToExport.at(i);
+        if ( utype == DisplacementVector ) {
+	  for ( int nN = 1; nN <= nNodesLeft; nN++ ) {
+	    FloatArray u;
+	    u.at(1) = uMatrixLeft.at(nN, 1);
+	    u.at(2) = uMatrixLeft.at(nN, 2);
+	    u.at(3) = 0;
+	    vtkPieces.at(0).setPrimaryVarInNode(i, nN, u);
+	  }
+	  for ( int nN = 1; nN <= nNodesRight; nN++ ) {
+	    FloatArray u;
+	    u.at(1) = uMatrixRight.at(nN, 1);
+	    u.at(2) = uMatrixRight.at(nN, 2);
+	    u.at(3) = 0;
+	    vtkPieces.at(1).setPrimaryVarInNode(i, nN, u);
+	  }
+        }
+    }
+
+  
+
+}
+
+void
+NlBeamInternalContact ::computeSegmentDisplacements(FloatMatrix &uMatrix, const FloatArray &fab, double Lb, double segmentLength, const FloatArray &u0, const FloatMatrix &T)
+{
+  double Lc;
+  FloatArray ub, uc, uplot;
   bool inflection_detected = false;
   int i, j, istep = 0;
   double aux;
   
   // initialization at the left end
-  double Xab = fab[0], Zab = fab[1], Mab = fab[2];
+  double Xab = fab.at(1);
+  double Zab = fab.at(2);
+  double Mab = fab.at(3);
   double M = -Mab;
   double kappa = computeCurvatureFromMoment(M);
-  double x = 0., u[3], u_prev[3];
-  for (i=0; i<3; i++)
-    u[i] = 0.;
-  
-  for (i=0; i<2; i++){
-    uplot[i] = u0[i] + T[i][0]*(x+u[0]) + T[i][1]*u[1];
-  }
-  fprintf(outfile,"%g %g \n",uplot[0],uplot[1]);
 
-  // basic loop over spatial steps
+  double x = 0.;
+  FloatArray u(3), u_prev(3);
+
+
+  uMatrix.at(1,1) = u0.at(1) + T.at(1,1)*(x+u.at(1)) + T.at(1,2)*u.at(2);
+  uMatrix.at(1,2) = u0.at(2) + T.at(2,1)*(x+u.at(1)) + T.at(2,2)*u.at(2);
   
+  // basic loop over spatial steps
   int nstep = ceil(Lb/DX); // the spatial step size is fixed and the segment length does not need to be its integer multiple
   for (istep=1; istep<=nstep; istep++){
     x += DX;
-    for (i=0; i<3; i++)
-      u_prev[i] = u[i];
-    // rotation at midstep 
-    double phi_mid = u_prev[2]+kappa*DX/2.;
+    u_prev = u;
+    // rotation at midstep and its derivatives with respect to the left-end forces
+    double phi_mid = u_prev.at(3) + kappa * DX / 2.;
     // normal force at midstep 
     double N_mid = -Xab*cos(phi_mid)+Zab*sin(phi_mid);
     // horizontal displacement at the end of the step
-    u[0] = u_prev[0]+DX*((1.+N_mid/EA)*cos(phi_mid)-1.);
+    u.at(1) = u_prev.at(1) + DX * ((1.+N_mid/EA)*cos(phi_mid)-1.);
    // vertical displacement at the end of the step
-    u[1] = u_prev[1]-DX*(1.+N_mid/EA)*sin(phi_mid);
+    u.at(2) = u_prev.at(2) - DX * ( 1. + N_mid / EA ) * sin(phi_mid);
     // bending moment and curvature at the end of the step 
     double M_prev = M; // (store the moment at the beginning of the step, needed for the inflection check)
-    M = -Mab+Xab*u[1]-Zab*(x+u[0]);
+    M = -Mab+Xab*u.at(2)-Zab*(x+u.at(1));
     kappa = computeCurvatureFromMoment(M);
     // rotation at the end of the step
-    u[2] = phi_mid+kappa*DX/2.;
-
+    u.at(3) = phi_mid+kappa*DX/2.;
     // test whether inflection occurs (the first occurence is considered)
     if (!inflection_detected && M*M_prev<=0. && M_prev!=M){
-      // inflection point is detected - output parameter Lc, uc will be computed
-      inflection_detected = true;
-      //aux = M_prev / (M_prev-M);
-      //Lc = x - DX + aux*DX;
+      // inflection point is detected - output parameter Lc, uc will be computed      inflection_detected = true;
     }
 
     // test whether the end of the segment has been reached
     if (istep==nstep){
       // displacements and rotation at Lb by linear interpolation within the last step
       aux = Lb/DX - (nstep-1);
-      for (i=0; i<3; i++)
-	ub[i] = u_prev[i] + aux*(u[i]-u_prev[i]);
+      for (i=1; i<=3; i++) {
+	ub.at(i) = u_prev.at(i) + aux*(u.at(i)-u_prev.at(i));
+      }
   
-      for (i=0; i<2; i++)
-	uplot[i] = u0[i] + T[i][0]*(Lb+ub[0]) + T[i][1]*ub[1];   
-      fprintf(outfile,"%g %g \n",uplot[0],uplot[1]);
+      uMatrix.at(istep, 1) = u0.at(1) + T.at(1,1)*(Lb+ub.at(1)) + T.at(1,2)*ub.at(2) - x;
+      uMatrix.at(istep, 2) = u0.at(2) + T.at(2,1)*(Lb+ub.at(1)) + T.at(2,2)*ub.at(2);
       // plot also the straight segment behind the contact point, if it exists
       double Lstraight = segmentLength - Lb;
       if (Lstraight>0.){
-	for (i=0; i<2; i++)
-	  uplot[i] = u0[i] + T[i][0]*(Lb+ub[0]+Lstraight*cos(ub[2])) + T[i][1]*(ub[1]-Lstraight*sin(ub[2]));   
-	fprintf(outfile,"%g %g \n",uplot[0],uplot[1]);
+	uMatrix.at(istep+1, 1) = u0.at(1) + T.at(1,1)*(Lb+ub.at(1)+Lstraight*cos(ub.at(3))) + T.at(1,2)*(ub.at(2)-Lstraight*sin(ub.at(3))) - x ;
+	uMatrix.at(istep+1, 2) = u0.at(2) + T.at(2,1)*(Lb+ub.at(1)+Lstraight*cos(ub.at(3))) + T.at(2,2)*(ub.at(2)-Lstraight*sin(ub.at(3)));
       }
     } else {
-      for (i=0; i<2; i++)
-	uplot[i] = u0[i] + T[i][0]*(x+u[0]) + T[i][1]*u[1];   
-      fprintf(outfile,"%g %g \n",uplot[0],uplot[1]);
+      uMatrix.at(istep, 1) = u0.at(1) + T.at(1,1)*(x+u.at(1)) + T.at(1,2)*ub.at(2) - x;
+      uMatrix.at(istep, 2) = u0.at(2) + T.at(2,1)*(x+u.at(1)) + T.at(2,2)*ub.at(2);
     }
   } // end of loop over spatial steps
-  fprintf(outfile,"\n");
-}
-
-void NlBeamInternalContact :: plotSegment(double fab[3], double ub[3], bool isLeftSegment, FILE* outfile)
-{
-  // transformation vector and matrix for conversion of displacements
-  double u[2], T[2][2], f[3];
-  if (isLeftSegment){
-    u[0] = u[1] = 0.;
-    T[0][0] = T[1][1] = 1.;
-    T[0][1] = T[1][0] = 0.;
-  } else {
-    u[0] = beamLength+ub[0]; u[1] = ub[1];
-    double alphab = PI + ub[2];
-    double c = cos(alphab);
-    double s = sin(alphab);
-    T[0][0] = T[1][1] = c;
-    T[0][1] = s; T[1][0] = -s;
-    // transformation of forces and moment
-    transform_fab2fba(ub, fab, f);
-  }
-  if (isLeftSegment)
-    integrateAlongSegmentAndPlot(fab, leftActiveSegmentLength, leftSegmentLength, u, T, outfile);
-  else
-    integrateAlongSegmentAndPlot(f, rightActiveSegmentLength, rightSegmentLength, u, T, outfile);
-}
-
-#define MAXSTAGE 10
-
-void
-NlBeamInternalContact :: plotResponse(int nstage, int nstep[MAXSTAGE], double ustep[3][MAXSTAGE], int iplot[MAXSTAGE])
-{
-  double ub[3], ub_prev[3], fab[3];
-  ub[0] = ub[1] = ub[2] = 0.;
-  fab[0] = fab[1] = fab[2] = 0.;
   
-  double L = beamLength;
-  int i, istage, istep, jplot=0;
-
-  for (istage=0; istage<nstage; istage++){
-    for (istep=0; istep<nstep[istage]; istep++){
-      for (i=0; i<3; i++){
-	ub_prev[i] = ub[i];
-	ub[i] += ustep[i][istage];
-      }
-      
-      bool success = findLeftEndForcesLocal(ub, ub_prev, fab, false);
-      if (success){
-	contactMode = trialContactMode;
-	leftActiveSegmentLength = trialLeftActiveSegmentLength;
-	rightActiveSegmentLength = trialRightActiveSegmentLength;
-      } else 
-	fab[0] = fab[1] = fab[2] = 0.;
-      printf("%g %g %g %g %g %g %d %g %g\n",ub[0],ub[1],ub[2],fab[0],fab[1],fab[2],contactMode,leftActiveSegmentLength,rightActiveSegmentLength);
-      if ((istep+1)%iplot[istage]==0){
-	jplot++;
-	//FILE* outfile_left = open_file(jplot, true);
-	//FILE* outfile_right = open_file(jplot, false);
-	//plotSegment(fab, ub, true, outfile_left); // plot the left segment
-	//plotSegment(fab, ub, false, outfile_right); // plot the right segment
-	//fclose(outfile_left);
- 	//fclose(outfile_right);
-      }
-    }
-  }
 }
-*/
+
+  
 }
 

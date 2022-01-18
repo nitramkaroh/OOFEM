@@ -41,13 +41,17 @@
 ///@name Input fields for NlBeam_SM2
 //@{
 #define _IFT_NlBeamInternalContact_Name "nlbeam_internalcontact"
+#define _IFT_NlBeamInternalContact_LeftSegmentLength "lsl"
+#define _IFT_NlBeamInternalContact_RightSegmentLength "rsl"
+#define _IFT_NlBeamInternalContact_LeftActiveSegmentLength "lasl"
+#define _IFT_NlBeamInternalContact_RightActiveSegmentLength "rasl"
+#define _IFT_NlBeamInternalContact_ContactMode "cmode"
 
 //@}
 
 namespace oofem {
- enum ContactModeType {CM_N, CM_AA, CM_AB, CM_AC, CM_BA, CM_BB, CM_BC, CM_CA, CM_CB};
+ enum ContactModeType {CMT_N, CMT_AA, CMT_AB, CMT_AC, CMT_BA, CMT_BB, CMT_BC, CMT_CA, CMT_CB};
  enum ProcessType {PT_Unknown, PT_Roll, PT_Stick, PT_Slide};
-
 
 /**
  * This class implements a 2-dimensional large strain beam element with internal contact
@@ -73,18 +77,18 @@ protected:
   // maximum number of iterations of the contact time
   int MAXIT_CONTACT_TIME =  10;
 
-  double leftSegmentLength = 60.;//40.;
+  double leftSegmentLength = 40.;
   double rightSegmentLength = 0.001;//15.;
   double leftActiveSegmentLength = 49.999;//35.;
   double rightActiveSegmentLength = 0.001;//15.;
   double trialLeftActiveSegmentLength, trialRightActiveSegmentLength;
-  
+  FloatArray internalForces;
  
   FloatMatrix Jacobi;
   FloatMatrix Jacobi44;
   FloatMatrix Kblock;
   double alpha = 0;
-  ContactModeType contactMode = CM_AC;
+  ContactModeType contactMode = CMT_AC;
   ContactModeType trialContactMode;
   ProcessType Process = PT_Unknown;
   ProcessType trialProcess = PT_Unknown;
@@ -119,6 +123,12 @@ public:
     virtual const char *giveInputRecordName() const { return _IFT_NlBeamInternalContact_Name; }
     virtual IRResultType initializeFrom(InputRecord *ir);
 
+    void giveCompositeExportData(std::vector< VTKPiece > &vtkPieces, IntArray &primaryVarsToExport, IntArray &internalVarsToExport, IntArray cellVarsToExport, TimeStep *tStep );
+  Interface *giveInterface(InterfaceType it) override;
+     Element_Geometry_Type giveGeometryType() const override { return EGT_Composite; }
+
+
+    
 protected:
 
     
@@ -187,7 +197,7 @@ protected:
   Return value:
   * true or false, indicating whether an inflection point has been detected (if not, the output Lc, uc and jac_c is meaningless)
 */
-  bool integrateAlongSegment(FloatArray fab, double deltaPhi, double Lb, FloatArray ub, FloatMatrix jac_b, double &Lc, FloatArray uc, FloatMatrix jac_c, bool inflection_only);
+  bool integrateAlongSegment(FloatArray &fab, double deltaPhi, double Lb, FloatArray &ub, FloatMatrix &jac_b, double &Lc, FloatArray &uc, FloatMatrix &jac_c, bool inflection_only);
   /*
   This method computes the right-end forces and moment from the left-end forces and moment
   and from the relative displacements and rotation of the right end, based on equilibrium.
@@ -533,6 +543,11 @@ Note that the transformation matrix T is affected by angle alpha that specifies 
   //void integrateAlongSegmentAndPlot(double fab[3], double Lb, double segmentLength, double u0[2], double T[2][2], FILE* outfile);
   //void plotSegment(double fab[3], double ub[3], bool isLeftSegment, FILE* outfile);
   //void plotResponse(int nstage, int nstep[10], double ustep[3][10], int iplot[10]);
+
+  void computeSegmentDisplacements(FloatMatrix &uMatrix, const FloatArray &fab, double Lb, double segmentLength, const FloatArray &u0, const FloatMatrix &T);
+  
+
+  
 };
 } // end namespace oofem
 #endif // nlbem_internalcontact_h

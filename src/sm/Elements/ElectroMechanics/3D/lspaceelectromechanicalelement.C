@@ -88,7 +88,7 @@ LSpaceElectroMechanicalElement :: computeElectricFieldBmatrixAt(GaussPoint *gp, 
 	answer.at(3,  i ) = dNdx.at(i, 3);
     }
 
-    answer.times(-1.);
+    //    answer.times(-1.);
 }
 
 

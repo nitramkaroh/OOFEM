@@ -32,20 +32,20 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef qspaceelectromechanicalelement_3fields_h
-#define qspaceelectromechanicalelement_3fields_h
+#ifndef lspaceelectromechanicalelement_3fields_d0_h
+#define lspaceelectromechanicalelement_3fields_d0_h
 
 #include "../sm/Elements/ElectroMechanics/baseelectromechanicalelement_3fields.h"
-#include "Elements/3D/qspace.h"
+#include "Elements/3D/lspace.h"
 
-#define _IFT_QSpaceElectroMechanicalElement_3Fields_Name "qspaceelmechelem_3fields"
+#define _IFT_LSpaceElectroMechanicalElement_3fields_Name "lspaceelmechelem_3fields_d0"
 
 namespace oofem {
 class FEI3dHexaLin;
- class FEI3dHexaQuad;
 
 /**
- * This class implements a Quadratic in u and phi and linead in D 3d 20-node finite element for stress analysis.
+ * This class implements a Linear 3d 8-node finite element for stress analysis.
+ * Each node has 3 degrees of freedom.
  *
  * One single additional attribute is needed for Gauss integration purpose :
  * 'jacobianMatrix'. This 3x3 matrix contains polynomials.
@@ -53,38 +53,41 @@ class FEI3dHexaLin;
  * - Calculating its Gauss points.
  * - Calculating its B,D,N matrices and dV.
  */
-class QSpaceElectroMechanicalElement_3Fields  :  public QSpace, public BaseElectroMechanicalElement_3Fields
+class LSpaceElectroMechanicalElement_3Fields_D0  :  public LSpace, public BaseElectroMechanicalElement_3Fields
 {
 protected:
-    static FEI3dHexaLin interpolation_lin;
-    static FEI3dHexaQuad interpolation;
+    static FEI3dHexaLin interpolation;
+    /// Map from DofIDItem to bc (to be removed).
+    std :: map< int, int > *dofBCmap;
 public:
-    QSpaceElectroMechanicalElement_3Fields(int n, Domain * d);
-    virtual ~QSpaceElectroMechanicalElement_3Fields() { }
+    LSpaceElectroMechanicalElement_3Fields(int n, Domain * d);
+    virtual ~LSpaceElectroMechanicalElement_3Fields() { }
     virtual FEInterpolation *giveInterpolation() const;
 
-    // definition & identification
-    virtual const char *giveInputRecordName() const { return _IFT_QSpaceElectroMechanicalElement_3Fields_Name; }
-    virtual const char *giveClassName() const { return "QSpaceElectroMechanicalElement_3Fields"; }
 
-    FEInterpolation* giveInterpolation_lin() const;
+    std :: map< int, int > *giveBcMap()  { return dofBCmap; }
+   
+    
+    // definition & identification
+    virtual const char *giveInputRecordName() const { return _IFT_LSpaceElectroMechanicalElement_3Fields_Name; }
+    virtual const char *giveClassName() const { return "LSpaceElectroMechanicalElement_3Fields_D0"; }
+    virtual void postInitialize();
 
     virtual void computeElectricPotentialBmatrixAt(GaussPoint *gp, FloatMatrix &Be);
     virtual void computeElectricDisplacementNmatrixAt(GaussPoint *gp, FloatMatrix &Nd);
 
     virtual NLStructuralElement *giveStructuralElement(){return this;}
 
-    virtual int giveNumberOfElectricPotentialDofs(){return 20;}
-    virtual int giveNumberOfDisplacementDofs(){return 60;}
+    virtual int giveNumberOfElectricPotentialDofs(){return 8;}
+    virtual int giveNumberOfDisplacementDofs(){return 24;}
+    virtual int giveNumberOfElectricDisplecementDofs(){return 3};
+    virtual int giveNumberOfDofs()return{35;}
+
+    DofManager * giveInternalDofManager(int i) const;
+    void giveInternalDofManDofIDMask(int i, IntArray &answer) const;     
+    virtual int giveNumberOfInternalDofManagers() const { return 1; }
 
 
-    
-    /*    virtual int giveNumberOfElectricDisplacementDofs(){return 60;}
-    virtual int giveNumberOfDofs() {return 140;}
-    */
-    virtual int giveNumberOfElectricDisplacementDofs(){return 24;}
-    virtual int giveNumberOfDofs() {return 104;}
-    int computeNumberOfDofs() {return this->giveNumberOfDofs();}
 
     void giveDofManDofIDMask(int inode, IntArray &answer) const;
     virtual void giveDofManDofIDMask_u(IntArray &answer);
@@ -92,8 +95,7 @@ public:
     virtual void giveDofManDofIDMask_d(IntArray &answer);
     virtual void computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode mode, TimeStep *tStep){BaseElectroMechanicalElement_3Fields :: computeStiffnessMatrix(answer, mode, tStep);}
     virtual void giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord){BaseElectroMechanicalElement_3Fields :: giveInternalForcesVector(answer, tStep, useUpdatedGpRecord);}
- protected:
-    void postInitialize() override;
+    
     
 };
 } // end namespace oofem

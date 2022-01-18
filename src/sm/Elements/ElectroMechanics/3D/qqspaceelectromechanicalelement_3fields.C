@@ -32,8 +32,7 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "Elements/ElectroMechanics/3D/qspaceelectromechanicalelement_3fields.h"
-#include "fei3dhexalin.h"
+#include "Elements/ElectroMechanics/3D/qqspaceelectromechanicalelement_3fields.h"
 #include "fei3dhexaquad.h"
 #include "node.h"
 #include "gausspoint.h"
@@ -49,25 +48,23 @@
 
 
 namespace oofem {
-REGISTER_Element(QSpaceElectroMechanicalElement_3Fields);
+REGISTER_Element(QQSpaceElectroMechanicalElement_3Fields);
 
-FEI3dHexaLin QSpaceElectroMechanicalElement_3Fields :: interpolation_lin;
-FEI3dHexaQuad QSpaceElectroMechanicalElement_3Fields :: interpolation;
+FEI3dHexaQuad QQSpaceElectroMechanicalElement_3Fields :: interpolation;
 
 
-  QSpaceElectroMechanicalElement_3Fields :: QSpaceElectroMechanicalElement_3Fields(int n, Domain *domain) : QSpace(n, domain), BaseElectroMechanicalElement_3Fields(n, domain)
+  QQSpaceElectroMechanicalElement_3Fields :: QQSpaceElectroMechanicalElement_3Fields(int n, Domain *domain) : QSpace(n, domain), BaseElectroMechanicalElement_3Fields(n, domain)
     // Constructor.
 {
 }
 
 
-FEInterpolation *QSpaceElectroMechanicalElement_3Fields :: giveInterpolation() const { return & interpolation; }
-FEInterpolation* QSpaceElectroMechanicalElement_3Fields :: giveInterpolation_lin() const { return & interpolation_lin; }
+FEInterpolation *QQSpaceElectroMechanicalElement_3Fields :: giveInterpolation() const { return & interpolation; }
 
 
 
 void
-QSpaceElectroMechanicalElement_3Fields :: postInitialize()
+QQSpaceElectroMechanicalElement_3Fields :: postInitialize()
 {
     BaseElectroMechanicalElement_3Fields :: postInitialize();
     QSpace :: postInitialize();
@@ -77,7 +74,7 @@ QSpaceElectroMechanicalElement_3Fields :: postInitialize()
 
 
 void
-QSpaceElectroMechanicalElement_3Fields :: computeElectricPotentialBmatrixAt(GaussPoint *gp, FloatMatrix &answer)
+QQSpaceElectroMechanicalElement_3Fields :: computeElectricPotentialBmatrixAt(GaussPoint *gp, FloatMatrix &answer)
 {
     FEInterpolation *interp = this->giveInterpolation();
     FloatMatrix dNdx; 
@@ -92,14 +89,14 @@ QSpaceElectroMechanicalElement_3Fields :: computeElectricPotentialBmatrixAt(Gaus
 	answer.at(3,  i ) = dNdx.at(i, 3);
     }
 
-    // answer.times(-1.);
+    answer.times(-1.);
 }
 
 
 void
-QSpaceElectroMechanicalElement_3Fields :: computeElectricDisplacementNmatrixAt(GaussPoint *gp, FloatMatrix &answer)
+QQSpaceElectroMechanicalElement_3Fields :: computeElectricDisplacementNmatrixAt(GaussPoint *gp, FloatMatrix &answer)
 {
-    FEInterpolation *interp = this->giveInterpolation_lin();
+    FEInterpolation *interp = this->giveInterpolation();
     FloatArray N; 
     interp->evalN( N, gp->giveNaturalCoordinates(), FEIElementGeometryWrapper(this) );
     answer.beNMatrixOf(N, 3);
@@ -107,28 +104,21 @@ QSpaceElectroMechanicalElement_3Fields :: computeElectricDisplacementNmatrixAt(G
   
 
 void
-QSpaceElectroMechanicalElement_3Fields :: giveDofManDofIDMask(int inode, IntArray &answer) const
+QQSpaceElectroMechanicalElement_3Fields :: giveDofManDofIDMask(int inode, IntArray &answer) const
 {
-  //answer = {D_u, D_v, D_w, E_phi, E_D1, E_D2, E_D3};
-  
-  if(inode <= 8) {
-    answer = {D_u, D_v, D_w, E_phi, E_D1, E_D2, E_D3};
-  } else {
-    answer = {D_u, D_v, D_w, E_phi};
-  }
-  
+  answer = {D_u, D_v, D_w, E_phi, E_D1, E_D2, E_D3};
 }
   
 
 void
-QSpaceElectroMechanicalElement_3Fields :: giveDofManDofIDMask_u(IntArray &answer)
+QQSpaceElectroMechanicalElement_3Fields :: giveDofManDofIDMask_u(IntArray &answer)
 {
   answer = {D_u, D_v, D_w};
 }
 
 
 void
-QSpaceElectroMechanicalElement_3Fields :: giveDofManDofIDMask_phi(IntArray &answer)
+QQSpaceElectroMechanicalElement_3Fields :: giveDofManDofIDMask_phi(IntArray &answer)
 {
 
   answer = {E_phi};
@@ -136,7 +126,7 @@ QSpaceElectroMechanicalElement_3Fields :: giveDofManDofIDMask_phi(IntArray &answ
 }
 
 void
-QSpaceElectroMechanicalElement_3Fields :: giveDofManDofIDMask_d(IntArray &answer)
+QQSpaceElectroMechanicalElement_3Fields :: giveDofManDofIDMask_d(IntArray &answer)
 {
   answer = {E_D1, E_D2, E_D3};
 }

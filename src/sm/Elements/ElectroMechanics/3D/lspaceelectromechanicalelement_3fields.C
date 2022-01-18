@@ -88,7 +88,6 @@ LSpaceElectroMechanicalElement_3Fields :: computeElectricPotentialBmatrixAt(Gaus
 	answer.at(3,  i ) = dNdx.at(i, 3);
     }
 
-    answer.times(-1.);
 }
 
 

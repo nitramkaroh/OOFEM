@@ -189,12 +189,15 @@ NlBeam_SM2 :: initializeFrom(InputRecord *ir)
 
       IR_GIVE_FIELD(ir, EI, _IFT_NlBeam_SM2_EI);
       cosBeta = (curvedbeamLength+ u0.at(NIP+1))/beamLength;
-      sinBeta = w0.at(NIP+1)/beamLength;      
+      sinBeta = w0.at(NIP+1)/beamLength;
+      IR_GIVE_OPTIONAL_FIELD(ir, cosBeta, "cosbeta");
+      IR_GIVE_OPTIONAL_FIELD(ir, sinBeta, "sinbeta");
     }
    
     cosAlpha = (pointB.at(1) - pointA.at(1))/beamLength;
     sinAlpha = (pointB.at(2) - pointA.at(2))/beamLength;
-
+    IR_GIVE_OPTIONAL_FIELD(ir, cosAlpha, "cosalpha");
+    IR_GIVE_OPTIONAL_FIELD(ir, sinAlpha, "sinalpha");
     
     // relative tolerance for iterations at the beam level
     IR_GIVE_OPTIONAL_FIELD(ir, beam_tol, _IFT_NlBeam_SM2_Beam_Tolerance);
@@ -1239,12 +1242,12 @@ NlBeam_SM2 :: printOutputAt_CurvedBeam(FILE *file, TimeStep *tStep)
     u_g.beTProductOf(T, u_l);    
     ug.at(i) = u_g.at(1) + ug.at(1);
     wg.at(i) = u_g.at(2) + wg.at(1);
-    if(i == NIP + 1) {
-      if(fabs(ug.at(i)- uab.at(4))>1.e-6 || fabs(wg.at(i) -uab.at(5)) > 1.e-6){
+    /*    if(i == NIP + 1) {
+     if(fabs(ug.at(i)- uab.at(4))>1.e-6 || fabs(wg.at(i) -uab.at(5)) > 1.e-6){
 	OOFEM_WARNING("Error in postprocessing");
-    }
+	}
 
-    }
+    }*/
     //phig.at(i) = this->phi.at(i) -eval_phi0(L)  + phig.at(1);
     phig.at(i) = this->phi.at(i)  + phig.at(1);
   }

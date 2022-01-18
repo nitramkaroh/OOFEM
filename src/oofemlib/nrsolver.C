@@ -247,6 +247,26 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
     // compute initial guess if needed
     engngModel->updateComponent(tStep, InitialGuess, domain);
     // compute stiffness matrix
+    /*FILE *FID;
+    std :: string fileName;
+    fileName += "initialStiffness.m";
+    if ( ( FID = fopen(fileName.c_str(), "w") ) == NULL ) {
+      OOFEM_ERROR("failed to open file %s", fileName.c_str() );
+    }
+    fprintf(FID, "K=[");
+    for(int i = 1; i <= k.giveNumberOfRows(); i++) {
+      for(int j = 1; j <= k.giveNumberOfColumns(); j++) {
+	if(j != k.giveNumberOfColumns()) {
+	  fprintf( FID, "%f,", k.at(i,j) );
+	} else {
+	  fprintf( FID, "%f;\n", k.at(i,j) );
+	}
+      }
+    }   
+    fprintf(FID, "];\n");
+    fclose(FID);
+    */
+
     //engngModel->updateComponent(tStep, NonLinearLhs, domain);
     if ( this->prescribedDofsFlag ) {
         if ( !prescribedEqsInitFlag ) {

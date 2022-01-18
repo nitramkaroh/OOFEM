@@ -205,7 +205,7 @@ protected:
     /// Number of receiver domains.
     int ndomains;
     /// List of problem domains.
-    std :: vector< std :: unique_ptr< Domain > > domainList;
+    std :: vector< std :: unique_ptr< Domain > > domainList;//
     /// Total number of time steps.
     int numberOfSteps;
     /// Total number of equation in current time step.
