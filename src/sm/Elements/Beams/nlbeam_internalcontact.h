@@ -46,6 +46,8 @@
 #define _IFT_NlBeamInternalContact_LeftActiveSegmentLength "lasl"
 #define _IFT_NlBeamInternalContact_RightActiveSegmentLength "rasl"
 #define _IFT_NlBeamInternalContact_ContactMode "cmode"
+#define _IFT_NlBeamInternalContact_Friction "friction"
+#define _IFT_NlBeamInternalContact_dx "dx"
 
 //@}
 

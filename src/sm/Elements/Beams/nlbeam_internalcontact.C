@@ -35,7 +35,13 @@ NlBeamInternalContact :: initializeFrom(InputRecord *ir)
     int cmode;
     IR_GIVE_FIELD(ir, cmode, _IFT_NlBeamInternalContact_ContactMode);
     contactMode = (ContactModeType) cmode;
+
+    IR_GIVE_FIELD(ir, DX, _IFT_NlBeamInternalContact_dx );
+    IR_GIVE_FIELD(ir, friction, _IFT_NlBeamInternalContact_Friction );
+
     return IRRT_OK;
+
+
 }
 
 
