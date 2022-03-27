@@ -45,7 +45,9 @@
 #include "floatarray.h"
 #include "linesearch.h"
 
+
 #include <memory>
+#include "gjacobi.h"
 
 ///@name Input fields for NRSolver
 //@{
@@ -68,6 +70,7 @@
 #define _IFT_NRSolver_followerLoad "followerload"
 #define _IFT_NRSolver_residuumNorm "rn"
 #define _IFT_NRSolver_energyNorm "en"
+#define _IFT_NRSolver_eigControl "eigcontrol"
 //@}
 
 namespace oofem {
@@ -157,7 +160,8 @@ protected:
     bool followerLoadFlag;
     bool residuumNorm = true;
     bool energyNorm = false;
-
+    bool eigControl;
+    std :: unique_ptr< GJacobi> nMethod;
 public:
     NRSolver(Domain * d, EngngModel * m);
     virtual ~NRSolver();

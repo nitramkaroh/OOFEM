@@ -36,7 +36,7 @@
 #define trmembrane_h
 
 #include "trplanstrss.h"
-#include "Loads/pressurefollowerloadinterface.h"
+//#include "Loads/pressurefollowerloadinterface.h"
 
 #define _IFT_TrMembrane_Name "trmembrane"
 
@@ -47,7 +47,8 @@ class FEI2dTrLin;
  * This class implements an isoparametric three-node triangular plane-stress
  * membrane finite element. Each node has 3 degrees of freedom.
  */
- class TrMembrane : public TrPlaneStress2d, public PressureFollowerLoadElementInterface
+ class TrMembrane : public TrPlaneStress2d
+ //, public PressureFollowerLoadElementInterface
 {
 protected:
     static FEI2dTrLin interpolation;
@@ -70,7 +71,7 @@ public:
 
 
     // support for pressure follower load interface
-    virtual Interface *giveInterface(InterfaceType it);
+    //  virtual Interface *giveInterface(InterfaceType it);
 
     virtual double surfaceEvalVolumeAround(GaussPoint *gp, int iSurf){return this->computeSurfaceVolumeAround(gp, iSurf);}
     virtual void surfaceEvalNmatrixAt(FloatMatrix &answer, int iSurf, GaussPoint *gp){this->computeNmatrixAt(gp->giveNaturalCoordinates(),answer);}

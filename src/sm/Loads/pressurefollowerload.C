@@ -178,7 +178,8 @@ void PressureFollowerLoad :: computeTangentFromElement(FloatMatrix &answer, Elem
     }
 
     answer.clear();
-    IntegrationRule *iRule = pfli->surfaceGiveIntegrationRule(this->giveApproxOrder(), iSurf);
+    int order = 4;
+    IntegrationRule *iRule = pfli->surfaceGiveIntegrationRule(order, iSurf);
 
     IntArray bNodes;
     e->giveBoundarySurfaceNodes(bNodes, iSurf);
@@ -215,21 +216,48 @@ void PressureFollowerLoad :: computeTangentFromElement(FloatMatrix &answer, Elem
 	//answer.add(K);
       }
     } else if ( e->giveSpatialDimension() == 2) {
+      //  if(edge) {
 	e->giveBoundaryEdgeNodes (bNodes, iSurf);
+	for ( GaussPoint *gp : *iRule) { 
+	  // compute surface/edge N matirx
+	  FloatMatrix N, dN, dNI;
+	  FloatMatrix eps2 = {{0, -1},{1,0}};
+	  pfli->surfaceEvalNmatrixAt(N, iSurf, gp);
+	  pfli->surfaceEvaldNdxi(dN, iSurf, gp);
+	  FloatMatrix eNksi;
+	  eNksi.beProductOf(eps2,dN);
+	  double w = gp->giveWeight();
+	  answer.plusProductUnsym(N, eNksi, w);
+	  FloatArray n, dxdk,dxde;
+	  FloatMatrix K, test, dNdx;
+	  test.beTProductOf(N, eNksi);
+	  pfli->surfaceEvalDeformedNormalAt(n, dxdk, dxde, iSurf, gp, tStep);
+	  pfli->surfaceEvalNumericalStiffMatrixAt(K, dNdx, dxde, dxdk, 1, gp, tStep);
 
-      for ( GaussPoint *gp : *iRule) { 
-	// compute surface/edge N matirx
-	FloatMatrix N, dndu;
-	pfli->surfaceEvalNmatrixAt(N, iSurf, gp);
-	pfli->surfaceEvalNormalDerivative(dndu, iSurf, gp, tStep);
-	double w = gp->giveWeight();	
-	answer.plusProductUnsym(N, dndu, w);
-      }
+	}
+	
+	// }
+
+
+
+	/*} else { // surface in 2d, i.e., membrane???
+	e->giveBoundaryEdgeNodes (bNodes, iSurf);
+	for ( GaussPoint *gp : *iRule) { 
+	  // compute surface/edge N matirx
+	  FloatMatrix N, dndu;
+	  pfli->surfaceEvalNmatrixAt(N, iSurf, gp);
+	  pfli->surfaceEvalNormalDerivative(dndu, iSurf, gp, tStep);
+	  double w = gp->giveWeight();	
+	  answer.plusProductUnsym(N, dndu, w);
+	}
+	}*/
     }
     //answer = testAnswer;
     double factor = this->giveTimeFunction()->evaluate(tStep, VM_Total);
+    // minus in 3d
+    //answer.times(-pressure*factor);
+    // plus in 2d ?
     answer.times(pressure*factor);
-
     /*L4Axisymm *le = dynamic_cast<L4Axisymm* > (e);
     e->giveInterpolation()->boundaryEdgeGiveNodes(bNodes, iSurf);
     FloatArray(vU);
@@ -296,7 +324,7 @@ PressureFollowerLoad :: giveSurface_dNdKsi_dNdEta(FloatMatrix &dNdksi, FloatMatr
     }
 
     answer.clear();
-    int order = 2;
+    int order = 4;
     IntegrationRule *iRule = pfli->surfaceGiveIntegrationRule(order, iSurf);
     double a = 0;
     for ( GaussPoint *gp : *iRule) {

@@ -72,7 +72,7 @@ QTrPlaneStrain :: giveInterface(InterfaceType interface)
         return static_cast< SpatialLocalizerInterface * >(this);
     }
 
-    return NULL;
+    return PlaneStrainElement::giveInterface(interface);
 }
 
 

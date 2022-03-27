@@ -206,7 +206,7 @@ MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: give_FirstPKStres
     E.add( 0.5 * this->iEps4, dK2DpoldD);   
     E.add( 0.5 * this->iEps5, dK2DdD);
     ////////////////////////////////////
-    //// contribution of K2C^2/J
+    //// contribution of K2C^2
     E.add(this->a, dK2CdD);
     E.add(-this->a, dK1CdD);
     ////////////////////////////////////
@@ -1962,7 +1962,7 @@ MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: compute_d2K2Cinf_
   FloatMatrix d2IdF2_1, d2IdF2_2;
   this->hyperelasticMaterial->compute_lower_dyadic_product(d2IdF2_1, delta, ND);
   this->hyperelasticMaterial->compute_lower_dyadic_product(d2IdF2_2, delta, DN);
-  d2IdF2.add(d2IdF2_1);
+  d2IdF2 = d2IdF2_1;
   d2IdF2.add(d2IdF2_2);
 }
 
@@ -1992,7 +1992,7 @@ MooneyRivlin_IdealDielectric_TransverselyIsotropicMaterial2 :: compute_d2K2Cinf_
   FloatMatrix FoN;
   hyperelasticMaterial->compute_3order_lower_dyadic_product(FoN, F, N);
   //
-  d2IdFdD.add(FN_delta);
+  d2IdFdD = FN_delta;
   d2IdFdD.add(FoN);
 }
 

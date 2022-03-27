@@ -54,7 +54,8 @@ REGISTER_Element(QuadMembrane);
 FEI2dQuadLin QuadMembrane :: interpolation(1, 2);
 
 QuadMembrane :: QuadMembrane(int n, Domain *aDomain) :
-    PlaneStress2d(n, aDomain), PressureFollowerLoadElementInterface(this)
+    PlaneStress2d(n, aDomain)
+    //, PressureFollowerLoadElementInterface(this)
     // Constructor.
 {
     numberOfDofMans  = 4;
@@ -201,7 +202,7 @@ QuadMembrane :: computeDeformationGradientVector(FloatArray &answer, GaussPoint 
 
 
 // support for pressure follower load interface
-Interface*
+/*Interface*
 QuadMembrane :: giveInterface(InterfaceType interface)
 {
     if ( interface == PressureFollowerLoadElementInterfaceType) {
@@ -209,7 +210,7 @@ QuadMembrane :: giveInterface(InterfaceType interface)
     }
     return NULL;
 }
-
+*/
 
 void
 QuadMembrane :: computeNmatrixAt(const FloatArray &iLocCoord, FloatMatrix &answer)

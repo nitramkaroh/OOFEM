@@ -63,6 +63,12 @@ double FEInterpolation2d :: giveArea(const FEICellGeometry &cellgeo) const
     return 0;
 }
 
+void FEInterpolation2d :: edgeEvaldNdxi(FloatMatrix &answer, int iedge, const FloatArray &lcoords, const FEICellGeometry &cellgeo)
+{
+    OOFEM_ERROR("Not implemented in subclass.");
+}
+  
+
 void FEInterpolation2d :: boundaryGiveNodes(IntArray &answer, int boundary)
 {
     this->computeLocalEdgeMapping(answer, boundary);

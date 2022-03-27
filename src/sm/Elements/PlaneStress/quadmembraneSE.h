@@ -70,7 +70,7 @@ public:
 
 
     // support for pressure follower load interface
-    virtual Interface *giveInterface(InterfaceType it);
+    //virtual Interface *giveInterface(InterfaceType it);
 
     virtual double surfaceEvalVolumeAround(GaussPoint *gp, int iSurf){
       return this->computeSurfaceVolumeAround(gp, iSurf);

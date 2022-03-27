@@ -68,6 +68,8 @@ public:
     
     // private:
     virtual void  surfaceEvalNumericalStiffMatrixAt(FloatMatrix &answer, FloatArray &dxdeta, FloatArray &dxdxi, int iSurf, GaussPoint *gp, TimeStep *tStep){answer.zero();}
+    virtual void  surfaceEvalNumericalStiffMatrixAt(FloatMatrix &answer, FloatMatrix &answer2, FloatArray &dxdeta, FloatArray &dxdxi, int iSurf, GaussPoint *gp, TimeStep *tStep){answer.zero();}
+    virtual void  edgeEvalNumericalStiffMatrixAt(FloatMatrix &answer, FloatArray &dxdxi, int iSurf, GaussPoint *gp, TimeStep *tStep){answer.zero();}
     virtual void surfaceEvalNmatrixAt(FloatMatrix &answer, int iSurf, GaussPoint *gp) = 0;
     virtual void surfaceEvaldNdxi(FloatMatrix &answer, int iSurf, GaussPoint *gp) = 0;
     virtual void surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &dxdksi, FloatArray &dxdeta, int iSurf, GaussPoint *gp, TimeStep *tStep) = 0;

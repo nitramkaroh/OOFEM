@@ -58,6 +58,9 @@
 #define _IFT_NlBeam_SM2_Section_Tolerance "stol"
 #define _IFT_NlBeam_SM2_Section_MaxIteration "smaxit"
 
+#define _IFT_NlBeam_SM2_pressure "pressure"
+#define _IFT_NlBeam_SM2_pressureLTF "pressure_ltf"
+
 #define _IFT_NlBeam_SM2_s "s"
 #define _IFT_NlBeam_SM2_u0 "u0"
 #define _IFT_NlBeam_SM2_w0 "w0"
@@ -109,6 +112,8 @@ protected:
     enum CoordinateFlag{CF_s = 0, CF_x = 1};
     CoordinateFlag cf;
     int coupling = 1;
+    double pressure;
+    int pressure_ltf;
     
 public:
     NlBeam_SM2(int n, Domain *aDomain);
@@ -150,10 +155,10 @@ protected:
     double computeMomentFromCurvature(double kappa);
     double computeDerMomentFromCurvature(double kappa);
     double computeCurvatureFromMoment(double M);
-    void integrateAlongBeamAndGetJacobi(const FloatArray &fab, FloatArray &ub, FloatMatrix &jacobi);
-    void integrateAlongStraightBeamAndGetJacobi(const FloatArray &fab, FloatArray &ub, FloatMatrix &jacobi);
+    void integrateAlongBeamAndGetJacobi(const FloatArray &fab, FloatArray &ub, FloatMatrix &jacobi, TimeStep *tStep);
+    void integrateAlongStraightBeamAndGetJacobi(const FloatArray &fab, FloatArray &ub, FloatMatrix &jacobi, TimeStep *tStep);
     void integrateAlongCurvedBeamAndGetJacobi(const FloatArray &fab, FloatArray &ub, FloatMatrix &jacobi);
-    bool findLeftEndForcesLocal(FloatArray &ub_target, FloatArray &fab_loc);
+    bool findLeftEndForcesLocal(FloatArray &ub_target, FloatArray &fab_loc, TimeStep *tStep);
     void construct_T(FloatMatrix &T, const double phia);
     void construct_Tprime(FloatMatrix &T, const double phia);
     void construct_l(FloatArray &l, double phia);
@@ -162,7 +167,7 @@ protected:
  
     void construct_lprime(FloatArray &l, const double phia);
   
-    void findLeftEndForces(const FloatArray &u, FloatArray &fab);
+    void findLeftEndForces(const FloatArray &u, FloatArray &fab, TimeStep *tStep);
 
     void  printOutputAt_StraightBeam(FILE *file, TimeStep *tStep);
     void  printOutputAt_CurvedBeam(FILE *file, TimeStep *tStep);
@@ -193,8 +198,9 @@ protected:
     void integrateAlongBeamAndFindInitialShape(const FloatArray &fab, FloatArray &ub, FloatMatrix &jacobi, const FloatArray &ds, FloatArray &kappa_0, FloatArray &u_0, FloatArray &w_0, FloatArray &phi_0, double NIP_0);
 
     
-    void computeStiffnessMatrix_num(FloatMatrix &answer, MatResponseMode rMode, TimeStep *tStep);    
+    void computeStiffnessMatrix_num(FloatMatrix &answer,FloatMatrix &answer_p, MatResponseMode rMode, TimeStep *tStep);    
     void giveInternalForcesVector_from_u(FloatArray &answer, TimeStep *tStep, const FloatArray &u);
+    void giveInternalForcesVectorPressure_from_u(FloatArray &answer, TimeStep *tStep, const FloatArray &u);
 
 
 };

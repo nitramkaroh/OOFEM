@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.8.7) # >= 2.8.8 necessary for $<TARGET_OBJECTS:objlib>
+cmake_minimum_required (VERSION 3.1) # >= 2.8.8 necessary for $<TARGET_OBJECTS:objlib>
 include (CheckSymbolExists)
 include (CheckCXXSymbolExists)
 include (CheckIncludeFiles)
@@ -10,7 +10,7 @@ include (ProcessorCount)
 
 project (oofem CXX C)
 set (oofem_VERSION_MAJOR 2)
-set (oofem_VERSION_MINOR 4)
+set (oofem_VERSION_MINOR 6)
 set (oofem_VERSION_PATCH 0) # Unused
 set (oofem_HOMEPAGE "http://www.oofem.org")
 set (bp_HOMEPAGE "http://ksm.fsv.cvut.cz/%7Ebp/bp.html")
@@ -33,19 +33,30 @@ if (MSVC)
 else ()
 #    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wall -Werror -fPIC")
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fPIC")
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -fPIC")
 endif ()
-# Check with more compilers as time go on
-if (CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.7)
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_COMPILER_IS_GNUCXX)
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-elseif (MSVC)
-    # Nothing to do for MSVC.
-endif ()
+  
+set (CMAKE_CXX_STANDARD 17)
+set (CMAKE_CXX_STANDARD 17)
 
-set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
+set (CMAKE_CXX_FLAGS_DEBUG "-DDEBUG ${CMAKE_CXX_FLAGS_DEBUG}")
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set (CMAKE_CXX_FLAGS_DEBUG "-O0 -Wsuggest-override ${CMAKE_CXX_FLAGS_DEBUG}")
+endif()
 set (CMAKE_CXX_FLAGS_PROFILING "${CMAKE_CXX_FLAGS_PROFILING} -O2 -pg")
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
+
+# Check with more compilers as time go on
+#if (CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.7)
+#    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+#elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_COMPILER_IS_GNUCXX)
+#    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+#elseif (MSVC)
+    # Nothing to do for MSVC.
+#endif ()
+
+#set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
+#set (CMAKE_CXX_FLAGS_PROFILING "${CMAKE_CXX_FLAGS_PROFILING} -O2 -pg")
+#set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
 
 #######################################################################
 ######################## Custom paths #################################
@@ -66,6 +77,7 @@ set (PARMETIS_DIR CACHE PATH "Manual ParMetis directory (Load balancing)")
 #set (BOOST_DIR CACHE PATH "Manual Boost directory")
 set (SUPERLU_MT_DIR CACHE PATH "Manual SuperLU_MT directory")
 set (PARDISO_ORG_DIR CACHE PATH "Manual pardiso-project.org directory (sparse direct solver)")
+set (EIGEN_DIR CACHE PATH "Manual Eigen directory")
 
 #######################################################################
 ######################## Options ######################################
@@ -92,6 +104,7 @@ option (USE_SUPERLU_MT "Use SUPERLU_MT" OFF)
 option (USE_PETSC "Enable PETSc support (required for parallel)" OFF)
 option (USE_SLEPC "Enable SLEPc support" OFF)
 option (USE_LAPACK "Use LAPACK" OFF)
+option (USE_EIGEN "Use Eigen" OFF)
 # Other external libraries
 option (USE_TRIANGLE "Compile with Triangle bindings" OFF)
 option (USE_VTK "Enable VTK (for exporting binary VTU-files)" OFF)
@@ -368,6 +381,15 @@ if (USE_SLEPC)
     list (APPEND MODULE_LIST "slepc")
     set (USE_PETSC ON)
     add_definitions (-D__SLEPC_MODULE)
+endif ()
+
+
+if (USE_EIGEN)
+    if (EIGEN_DIR)
+        include_directories ("${EIGEN_DIR}")
+    else ()
+        message (FATAL_ERROR "Eigen library not found")
+    endif ()    
 endif ()
 
 if (USE_PETSC)

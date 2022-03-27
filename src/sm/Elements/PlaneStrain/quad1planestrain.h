@@ -104,6 +104,12 @@ protected:
     virtual void computeBHmatrixAt(GaussPoint *gp, FloatMatrix &answer, TimeStep *tStep, double alpha = 0);
 
     virtual int giveNumberOfIPForMassMtrxIntegration() { return 4; }
+
+    virtual void surfaceEvaldNdxi(FloatMatrix &answer, int iSurf, GaussPoint *gp);
+    virtual void surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &dxdksi,FloatArray &dxdeta, int iSurf, GaussPoint *gp, TimeStep *tStep);
+
+
+    
 };
 } // end namespace oofem
 #endif // quad1planestrain_h

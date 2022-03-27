@@ -67,6 +67,52 @@ QPlaneStrain :: giveInterface(InterfaceType interface)
 }
 
 
+void
+QPlaneStrain :: surfaceEvaldNdxi(FloatMatrix &answer, int iEdge, GaussPoint *gp)
+{
+  FEI2dQuadQuad *interpol = static_cast< FEI2dQuadQuad * >( this->giveInterpolation() );
+  FloatArray n;
+  interpol->edgeEvaldNdxi(n, iEdge, gp->giveNaturalCoordinates(), FEIElementGeometryWrapper(this));
+  answer.initFromVector(n, false);
+}
+void
+QPlaneStrain :: surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &dxdksi,FloatArray &dxdeta, int iSurf, GaussPoint *gp, TimeStep *tStep)
+{
+
+  IntArray bNodes;
+  FloatArray vU, vdx, x, dx;
+  FloatMatrix e3, N, dNdxi;
+ 
+  e3 = {{0,-1},{1,0}};
+  this->giveBoundaryEdgeNodes (bNodes, iSurf);
+  double nNodes = bNodes.giveSize();
+  x.resize(2*nNodes);
+  this->surfaceEvalNmatrixAt(N, iSurf, gp);
+  this->surfaceEvaldNdxi(dNdxi, iSurf, gp);
+  if(this->domain->giveEngngModel()->giveFormulation() != AL) {
+    // compute actual node positions for Total Lagrangean formulation
+    this->computeBoundaryVectorOf(bNodes, {D_u, D_v}, VM_Total, tStep, vU); // solution vector    
+    for(int i = 1; i <= nNodes; i++) {
+      Node *node = this->giveNode(bNodes.at(i));
+      x.at(2*i-1) = node->giveCoordinate(1) + vU.at( (i-1) * 2 + 1);
+      x.at(2*i) = node->giveCoordinate(2) + vU.at( (i-1) * 2 + 2);
+    }
+  } else {
+    for(int i = 1; i <= nNodes; i++) {
+      Node *node = this->giveNode(bNodes.at(i));
+      x.at(2*i -1) = node->giveCoordinate(1);
+      x.at(2*i) = node->giveCoordinate(2);
+    }
+  }
+
+  
+  dx.beProductOf(dNdxi,x);
+  answer.beProductOf(e3, dx);
+
+}
+
+
+  
 #ifdef __OOFEG
 void QPlaneStrain :: drawRawGeometry(oofegGraphicContext &gc, TimeStep *tStep)
 {

@@ -94,8 +94,9 @@ protected:
   ContactModeType trialContactMode;
   ProcessType Process = PT_Unknown;
   ProcessType trialProcess = PT_Unknown;
-  bool stiffEvalMode = false;
-  
+  bool stiffEvalMode = true;
+  //
+  double cosAlpha, sinAlpha;
        
 public:
     NlBeamInternalContact(int n, Domain *aDomain);
@@ -121,6 +122,8 @@ public:
     */
     virtual void computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode rMode, TimeStep *tStep);
     virtual void giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord = 0);
+    virtual void giveInternalForcesVector_fromU(FloatArray &answer, TimeStep *tStep, FloatArray &u,FloatArray &u_prev);
+
     virtual const char *giveClassName() const { return "NlBeamInternalContact"; }
     virtual const char *giveInputRecordName() const { return _IFT_NlBeamInternalContact_Name; }
     virtual IRResultType initializeFrom(InputRecord *ir);
@@ -527,6 +530,7 @@ If the input contains the correct converged values, the process will now converg
 one iteration. Otherwise, the full iterative process is used and it may not converge.
   */
     void construct_T(FloatMatrix &T, double phia);
+    void construct_T(FloatMatrix &T, double phia, double rot);
   /*
     Auxiliary matrix for transformation of stiffness.
     It is obtained by differentiating T with respect to phia.
@@ -541,10 +545,8 @@ at both ends.
 The input displacements and output forces are taken with respect to the global coordinate system.
 Note that the transformation matrix T is affected by angle alpha that specifies the initial beam geometry. 
 */
-  bool findLeftEndForces(FloatArray &u, FloatArray &u_prev, FloatArray &fab);
-  //void integrateAlongSegmentAndPlot(double fab[3], double Lb, double segmentLength, double u0[2], double T[2][2], FILE* outfile);
-  //void plotSegment(double fab[3], double ub[3], bool isLeftSegment, FILE* outfile);
-  //void plotResponse(int nstage, int nstep[10], double ustep[3][10], int iplot[10]);
+  bool findLeftEndForces(const FloatArray &u, const FloatArray &u_prev, FloatArray &fab);
+  void printOutputAt(FILE *file, TimeStep *tStep);
 
   void computeSegmentDisplacements(FloatMatrix &uMatrix, const FloatArray &fab, double Lb, double segmentLength, const FloatArray &u0, const FloatMatrix &T);
   

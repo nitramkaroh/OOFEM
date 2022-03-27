@@ -39,7 +39,7 @@
 #include "zznodalrecoverymodel.h"
 #include "sprnodalrecoverymodel.h"
 #include "spatiallocalizer.h"
-#include "Loads/pressurefollowerloadinterface.h"
+
 
 #define _IFT_L4Axisymm_Name "l4axisymm"
 
@@ -50,7 +50,7 @@ class FEI2dQuadLinAxi;
  * This class implements an isoparametric four-node quadrilateral axisymmetric
  * finite element. Each node has 2 degrees of freedom.
  */
- class L4Axisymm : public AxisymElement, public ZZNodalRecoveryModelInterface, public SPRNodalRecoveryModelInterface,public SpatialLocalizerInterface, public PressureFollowerLoadElementInterface
+ class L4Axisymm : public AxisymElement, public ZZNodalRecoveryModelInterface, public SPRNodalRecoveryModelInterface,public SpatialLocalizerInterface
 {
 protected:
     static FEI2dQuadLinAxi interpolation;

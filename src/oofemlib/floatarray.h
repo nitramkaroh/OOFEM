@@ -93,7 +93,6 @@ public:
     std::vector< double > :: const_iterator begin() const { return this->values.begin(); }
     std::vector< double > :: const_iterator end() const { return this->values.end(); }
     //@}
-
     /// Constructor for sized array. Data is zeroed.
     FloatArray(int n = 0) : values(n) { }
     /// Disallow double parameter, which can otherwise give unexpected results.
@@ -105,6 +104,9 @@ public:
     /// Initializer list constructor.
     inline FloatArray(std :: initializer_list< double >list) : values(list) { }
     /// Destructor.
+     /// Wrapper to direct assignment from iterator pairs
+    template< class InputIt >
+    FloatArray( InputIt first, InputIt last ) : values(first, last) { }
     virtual ~FloatArray() {};
 
     /// Assignment operator

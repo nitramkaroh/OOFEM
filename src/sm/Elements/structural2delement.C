@@ -41,8 +41,7 @@
 
 namespace oofem {
 Structural2DElement :: Structural2DElement(int n, Domain *aDomain) :
-    NLStructuralElement(n, aDomain), FbarElementExtensionInterface(aDomain),
-    matRotation(false)
+  NLStructuralElement(n, aDomain), FbarElementExtensionInterface(aDomain),PressureFollowerLoadElementInterface(this), matRotation(false)
 {
     cellGeometryWrapper = NULL;
 }
@@ -73,6 +72,16 @@ Structural2DElement :: initializeFrom(InputRecord *ir)
 }
 
 
+Interface *
+Structural2DElement :: giveInterface(InterfaceType interface)
+{
+   if ( interface == PressureFollowerLoadElementInterfaceType) {
+        return static_cast< PressureFollowerLoadElementInterface* >(this);
+    }   
+    return NLStructuralElement::giveInterface(interface);
+}
+
+  
 void
 Structural2DElement :: postInitialize()
 {
@@ -293,6 +302,255 @@ Structural2DElement :: computeLoadLEToLRotationMatrix(FloatMatrix &answer, int i
     return 1;
 }
 
+
+
+// Edge support
+void
+Structural2DElement :: computeEdgeNMatrixAt(FloatMatrix &answer, int iSurf, GaussPoint *sgp)
+{
+    /* Returns the [ 3 x (nno*3) ] shape function matrix {N} of the receiver, 
+     * evaluated at the given gp.
+     * {u} = {N}*{a} gives the displacements at the integration point.
+     */ 
+          
+    // Evaluate the shape functions at the position of the gp. 
+    FloatArray N;
+    static_cast< FEInterpolation2d* > ( this->giveInterpolation() )->
+        edgeEvalN( N, iSurf, sgp->giveNaturalCoordinates(), FEIElementGeometryWrapper(this) );  
+    answer.beNMatrixOf(N, 2);
+}
+
+
+
+// support for pressure follower load interface
+void
+Structural2DElement ::  surfaceEvaldNdxi(FloatMatrix &answer, int iSurf, GaussPoint *gp)
+{
+
+  FloatMatrix dN;
+  FEInterpolation2d *interp2d = static_cast<FEInterpolation2d*> (this->giveInterpolation());
+  interp2d->edgeEvaldNdxi(dN, iSurf, gp->giveNaturalCoordinates(), FEIElementGeometryWrapper(this));
+  answer.resize(2, 6);
+  answer.zero();
+  answer.at(1, 1) = dN.at(1,1);
+  answer.at(1, 3) = dN.at(2,1);
+  answer.at(1, 5) = dN.at(3,1);
+  answer.at(2, 2) = dN.at(1,1);
+  answer.at(2, 4) = dN.at(2,1);
+  answer.at(2, 6) = dN.at(3,1);
+  
+
+}
+
+
+void
+Structural2DElement ::  surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &dxdeta, FloatArray &dxdksi, int iSurf, GaussPoint *gp, TimeStep *tStep)
+{
+
+  answer.resize(2);
+  IntArray bNodes;
+  FloatArray gcoords, lcoords, vU, x;
+  FloatMatrix dNdxi;
+
+  lcoords = gp->giveNaturalCoordinates();
+  this->giveBoundaryEdgeNodes(bNodes, iSurf);
+
+  this->surfaceEvaldNdxi(dNdxi, iSurf, gp);
+  double nNodes = bNodes.giveSize();
+  x.resize(2*nNodes);
+  if(this->domain->giveEngngModel()->giveFormulation() != AL) {
+    // compute actual node positions for Total Lagrangean formulation
+    this->computeBoundaryVectorOf(bNodes, {D_u, D_v}, VM_Total, tStep, vU); // solution vector    
+    for(int i = 1; i <= nNodes; i++) {
+      Node *node = this->giveNode(bNodes.at(i));
+      x.at(2*i-1) = node->giveCoordinate(1) + vU.at( (i-1) * 2 + 1);
+      x.at(2*i) = node->giveCoordinate(2) + vU.at( (i-1) * 2 + 2);
+    }
+  } else {
+    for(int i = 1; i <= nNodes; i++) {
+      Node *node = this->giveNode(bNodes.at(i));
+      x.at(2*i-1) = node->giveCoordinate(1);
+      x.at(2*i) = node->giveCoordinate(2);
+    }
+    
+  }
+  
+  FloatArray dx;
+  FloatMatrix e3;
+  e3 = {{0,-1},{1,0}};
+  dx.beProductOf(dNdxi,x);
+  answer.beProductOf(e3,dx);
+
+}
+
+
+void
+Structural2DElement ::  surfaceEvalNormalAt(FloatArray &answer, FloatArray &dxdeta, FloatArray &dxdksi, int iSurf, GaussPoint *gp, TimeStep *tStep)
+{
+
+  answer.resize(2);
+  IntArray bNodes;
+  FloatArray gcoords, lcoords, vU, x;
+  FloatMatrix dNdxi;
+
+  lcoords = gp->giveNaturalCoordinates();
+  this->giveBoundaryEdgeNodes(bNodes, iSurf);
+
+  this->surfaceEvaldNdxi(dNdxi, iSurf, gp);
+  double nNodes = bNodes.giveSize();
+  x.resize(2*nNodes);
+  // compute actual node positions for Total Lagrangean formulation
+  this->computeBoundaryVectorOf(bNodes, {D_u, D_v}, VM_Total, tStep, vU); // solution vector    
+  for(int i = 1; i <= nNodes; i++) {
+    Node *node = this->giveNode(bNodes.at(i));
+    x.at(2*i-1) = node->giveCoordinate(1);
+    x.at(2*i) = node->giveCoordinate(2);
+  }
+    
+  FloatArray dx;
+  FloatMatrix e3;
+  e3 = {{0,-1},{1,0}};
+  dx.beProductOf(dNdxi,x);
+  answer.beProductOf(e3,dx);
+
+}
+
+
+
+void
+Structural2DElement ::  surfaceEvalDeformedNormalAt_fromU(FloatArray &answer, FloatArray &dxdeta, FloatArray &dxdksi, int iSurf, GaussPoint *gp, TimeStep *tStep, const FloatArray &vU)
+{
+
+  answer.resize(2);
+  IntArray bNodes;
+  FloatArray gcoords, lcoords, x;
+  FloatMatrix dNdxi;
+
+  lcoords = gp->giveNaturalCoordinates();
+  this->giveBoundaryEdgeNodes(bNodes, iSurf);
+
+  this->surfaceEvaldNdxi(dNdxi, iSurf, gp);
+  double nNodes = bNodes.giveSize();
+  x.resize(2*nNodes);
+  if(this->domain->giveEngngModel()->giveFormulation() != AL) {
+    // compute actual node positions for Total Lagrangean formulation
+    for(int i = 1; i <= nNodes; i++) {
+      Node *node = this->giveNode(bNodes.at(i));
+      x.at(2*i-1) = node->giveCoordinate(1) + vU.at( (i-1) * 2 + 1);
+      x.at(2*i) = node->giveCoordinate(2) + vU.at( (i-1) * 2 + 2);
+    }
+  } else {
+    for(int i = 1; i <= nNodes; i++) {
+      Node *node = this->giveNode(bNodes.at(i));
+      x.at(2*i-1) = node->giveCoordinate(1);
+      x.at(2*i) = node->giveCoordinate(2);
+    }
+    
+  }
+  
+  FloatArray dx;
+  FloatMatrix e3;
+  e3 = {{0,-1},{1,0}};
+  dx.beProductOf(dNdxi,x);
+  answer.beProductOf(e3,dx);
+
+}
+
+
+
+void
+Structural2DElement ::  surfaceEvalNumericalStiffMatrixAt(FloatMatrix &answer, FloatMatrix &dNdx,FloatArray &dxdeta, FloatArray &dxdxi, int iSurf, GaussPoint *gp, TimeStep *tStep)
+{
+
+  double r;
+  IntArray bNodes;
+  FloatArray lcoords, vU, dx, x;  
+  FloatMatrix dNdxi, N, e3;
+
+  e3 = {{0,-1},{1,0}};
+  
+  lcoords = gp->giveNaturalCoordinates();
+  this->giveBoundaryEdgeNodes (bNodes, iSurf);
+  double nNodes = bNodes.giveSize();
+  x.resize(2*nNodes);
+  this->surfaceEvalNmatrixAt(N, iSurf, gp);
+  this->surfaceEvaldNdxi(dNdxi, iSurf, gp);
+  this->computeBoundaryVectorOf(bNodes, {D_u, D_v}, VM_Total, tStep, vU); // solution vector
+
+  if(this->domain->giveEngngModel()->giveFormulation() != AL) {
+    for(int i = 1; i <= 3; i++) {
+      Node *node = this->giveNode(bNodes.at(i));
+      x.at(2*i-1) = node->giveCoordinate(1) + vU.at( (i-1) * 2 + 1);
+      x.at(2*i) = node->giveCoordinate(2) + vU.at( (i-1) * 2 + 2);
+    }
+  } else {
+    for(int i = 1; i <= 2; i++) {
+      Node *node = this->giveNode(bNodes.at(i));
+      x.at(2*i -1) = node->giveCoordinate(1);
+      x.at(2*i) = node->giveCoordinate(2);
+      // Evaluate radius after deformation
+      r += x.at(2*i -1) * N.at(1, 2 * i - 1);
+    }
+  }
+
+  
+  FloatArray n;
+  dx.beProductOf(dNdxi,x);
+  n.beProductOf(e3, dx);
+
+  answer.resize(6,6);
+  double pert = 1.e-6;
+  FloatArray v, xp(x), vUp(vU), dn;
+  FloatMatrix Ki,  Kn(2,6), Ktest(6,6);
+
+  this->surfaceEvalDeformedNormalAt(n, dxdeta, dxdxi, iSurf, gp, tStep);
+
+  
+  for (int i = 1; i<=6; i++) {
+    
+    xp.at(i) += pert;      
+    dx.beProductOf(dNdxi,xp);
+    v.beProductOf(e3, dx);
+    v.subtract(n);
+    v.times(1/pert);
+    Ki.beTProductOf(N, v);
+    //
+    vUp.at(i) += pert;
+    this->surfaceEvalDeformedNormalAt_fromU(dn, dxdeta, dxdxi, iSurf, gp, tStep, vUp);
+    for(int j = 1; j <= 2; j++) {
+      Kn.at(j,i) = (dn.at(j) - n.at(j)) / pert;
+    }
+      
+    for (int k = 1; k <= 6; k++) {
+      answer.at(k,i) = Ki.at(k,1);
+    }
+    xp = x;
+    vUp = vU;
+    }
+  dNdx = Kn;
+  Ktest.beTProductOf(N, Kn);
+
+
+
+  
+
+  /*
+  for (int i = 1; i<=4; i++) {
+    dx.beProductOf(dNdxi,x);
+    v.beProductOf(e3, dx);
+    double rp = r+ pert;
+    v.times(rp);
+    v.subtract(n);
+    v.times(1/pert);
+    Ki.beTProductOf(N, v);
+    for (int k = 1; k <= 4; k++) {
+      answer.at(k,i) += Ki.at(k,1);
+    }
+    xp = x;
+  }
+  */
+  
+}
 
 
 

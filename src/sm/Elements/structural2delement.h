@@ -38,6 +38,7 @@
 #include "Elements/nlstructuralelement.h"
 #include "feinterpol2d.h"
 #include "fbarelementinterface.h"
+#include "Loads/pressurefollowerloadinterface.h"
 
 #define _IFT_Structural2DElement_materialCoordinateSystem "matcs" ///< [optional] Support for material directions based on element orientation.
 
@@ -47,8 +48,9 @@ namespace oofem {
  * Base class for planar 2D elements.
  *
  * @author Jim Brouzoulis
+ * @author Martin Horák
  */
-class Structural2DElement : public NLStructuralElement, FbarElementExtensionInterface
+  class Structural2DElement : public NLStructuralElement, FbarElementExtensionInterface, PressureFollowerLoadElementInterface
 {
 
 protected:
@@ -107,6 +109,20 @@ protected:
     virtual double computeEdgeVolumeAround(GaussPoint *gp, int iEdge);
     virtual int computeLoadLEToLRotationMatrix(FloatMatrix &answer, int iEdge, GaussPoint *gp);
     virtual int testElementExtension(ElementExtension ext) { return ( ( ext == Element_EdgeLoadSupport ) ? 1 : 0 ); }
+    virtual void computeEdgeNMatrixAt(FloatMatrix &answer, int iSurf, GaussPoint *gp);
+
+    Interface * giveInterface(InterfaceType interface);
+    // support for pressure follower load interface
+    virtual double surfaceEvalVolumeAround(GaussPoint *gp, int iSurf){return this->computeEdgeVolumeAround(gp, iSurf);}
+    virtual void surfaceEvalNmatrixAt(FloatMatrix &answer, int iSurf, GaussPoint *gp){this->computeEdgeNMatrixAt(answer, iSurf, gp);}
+    virtual void surfaceEvaldNdxi(FloatMatrix &answer, int iSurf, GaussPoint *gp);
+    virtual void surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &dxdksi,FloatArray &dxdeta, int iSurf, GaussPoint *gp, TimeStep *tStep);
+    void surfaceEvalDeformedNormalAt_fromU(FloatArray &answer, FloatArray &dxdeta, FloatArray &dxdksi, int iSurf, GaussPoint *gp, TimeStep *tStep, const FloatArray &vU);
+    virtual void surfaceEvalNormalAt(FloatArray &answer, FloatArray &dxdeta, FloatArray &dxdksi, int iSurf, GaussPoint *gp, TimeStep *tStep);
+
+    virtual IntegrationRule* surfaceGiveIntegrationRule(int order, int iSurf) { return this->giveInterpolation()->giveBoundaryEdgeIntegrationRule(order, iSurf);}
+    void  surfaceEvalNumericalStiffMatrixAt(FloatMatrix &answer,FloatMatrix &dNdx, FloatArray &dxdeta, FloatArray &dxdxi, int iSurf, GaussPoint *gp, TimeStep *tStep);
+
 };
 
 

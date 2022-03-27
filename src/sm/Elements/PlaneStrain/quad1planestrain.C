@@ -655,4 +655,13 @@ Quad1PlaneStrain :: SPRNodalRecoveryMI_givePatchType()
     return SPRPatchType_2dxy;
 }
 
+
+
+void
+Quad1PlaneStrain :: surfaceEvaldNdxi(FloatMatrix &answer, int iSurf, GaussPoint *gp)
+{;}
+void
+Quad1PlaneStrain :: surfaceEvalDeformedNormalAt(FloatArray &answer, FloatArray &dxdksi,FloatArray &dxdeta, int iSurf, GaussPoint *gp, TimeStep *tStep)
+{;}
+
 } // end namespace oofem

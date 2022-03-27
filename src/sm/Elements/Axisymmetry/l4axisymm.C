@@ -58,7 +58,7 @@ REGISTER_Element(L4Axisymm);
 FEI2dQuadLinAxi L4Axisymm :: interpolation(1, 2);
 
 L4Axisymm :: L4Axisymm(int n, Domain *aDomain) :
-    AxisymElement(n, aDomain), ZZNodalRecoveryModelInterface(this), SpatialLocalizerInterface(this), PressureFollowerLoadElementInterface(this)
+    AxisymElement(n, aDomain), ZZNodalRecoveryModelInterface(this), SpatialLocalizerInterface(this)
 {
     numberOfDofMans  = 4;
     numberOfGaussPoints = 4;
@@ -83,8 +83,6 @@ L4Axisymm :: giveInterface(InterfaceType interface)
         return static_cast< SPRNodalRecoveryModelInterface * >(this);
     } else if ( interface == SpatialLocalizerInterfaceType ) {
         return static_cast< SpatialLocalizerInterface * >(this);
-    } else if ( interface == PressureFollowerLoadElementInterfaceType) {
-        return static_cast< PressureFollowerLoadElementInterface* >(this);
     }
     
     return NULL;

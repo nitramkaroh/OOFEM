@@ -219,6 +219,13 @@ FEI2dQuadQuad :: edgeEvaldNds(FloatArray &answer, int iedge,
 }
 
 void
+FEI2dQuadQuad :: edgeEvaldNdxi(FloatArray &answer, int iedge,
+                              const FloatArray &lcoords, const FEICellGeometry &cellgeo)
+{
+  this->edgeEvaldNds(answer,iedge,lcoords,cellgeo);
+}
+
+void
 FEI2dQuadQuad :: edgeLocal2global(FloatArray &answer, int iedge,
                                   const FloatArray &lcoords, const FEICellGeometry &cellgeo)
 {

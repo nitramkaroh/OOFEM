@@ -54,7 +54,8 @@ REGISTER_Element(TrMembrane);
 FEI2dTrLin TrMembrane :: interpolation(1, 2);
 
 TrMembrane :: TrMembrane(int n, Domain *aDomain) :
-    TrPlaneStress2d(n, aDomain), PressureFollowerLoadElementInterface(this)
+    TrPlaneStress2d(n, aDomain)
+    //, PressureFollowerLoadElementInterface(this)
     // Constructor.
 {
     numberOfDofMans  = 4;
@@ -176,6 +177,7 @@ TrMembrane :: computeDeformationGradientVector(FloatArray &answer, GaussPoint *g
 
 
 // support for pressure follower load interface
+  /*
 Interface*
 TrMembrane :: giveInterface(InterfaceType interface)
 {
@@ -184,7 +186,7 @@ TrMembrane :: giveInterface(InterfaceType interface)
     }
     return NULL;
 }
-
+*/
 
 void
 TrMembrane :: computeNmatrixAt(const FloatArray &iLocCoord, FloatMatrix &answer)

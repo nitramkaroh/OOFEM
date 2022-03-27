@@ -333,6 +333,7 @@ QuadMembraneSE :: giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, 
 
  
 // support for pressure follower load interface
+/*
 Interface*
 QuadMembraneSE :: giveInterface(InterfaceType interface)
 {
@@ -341,7 +342,7 @@ QuadMembraneSE :: giveInterface(InterfaceType interface)
     }
     return NULL;
 }
-
+*/
 
 void
 QuadMembraneSE :: computeNmatrixAt(const FloatArray &iLocCoord, FloatMatrix &answer)

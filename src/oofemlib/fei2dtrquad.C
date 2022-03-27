@@ -252,6 +252,18 @@ FEI2dTrQuad :: edgeEvaldNds(FloatArray &answer, int iedge,
     };
 }
 
+
+void FEI2dTrQuad :: edgeEvaldNdxi(FloatMatrix &answer, int iedge, const FloatArray &lcoords, const FEICellGeometry &cellgeo)
+{
+  double xi = lcoords.at(1);
+  answer = {{
+        ( xi - 0.5 ),
+        ( xi + 0.5 ),
+        -2 * xi
+    }};
+ 
+}
+
 double FEI2dTrQuad :: edgeEvalNormal(FloatArray &normal, int iedge, const FloatArray &lcoords, const FEICellGeometry &cellgeo)
 {
     IntArray edgeNodes;

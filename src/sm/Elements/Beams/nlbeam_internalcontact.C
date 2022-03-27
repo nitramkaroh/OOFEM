@@ -39,6 +39,15 @@ NlBeamInternalContact :: initializeFrom(InputRecord *ir)
     IR_GIVE_FIELD(ir, DX, _IFT_NlBeamInternalContact_dx );
     IR_GIVE_FIELD(ir, friction, _IFT_NlBeamInternalContact_Friction );
 
+
+    auto nodeA  = this->giveNode(1);
+    auto nodeB  = this->giveNode(2);
+    FloatArray pointA({nodeA->giveCoordinate(1), nodeA->giveCoordinate(3)});
+    FloatArray pointB({nodeB->giveCoordinate(1), nodeB->giveCoordinate(3)});
+    
+    cosAlpha = (pointB.at(1) - pointA.at(1))/beamLength;
+    sinAlpha = (pointB.at(2) - pointA.at(2))/beamLength;
+    
     return IRRT_OK;
 
 
@@ -557,9 +566,11 @@ NlBeamInternalContact :: findLeftEndForcesLocal_Tip(FloatArray &ub_target, Float
 
   // sliding is assumed
   trialProcess = PT_Slide;
-  if (tipIsOnRightSegment)
+  if (tipIsOnRightSegment) {
+    Lac = trialLeftActiveSegmentLength;
     success = findLeftEndForcesLocal_Tip_SoS(ub_target, fab, Lac, rightSegmentLength, cmode, 1, Nca, Qca, deltaPhi);
-  else {
+  }  else {
+    Lac = trialRightActiveSegmentLength;
     success = findLeftEndForcesLocal_Tip_SoS(ua_target, fba, Lac, leftSegmentLength, cmode, 1, Nca, Qca, deltaPhi);
     deltaPhi = -deltaPhi; // compensating for swapped segments
   }
@@ -762,11 +773,6 @@ NlBeamInternalContact :: findLeftEndForcesLocal_Smooth(FloatArray &ub_target, Fl
       fab = fab_init;
     } else { // sticking solution has been found, now let us see whether it is admissible
       double fc = evalContactLoadingFunction(Nc, Qc, cmode);
-      if (fc>0.) {
-	printf(" The solution violates the contact conditions\n");
-      } else {
-	printf("The solution is admissible\n");     
-      }
       if (fc<=0.){ // admissible solution
 	trialLeftActiveSegmentLength = Lac;
 	trialRightActiveSegmentLength = Lbc;
@@ -997,9 +1003,26 @@ void
 NlBeamInternalContact :: construct_T(FloatMatrix &T, double phia)
 {
   T.resize(3,3);
+  T.at(1,1) = T.at(2,2) = cosAlpha*cos(phia) + sinAlpha*sin(phia);
+  T.at(1,2) =  sinAlpha *cos(phia) - cosAlpha * sin(phia);
+  T.at(2,1) = - T.at(1,2);
+  T.at(3,3) = 1.;
+  /*
+  T.resize(3,3);
   T.at(1,1) = T.at(2,2) = cos(alpha-phia);
   T.at(1,2) = sin(alpha-phia);
   T.at(2,1) = -T.at(1,2);
+  T.at(3,3) = 1.;
+  */
+}
+
+void
+NlBeamInternalContact :: construct_T(FloatMatrix &T, double phia, double rot)
+{
+  T.resize(3,3);
+  T.at(1,1) = T.at(2,2) = (cosAlpha*cos(rot) + sinAlpha*sin(rot))*cos(phia) + (sinAlpha*cos(rot)-cosAlpha*sin(rot))*sin(phia);
+  T.at(1,2) =  (sinAlpha*cos(rot)-cosAlpha*sin(rot)) *cos(phia) - (cosAlpha*cos(rot)+sinAlpha*sin(rot)) * sin(phia);
+  T.at(2,1) = - T.at(1,2);
   T.at(3,3) = 1.;
 }
 
@@ -1007,10 +1030,16 @@ NlBeamInternalContact :: construct_T(FloatMatrix &T, double phia)
 void
 NlBeamInternalContact :: construct_Tprime(FloatMatrix &T, double phia)
 {
+    T.resize(3,3);
+  T.at(1,1) = T.at(2,2) = sinAlpha *cos(phia) - cosAlpha*sin(phia);
+  T.at(1,2) = -cosAlpha*cos(phia) - sinAlpha*sin(phia);
+  T.at(2,1) = -T.at(1,2);
+  /*
   T.resize(3,3);
   T.at(1,1) = T.at(2,2) = sin(alpha-phia);
   T.at(1,2) = -cos(alpha-phia);
   T.at(2,1) = -T.at(1,2);
+  */
 
 }
 
@@ -1039,16 +1068,17 @@ NlBeamInternalContact :: construct_lprime(FloatArray &l, double phia)
 
 
 bool
-NlBeamInternalContact :: findLeftEndForces(FloatArray &u, FloatArray &u_prev, FloatArray &fab)
+NlBeamInternalContact :: findLeftEndForces(const FloatArray &u, const FloatArray &u_prev, FloatArray &fab)
 {
   FloatArray ub_loc(3), ub_prev_loc(3), fab_loc(3);
   FloatMatrix T(3,3), T_prev(3,3);
   double phia = u.at(3);
   double phia_prev = u_prev.at(3);
- 
+  Process = trialProcess = PT_Unknown;
   // compute displacements of the right end with respect to the auxiliary coordinate system
-  construct_l(ub_loc, phia);
-  construct_l(ub_prev_loc, phia_prev);
+  FloatArray l_ub_loc, l_ub_prev_loc;
+  construct_l(l_ub_loc, phia);
+  construct_l(l_ub_prev_loc, phia_prev);
   construct_T(T, phia); 
   construct_T(T_prev, phia_prev);
 
@@ -1063,16 +1093,19 @@ NlBeamInternalContact :: findLeftEndForces(FloatArray &u, FloatArray &u_prev, Fl
   uprev_ba.beDifferenceOf(uprev_b, uprev_a);
 
   ub_loc.beProductOf(T, u_ba);
+  ub_loc.add(l_ub_loc);
   ub_prev_loc.beProductOf(T_prev,uprev_ba);
+  ub_prev_loc.add(l_ub_prev_loc);
   fab_loc.beProductOf(T,fab);
   // compute the corresponding left-end forces and moment in the auxiliary coordinate system
   if(!findLeftEndForcesLocal(ub_loc, ub_prev_loc, fab_loc)) {
     return false;
   }
-  contactMode = trialContactMode;
+  //@todo: comment the following 3 lines???
+  /*  contactMode = trialContactMode;
   leftActiveSegmentLength = trialLeftActiveSegmentLength;
   rightActiveSegmentLength = trialRightActiveSegmentLength;
-
+  */
   fab.beTProductOf(T,fab_loc);
   return true;
 }
@@ -1090,10 +1123,11 @@ NlBeamInternalContact :: giveInternalForcesVector(FloatArray &answer, TimeStep *
      is evaluated after previous evaluation of internal forces for the same iterated increment.
   */
   answer.resize(6);
+  FloatArray u;
+  this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, u);
   if(!useUpdatedGpRecord) {
     // solution vector
-    FloatArray u, ui, u_prev, f(3);
-    this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, u);
+    FloatArray ui, u_prev, f(3);
     this->computeVectorOf({D_u, D_w, R_v}, VM_Incremental, tStep, ui);
     u_prev = u - ui;
     Process = trialProcess = PT_Unknown;
@@ -1111,36 +1145,55 @@ NlBeamInternalContact :: giveInternalForcesVector(FloatArray &answer, TimeStep *
   
 }
 
+
+void
+NlBeamInternalContact :: giveInternalForcesVector_fromU(FloatArray &answer, TimeStep *tStep, FloatArray &u, FloatArray &u_prev)
+{
+  /* When evaluating the end forces "from scratch", we set the process status to unknown.
+     The algorithm always tries sticking first and if the solution is not admissible or not found,
+     it proceeds to the sliding assumption. This is always the case when we call findEndForces.
+     However, it is also possible to call directly findLeftEndForces and then, if the process
+     status has been previously detected and stored, the algorithm skips the sticking/rolling part
+     in cases when it is know that the actual process is sliding. This is used when the stiffness
+     is evaluated after previous evaluation of internal forces for the same iterated increment.
+  */
+  answer.resize(6);
+  FloatArray f(3);
+  this->findLeftEndForces(u, u_prev, f); // only the first three entries of f are computed
+    answer.at(1) = f.at(1);
+    answer.at(2) = f.at(2);
+    answer.at(3) = f.at(3);  
+    answer.at(4) = -answer.at(1);
+    answer.at(5) = -answer.at(2);
+    double c1 = beamLength*sin(pitch) + u.at(5) - u.at(2);
+    double c2 = -beamLength*cos(pitch) - u.at(4) + u.at(1);
+    answer.at(6) = c1 * answer.at(1) + c2 * answer.at(2) - answer.at(3);
+  
+}
+
+
 void
 NlBeamInternalContact :: computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode rMode, TimeStep *tStep)
 {
   answer.resize(6,6);
-  FloatArray u(6), ui(6), u_prev(6), f(6);
+  FloatArray u(6), ui(6), u_prev(6);
   this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, u);
   this->computeVectorOf({D_u, D_w, R_v}, VM_Incremental, tStep, ui);
   u_prev  = u - ui;
   double L, L_prev;
   FloatArray lprime(3), fab_loc(3), ub_loc(3), Tu(3), fab(3);
   FloatMatrix T(3,3), Tprime(3,3), Ginv(3,3), Ginv44(4,4), TtGinv(3,3);
-
-  stiffEvalMode = true;
-  //@todo: solve how to get fab for stiffness calculation
-  //bool success = findLeftEndForces(u, u_prev, fab);
-  stiffEvalMode = false;
-  /*if (!success) {
-    return;
-    }*/
-
+  //  FloatArray f(6);
+  // @todo: check this
+  fab = this->internalForces;
+  //bool s = findLeftEndForces(u, u_prev, fab);
   // compute auxiliary matrices
   double phia = u.at(3);
   construct_T(T, phia); 
   construct_Tprime(Tprime, phia); 
   construct_lprime(lprime, phia);
-
-  
+  //  
   fab_loc.beProductOf(T,fab);
-  
-
   // get Jacobi matrix in local coordinates and invert it
   switch (trialContactMode) {
     // smooth modes
@@ -1168,7 +1221,6 @@ NlBeamInternalContact :: computeStiffnessMatrix(FloatMatrix &answer, MatResponse
     return;
     // this should never happen
   default:
-    //@todo: fix it
     Ginv.beSubMatrixOf(Kblock,1,3,1,3);
     //comment OOFEM_ERROR("Mode %d has not been implemented yet in evalStiffnessMatrix\n",trialContactMode);
   }
@@ -1196,16 +1248,49 @@ NlBeamInternalContact :: computeStiffnessMatrix(FloatMatrix &answer, MatResponse
   col3_2.beTProductOf(Tprime, fab_loc);
   answer.addSubVectorCol(col3_1, 1,3);
   answer.addSubVectorCol(col3_2, 1,3);
+			      
   // construct the sixth row (complete formula)
-  double c1 = beamLength*sin(alpha) + u.at(5) - u.at(2);
-  double c2 = -beamLength*cos(alpha) - u.at(4) + u.at(1);
+  double c1 = beamLength*sinAlpha + u.at(5) - u.at(2);
+  double c2 = -beamLength*cosAlpha - u.at(4) + u.at(1);
   answer.at(6,1) =  fab.at(2);
   answer.at(6,2) = -fab.at(1);
   answer.at(6,4) = -fab.at(2);
   answer.at(6,5) =  fab.at(1);
   for(int j = 1; j <= 6; j++) {
+    answer.at(4,j) = - answer.at(1,j);
+    answer.at(5,j) = - answer.at(2,j);
     answer.at(6,j) += c1 * answer.at(1,j) + c2 * answer.at(2,j) - answer.at(3,j);
   }
+
+  //compute the stiffness matrix numerically
+  double du = 1.e-6; // small perturbation for numerical evaluation of stiffness
+  FloatArray f;
+  f = this->internalForces;
+  FloatMatrix f_pert(6,6), Knum(6,6);
+
+  for (int i=1; i<=6; i++){
+    u.at(i) += du;
+    this->giveInternalForcesVector_fromU(f, tStep, u, u_prev);
+    u.at(i) -= du;
+    for (int j=1; j<=6; j++){
+      f_pert.at(j,i) = f.at(j);
+    }
+  }
+  this->giveInternalForcesVector_fromU(f, tStep, u, u_prev);
+
+  double stifferr = 0;
+  double stiffdiagsum = 0;
+  for (int i=1; i<=6; i++){
+    for (int j=1; j<=6; j++){
+      Knum.at(i,j) = (f_pert.at(i,j)-f.at(i))/du;
+      stifferr += fabs(Knum.at(i,j)-answer.at(i,j));
+      if (i==j) {
+	stiffdiagsum += answer.at(i,j);
+      }
+    }
+  }
+  double ei = stifferr/stiffdiagsum;
+
 
 }
 
@@ -1222,6 +1307,14 @@ Interface *NlBeamInternalContact :: giveInterface(InterfaceType it)
 }
 
 void
+NlBeamInternalContact :: printOutputAt(FILE *file, TimeStep *tStep)
+{
+  NlBeam_SM :: printOutputAt(file, tStep);
+  fprintf(file, " Contact Mode %d  ", this->contactMode);
+}
+
+
+void
 NlBeamInternalContact :: giveCompositeExportData(std::vector< VTKPiece > &vtkPieces, IntArray &primaryVarsToExport, IntArray &internalVarsToExport, IntArray cellVarsToExport, TimeStep *tStep )
 {
   //two segments
@@ -1229,89 +1322,179 @@ NlBeamInternalContact :: giveCompositeExportData(std::vector< VTKPiece > &vtkPie
   
   FloatArray ul, xLeft, xRight;
   FloatMatrix uMatrixLeft, uMatrixRight, T;
-  ul.resize(2);
-  T = {{1, 0},{0, 1}};
-  this->computeSegmentDisplacements(uMatrixLeft,this->internalForces, leftActiveSegmentLength, leftSegmentLength, u, T );
-  FloatArray uab, ub(3);
+  FloatArray uab, ua(3),ub(3);
   this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, uab);
+  ua.beSubArrayOf(uab,{1,2,3});
   ub.beSubArrayOf(uab,{4,5,6});
+  //
   ///
-  u.at(1) = beamLength+ub.at(1);
-  u.at(2) = ub.at(2);
+  u.at(1) = ua.at(1);
+  u.at(2) = ua.at(2);
+  //
+  Node *nodeA = this->giveNode(1);
+  ul.resize(2);
+  construct_T(T, uab.at(3));
+  FloatMatrix Tt;
+  Tt.beTranspositionOf(T);    
+  this->computeSegmentDisplacements(uMatrixLeft,this->internalForces, leftActiveSegmentLength, leftSegmentLength, u, Tt );
+  /// 
+  Node *nodeB = this->giveNode(2);
+  u.at(1) = nodeB->giveCoordinate(1)+ub.at(1);
+  u.at(2) = nodeB->giveCoordinate(3)+ub.at(2);
   double alphab = M_PI + ub.at(3);
-  double c = cos(alphab);
-  double s = sin(alphab);
-  T = {{c, -s},{s, c}};
+  //construct_T(T, alphab, M_PI);
+  construct_T(T, alphab);
+  Tt.beTranspositionOf(T);
   // transformation of forces and moment
   FloatArray f;
   transform_fab2fba(ub, this->internalForces, f);
-  this->computeSegmentDisplacements(uMatrixRight,this->internalForces, leftActiveSegmentLength, leftSegmentLength, u, T );
+  this->computeSegmentDisplacements(uMatrixRight,f, rightActiveSegmentLength, rightSegmentLength, u, Tt );
+
+
+  const int numCellNodes  = 2; // linear line
+  //
+  int numCellsLeft = ceil(leftActiveSegmentLength/DX);
+  int nNodesLeft = numCellsLeft * numCellNodes;
+  vtkPieces.at(0).setNumberOfCells(numCellsLeft);
+  vtkPieces.at(0).setNumberOfNodes(nNodesLeft);
+  //
+  int numCellsRight = ceil(rightActiveSegmentLength/DX);
+  int nNodesRight = numCellsRight * numCellNodes;
+  vtkPieces.at(1).setNumberOfCells(numCellsRight);
+  vtkPieces.at(1).setNumberOfNodes(nNodesRight);
+  //
+  /// Piece 0
+  int val    = 1;
+  int offset = 0;
+  IntArray nodes(numCellNodes);
+  this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, uab);
+  int nodeNum = 1;
+  FloatArray nodeCoords(3);
+  IntArray connectivity(2);
+  for ( int iElement = 1; iElement <= numCellsLeft; iElement++ ) {
+    for (int iNode = 1; iNode <= numCellNodes; iNode++) {
+      //double L = (iElement-1) * DX + (iNode -1) * DX;
+      nodeCoords.at(1) = nodeA->giveCoordinate(1);// + L * cosAlpha;
+      nodeCoords.at(2) = 0;
+      nodeCoords.at(3) = nodeA->giveCoordinate(3);// + L * sinAlpha;
+      //
+      vtkPieces.at(0).setNodeCoords(nodeNum, nodeCoords);
+      nodeNum++;
+      connectivity.at(iNode) = val++;
+    }
+    vtkPieces.at(0).setConnectivity(iElement, connectivity);
+    offset += 2;
+    vtkPieces.at(0).setOffset(iElement, offset);
+    vtkPieces.at(0).setCellType(iElement, 3);
+  }
+  /// Piece 1
+  nodeNum = 1;
+  val    = 1;
+  offset = 0;
+  for ( int iElement = 1; iElement <= numCellsRight; iElement++ ) {
+    for (int iNode = 1; iNode <= numCellNodes; iNode++) {
+      //double L = (iElement-1) * DX + (iNode -1) * DX;
+      nodeCoords.at(1) = 0;//nodeB->giveCoordinate(1) + L * cos(pitch + M_PI);
+      nodeCoords.at(2) = 0;
+      nodeCoords.at(3) = 0;//nodeB->giveCoordinate(3) + L * sin(pitch + M_PI);
+      //
+      vtkPieces.at(1).setNodeCoords(nodeNum, nodeCoords);
+      nodeNum++;
+      connectivity.at(iNode) = val++;
+    }
+    vtkPieces.at(1).setConnectivity(iElement, connectivity);
+    offset += 2;
+    vtkPieces.at(1).setOffset(iElement, offset);
+    vtkPieces.at(1).setCellType(iElement, 3);
+  }
+
 
   
-  ///???
-  int numCells = this->NIP;
-  const int numCellNodes  = 2; // linear line
-  int nNodes = numCells * numCellNodes;
-  int nNodesLeft, nNodesRight;
-
-    vtkPieces.at(1).setNumberOfCells(numCells);
-    vtkPieces.at(1).setNumberOfNodes(nNodes);
-
-    int val    = 1;
-    int offset = 0;
-    IntArray nodes(numCellNodes);
-    Node *nodeA = this->giveNode(1);
-
-    this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, uab);
-    int nodeNum = 1;
-    FloatArray nodeCoords(3);
-    IntArray connectivity(2);
-    for ( int iElement = 1; iElement <= numCells; iElement++ ) {
-      for (int iNode = 1; iNode <= numCellNodes; iNode++) {
-	vtkPieces.at(0).setNodeCoords(nodeNum, nodeCoords);
-	nodeNum++;
-	connectivity.at(iNode) = val++;
-      }
-      vtkPieces.at(0).setConnectivity(iElement, connectivity);
-      offset += 2;
-      vtkPieces.at(0).setOffset(iElement, offset);
-      vtkPieces.at(0).setCellType(iElement, 3);
-    }
-
 
     int n = primaryVarsToExport.giveSize();
-    vtkPieces [ 0 ].setNumberOfPrimaryVarsToExport(n, nNodes);
+    vtkPieces [ 0 ].setNumberOfPrimaryVarsToExport(n, nNodesLeft);
+    vtkPieces [ 1 ].setNumberOfPrimaryVarsToExport(n, nNodesRight);
     for ( int i = 1; i <= n; i++ ) {
         UnknownType utype = ( UnknownType ) primaryVarsToExport.at(i);
         if ( utype == DisplacementVector ) {
 	  for ( int nN = 1; nN <= nNodesLeft; nN++ ) {
-	    FloatArray u;
-	    u.at(1) = uMatrixLeft.at(nN, 1);
-	    u.at(2) = uMatrixLeft.at(nN, 2);
-	    u.at(3) = 0;
+	    int lN = nN % 2;
+	    int iNode;
+	    if(lN == 0) {
+	      iNode = nN/2 + 1;
+	    } else {
+	      iNode = (nN + 1) / 2;
+	    }
+
+	    FloatArray u(3);
+	    u.at(1) = uMatrixLeft.at(iNode, 1);
+	    u.at(3) = uMatrixLeft.at(iNode, 2);
 	    vtkPieces.at(0).setPrimaryVarInNode(i, nN, u);
 	  }
 	  for ( int nN = 1; nN <= nNodesRight; nN++ ) {
-	    FloatArray u;
-	    u.at(1) = uMatrixRight.at(nN, 1);
-	    u.at(2) = uMatrixRight.at(nN, 2);
-	    u.at(3) = 0;
+	    int lN = nN % 2;
+	    int iNode;
+	    if(lN == 0) {
+	      iNode = nN/2 + 1;
+	    } else {
+	      iNode = (nN + 1) / 2;
+	    }
+
+	    FloatArray u(3);
+	    u.at(1) = uMatrixRight.at(iNode, 1);
+	    u.at(3) = uMatrixRight.at(iNode, 2);
+
 	    vtkPieces.at(1).setPrimaryVarInNode(i, nN, u);
 	  }
         }
     }
+    /*
+    FILE *FIDL, *FIDR;
 
-  
+    char fext[100];
+    sprintf( fext, "_m%d_%d", this->number, tStep->giveNumber() );
+    std :: string fileName, functionname, temp;
+    fileName = this->giveDomain()->giveEngngModel()->giveOutputBaseFileName();
+    size_t foundDot;
+    foundDot = fileName.rfind(".");
+    
+    while (foundDot != std :: string :: npos) {
+      fileName.replace(foundDot, 1, "_");
+      foundDot = fileName.rfind(".");   
+    }
+    
+    fileName += fext;
+    temp = fileName;
+    size_t backslash = temp.rfind("/");
+    if (backslash != std :: string :: npos ) {
+      functionname = temp.substr(backslash+1, std :: string :: npos);
+    } else {
+      functionname = temp;
+    }
+
+    std :: string fileNameL(fileName), fileNameR(fileName);    
+    fileNameL += "Left.out";
+    fileNameR += "Right.out";
+    if ( ( FIDL = fopen(fileNameL.c_str(), "w") ) == NULL ) {
+      OOFEM_ERROR("failed to open file %s", fileName.c_str() );
+    }
+    if ( ( FIDR = fopen(fileNameR.c_str(), "w") ) == NULL ) {
+      OOFEM_ERROR("failed to open file %s", fileName.c_str() );
+    }
+    uMatrixLeft.printYourself(FIDL);
+    uMatrixRight.printYourself(FIDR);
+
+    fclose(FIDL);
+    fclose(FIDR);  
+    */
 
 }
 
 void
 NlBeamInternalContact ::computeSegmentDisplacements(FloatMatrix &uMatrix, const FloatArray &fab, double Lb, double segmentLength, const FloatArray &u0, const FloatMatrix &T)
 {
-  double Lc;
   FloatArray ub, uc, uplot;
   bool inflection_detected = false;
-  int i, j, istep = 0;
   double aux;
   
   // initialization at the left end
@@ -1323,14 +1506,12 @@ NlBeamInternalContact ::computeSegmentDisplacements(FloatMatrix &uMatrix, const 
 
   double x = 0.;
   FloatArray u(3), u_prev(3);
-
-
-  uMatrix.at(1,1) = u0.at(1) + T.at(1,1)*(x+u.at(1)) + T.at(1,2)*u.at(2);
-  uMatrix.at(1,2) = u0.at(2) + T.at(2,1)*(x+u.at(1)) + T.at(2,2)*u.at(2);
-  
   // basic loop over spatial steps
   int nstep = ceil(Lb/DX); // the spatial step size is fixed and the segment length does not need to be its integer multiple
-  for (istep=1; istep<=nstep; istep++){
+  uMatrix.resize(nstep+1, 2);
+  uMatrix.at(1,1) = u0.at(1) + T.at(1,1)*(x+u.at(1)) + T.at(1,2)*u.at(2);
+  uMatrix.at(1,2) = u0.at(2) + T.at(2,1)*(x+u.at(1)) + T.at(2,2)*u.at(2);
+  for (int istep=1; istep<=nstep; istep++){
     x += DX;
     u_prev = u;
     // rotation at midstep and its derivatives with respect to the left-end forces
@@ -1356,21 +1537,22 @@ NlBeamInternalContact ::computeSegmentDisplacements(FloatMatrix &uMatrix, const 
     if (istep==nstep){
       // displacements and rotation at Lb by linear interpolation within the last step
       aux = Lb/DX - (nstep-1);
-      for (i=1; i<=3; i++) {
+      ub.resize(3);
+      for (int i=1; i<=3; i++) {
 	ub.at(i) = u_prev.at(i) + aux*(u.at(i)-u_prev.at(i));
       }
   
-      uMatrix.at(istep, 1) = u0.at(1) + T.at(1,1)*(Lb+ub.at(1)) + T.at(1,2)*ub.at(2) - x;
-      uMatrix.at(istep, 2) = u0.at(2) + T.at(2,1)*(Lb+ub.at(1)) + T.at(2,2)*ub.at(2);
+      uMatrix.at(istep+1, 1) = u0.at(1) + T.at(1,1)*(Lb+ub.at(1)) + T.at(1,2)*ub.at(2);
+      uMatrix.at(istep+1, 2) = u0.at(2) + T.at(2,1)*(Lb+ub.at(1)) + T.at(2,2)*ub.at(2);
       // plot also the straight segment behind the contact point, if it exists
       double Lstraight = segmentLength - Lb;
       if (Lstraight>0.){
-	uMatrix.at(istep+1, 1) = u0.at(1) + T.at(1,1)*(Lb+ub.at(1)+Lstraight*cos(ub.at(3))) + T.at(1,2)*(ub.at(2)-Lstraight*sin(ub.at(3))) - x ;
+	uMatrix.at(istep+1, 1) = u0.at(1) + T.at(1,1)*(Lb+ub.at(1)+Lstraight*cos(ub.at(3))) + T.at(1,2)*(ub.at(2)-Lstraight*sin(ub.at(3))) ;
 	uMatrix.at(istep+1, 2) = u0.at(2) + T.at(2,1)*(Lb+ub.at(1)+Lstraight*cos(ub.at(3))) + T.at(2,2)*(ub.at(2)-Lstraight*sin(ub.at(3)));
       }
     } else {
-      uMatrix.at(istep, 1) = u0.at(1) + T.at(1,1)*(x+u.at(1)) + T.at(1,2)*ub.at(2) - x;
-      uMatrix.at(istep, 2) = u0.at(2) + T.at(2,1)*(x+u.at(1)) + T.at(2,2)*ub.at(2);
+      uMatrix.at(istep+1, 1) = u0.at(1) + T.at(1,1)*(x+u.at(1)) + T.at(1,2)*u.at(2);
+      uMatrix.at(istep+1, 2) = u0.at(2) + T.at(2,1)*(x+u.at(1)) + T.at(2,2)*u.at(2);
     }
   } // end of loop over spatial steps
   

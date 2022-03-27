@@ -36,7 +36,7 @@
 #define quadmembrane_h
 
 #include "planstrss.h"
-#include "Loads/pressurefollowerloadinterface.h"
+//#include "Loads/pressurefollowerloadinterface.h"
 
 #define _IFT_QuadMembrane_Name "quadmembrane"
 
@@ -47,7 +47,8 @@ class FEI2dQuadLin;
  * This class implements an isoparametric four-node quadrilateral plane-
  * stress membrane finite element. Each node has 3 degrees of freedom.
  */
- class QuadMembrane : public PlaneStress2d, public PressureFollowerLoadElementInterface
+ class QuadMembrane : public PlaneStress2d
+ //, public PressureFollowerLoadElementInterface
 {
 protected:
     static FEI2dQuadLin interpolation;
@@ -57,7 +58,7 @@ public:
     virtual ~QuadMembrane();
 
 
-      virtual FEInterpolation *giveInterpolation() const;
+    virtual FEInterpolation *giveInterpolation() const;
       void computeNmatrixAt(const FloatArray &iLocCoord, FloatMatrix &answer);
     // definition & identification
     virtual const char *giveInputRecordName() const { return _IFT_QuadMembrane_Name; }
@@ -71,7 +72,7 @@ public:
 
 
     // support for pressure follower load interface
-    virtual Interface *giveInterface(InterfaceType it);
+    //virtual Interface *giveInterface(InterfaceType it);
 
     virtual double surfaceEvalVolumeAround(GaussPoint *gp, int iSurf){return this->computeSurfaceVolumeAround(gp, iSurf);}
     virtual void surfaceEvalNmatrixAt(FloatMatrix &answer, int iSurf, GaussPoint *gp){this->computeNmatrixAt(gp->giveNaturalCoordinates(),answer);}

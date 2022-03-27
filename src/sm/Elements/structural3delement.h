@@ -54,6 +54,7 @@ class IntArray;
  *
  * @author Jim Brouzoulis
  * @author Mikael Öhman
+ * @author Martin Horák
  */
  class Structural3DElement : public NLStructuralElement, FbarElementExtensionInterface, PressureFollowerLoadElementInterface
 {
