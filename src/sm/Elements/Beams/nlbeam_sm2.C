@@ -873,13 +873,14 @@ NlBeam_SM2 :: giveInternalForcesVectorPressure_from_u(FloatArray &answer, TimeSt
    // transform left-end forces to local coordinates
    fab_loc.beProductOf(T, this->internalForces);
    //@todo:remove the following 2 lines
-   /*this->findLeftEndForces(u, fab, tStep);
+   /*
+   this->findLeftEndForces(u, fab, tStep);
    fab_loc.beProductOf(T, fab);
    */
    // get Jacobi matrix in local coordinates (ub_loc is dummy, will not be used)
    integrateAlongBeamAndGetJacobi(fab_loc, ub_loc, G, tStep);
    //compute the jacobi matrix numerically
-   FloatArray fnum, upert;
+   /*FloatArray fnum, upert;
    FloatMatrix Gp(3,3), Gn(3,3);
    double pert = 1.2e-3;
    for(int i = 1; i <= 3; i++) {
@@ -892,7 +893,7 @@ NlBeam_SM2 :: giveInternalForcesVectorPressure_from_u(FloatArray &answer, TimeSt
      }
    }
    Gn.times(1./pert);
-   
+   */
    //   
    Ginv.beInverseOf(G);
    // compute product Ttransposed*Ginverse
@@ -946,10 +947,10 @@ NlBeam_SM2 :: giveInternalForcesVectorPressure_from_u(FloatArray &answer, TimeSt
    answer.at(6,5) -= p * c1;
    
    // Numerical stiffness   
-   FloatMatrix K, Kp;
+   /*FloatMatrix K, Kp;
    this->computeStiffnessMatrix_num(K, Kp, rMode, tStep);
    int test = 1;
-   
+   */
    //   answer = K;
   
   

@@ -75,20 +75,17 @@ IRResultType GeneralSlaveNode :: initializeFrom(InputRecord *ir)
       IR_GIVE_FIELD(ir, masterWeights, _IFT_GeneralSlaveNode_masterWeights);
     }
     
-    
+    int index = 0;
     for( int j = 1; j <= masterSizes.giveSize(); j++ ) {
       IntArray dof_masterList(masterSizes.at(j));
       IntArray dof_dofsList(masterSizes.at(j));
       FloatArray dof_weightsList(masterSizes.at(j));
       
-      int ofset = 0;
-      if(j > 1) {
-	ofset = (j-1) * masterSizes.at(j-1);
-      }
       for( int i = 1; i <= masterSizes.at(j); i++ ) {
-	dof_masterList.at(i) =  masterList.at( 2 * (i + ofset) - 1 );
-	dof_dofsList.at(i) = masterList.at( 2 * (i + ofset) );
-	dof_weightsList.at(i) = masterWeights.at( i + ofset );
+	index++;
+	dof_masterList.at(i) =  masterList.at( 2 * index - 1 );
+	dof_dofsList.at(i) = masterList.at( 2 * index );
+	dof_weightsList.at(i) = masterWeights.at( index );
       }
       dofs_masterList.push_back(dof_masterList);
       dofs_dofsList.push_back(dof_dofsList);

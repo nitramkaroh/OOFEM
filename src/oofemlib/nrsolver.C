@@ -57,13 +57,6 @@
 #include <cstdio>
 
 
-#include <Eigen/Dense>
-#include <Eigen/Sparse>
-#include <Eigen/SparseQR>
-#include <Eigen/Eigenvalues>
-#include "inverseit.h"
-
-//#include "../../../eigen/Eigen/src/Eigenvalues/EigenSolver.h"
 namespace oofem {
 #define nrsolver_ERROR_NORM_SMALL_NUM 1.e-6
 #define NRSOLVER_MAX_REL_ERROR_BOUND 1.e20
@@ -72,7 +65,6 @@ namespace oofem {
 #define NRSOLVER_DEFAULT_NRM_TICKS 10
 
 REGISTER_SparseNonLinearSystemNM(NRSolver)
-using namespace Eigen;
 NRSolver :: NRSolver(Domain *d, EngngModel *m) :
     SparseNonLinearSystemNM(d, m), prescribedDofs(), prescribedDofsValues()
 {
@@ -313,45 +305,21 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
         converged = this->checkConvergence(RT, F, rhs, ddX, X, RRT, internalForcesEBENorm, nite, errorOutOfRangeFlag);
 
 	if(converged == true && eigControl) {
+	  // for now just writes stiffness matrix into a file
 	  engngModel->updateComponent(tStep, NonLinearLhs, domain);
 	  applyConstraintsToStiffness(k);
-	  GJacobi gj(domain,domain->giveEngngModel());
 	    
 	  FloatMatrix stiff;
 	  k.toFloatMatrix(stiff);
-
-	  FloatArray eigVal(stiff.giveNumberOfRows());
-	  FloatMatrix eigVec(stiff.giveNumberOfRows(),stiff.giveNumberOfRows());
-	  InverseIteration ii(domain, domain->giveEngngModel());
-	  if(tStep->giveNumber() == 40) {
-	    ii.solve(k,k,eigVal, eigVec, 1.e-5, 2465);
-	  }
-
-
 	  /////////////////////////////////////
 	  FILE *FID;
-	  char fext[100];
-	  sprintf( fext, "_m_%d", tStep->giveNumber() );
-	  std :: string fileName, functionname, temp;
-	  fileName = domain->giveEngngModel()->giveOutputBaseFileName();
-	  size_t foundDot;
-	  foundDot = fileName.rfind(".");
-	  
-	  while (foundDot != std :: string :: npos) {
-	    fileName.replace(foundDot, 1, "_");
-	    foundDot = fileName.rfind(".");   
-	  }
-	  
-	  fileName += fext;
-	  temp = fileName;
-	  size_t backslash = temp.rfind("/");
-	  if (backslash != std :: string :: npos ) {
-	    functionname = temp.substr(backslash+1, std :: string :: npos);
-	  } else {
-	    functionname = temp;
-	  }
+	  char tstep[100];
+	  sprintf( tstep, "_%d", tStep->giveNumber() );
+	  std :: string fileName;
  
-	  fileName += "StiffnessMatrix.m";
+	  fileName = "StiffnessMatrix";
+	  fileName += tstep;
+	  fileName += ".m";
 	  if ( ( FID = fopen(fileName.c_str(), "w") ) == NULL ) {
 	    OOFEM_ERROR("failed to open file %s", fileName.c_str() );
 	  }	  
@@ -368,30 +336,6 @@ NRSolver :: solve(SparseMtrx &k, FloatArray &R, FloatArray *R0,
 	  fprintf(FID, "];\n");
 	  fclose(FID);    
 	  //////////////////////////////////
-	  Eigen::MatrixXd eK = Eigen::Map<Eigen::MatrixXd, Eigen::Unaligned>( stiff.givePointer(), k.giveNumberOfRows(), k.giveNumberOfRows() );
-
-	  //EigenSolver<MatrixXd> es(eK);
-	  //MatrixXd D = es.eigenvalues().asDiagonal();
-	  //MatrixXd V = es.eigenvectors();
-
-
-	  
-	  FloatArray eval;
-	  FloatMatrix evec;
-	  bool er = stiff.jaco_(eval, evec, 4);
-	  double pert = 1.e-3;
-	  int iMin = eigVal.giveIndexMinElem();
-	  OOFEM_LOG_INFO("Min eigenvalue of stiffness is %f\n",eigVal.at(iMin));
-	  if(eval.at(iMin) < 0) {
-	    OOFEM_WARNING("In Eigenvalue of stiffness tensor is %f", eval.at(iMin));
-	    FloatArray v;
-	    v.beColumnOf(eigVec, iMin);
-	    dX.add(pert,v);
-	    converged = false;
-	  }
-
-	  //	  eigNumMethod->solve(*stiffnessMatrix, *initialStressMatrix, eigVal, eigVec, rtolv, numberOfRequiredEigenValues);
-	    
 	}
 	
 	if ( converged == true && errorOutOfRangeFlag == false && nite >= minIterations) {
