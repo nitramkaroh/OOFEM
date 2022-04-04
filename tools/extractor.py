@@ -80,7 +80,7 @@ timeStep_re = re.compile(r"""
         
 dofMan_re = re.compile(r"""
         ^           # beginning of line
-        (?:Node|RigidArmNode|HangingNode)\s*         # char string
+        (?:Node|RigidArmNode|HangingNode|GeneralSlaveNode)\s*         # char string
         (\d+).*         # node label
         """,re.X)
 
@@ -201,7 +201,7 @@ def elemKwdToString(kwd):
             
 # parses the extractor/checker input record
 def parse_input_rec (context, recline):
-    if re.search('^#(DOFMAN|NODE)', recline):
+    if re.search('^#(DOFMAN|NODE|GENERALSLAVENODE)', recline):
         if (mode == 'c'): tstep = float(getKeywordValue(context.infilename, recline, 'tStep'))
         else: tstep = 0
         try:
