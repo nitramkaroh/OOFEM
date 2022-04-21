@@ -163,10 +163,10 @@ public:
 
     // Overloaded methods:
     virtual IRResultType initializeFrom(InputRecord *ir);
-    virtual void giveInputRecord(DynamicInputRecord &input);
+    virtual void giveInputRecord(DynamicInputRecord &input) override;
 
-    virtual contextIOResultType saveContext(DataStream &stream, ContextMode mode, void *obj = NULL);
-    virtual contextIOResultType restoreContext(DataStream &stream, ContextMode mode, void *obj = NULL);
+    virtual contextIOResultType saveContext(DataStream &stream, ContextMode mode, void *obj = NULL) override;
+    virtual contextIOResultType restoreContext(DataStream &stream, ContextMode mode, void *obj = NULL) override;
 };
 } // end namespace oofem
 #endif // generalbc_h

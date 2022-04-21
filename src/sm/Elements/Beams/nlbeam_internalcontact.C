@@ -1102,10 +1102,10 @@ NlBeamInternalContact :: findLeftEndForces(const FloatArray &u, const FloatArray
     return false;
   }
   //@todo: comment the following 3 lines???
-  /*  contactMode = trialContactMode;
+  contactMode = trialContactMode;
   leftActiveSegmentLength = trialLeftActiveSegmentLength;
   rightActiveSegmentLength = trialRightActiveSegmentLength;
-  */
+  
   fab.beTProductOf(T,fab_loc);
   return true;
 }
@@ -1263,6 +1263,7 @@ NlBeamInternalContact :: computeStiffnessMatrix(FloatMatrix &answer, MatResponse
   }
 
   //compute the stiffness matrix numerically
+  /*
   double du = 1.e-6; // small perturbation for numerical evaluation of stiffness
   FloatArray f;
   f = this->internalForces;
@@ -1290,7 +1291,7 @@ NlBeamInternalContact :: computeStiffnessMatrix(FloatMatrix &answer, MatResponse
     }
   }
   double ei = stifferr/stiffdiagsum;
-
+  */
 
 }
 

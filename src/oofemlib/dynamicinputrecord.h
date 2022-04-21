@@ -95,20 +95,20 @@ public:
 
     virtual IRResultType giveRecordKeywordField(std :: string &answer, int &value);
     virtual IRResultType giveRecordKeywordField(std :: string &answer);
-    virtual IRResultType giveField(int &answer, InputFieldType id);
-    virtual IRResultType giveField(double &answer, InputFieldType id);
-    virtual IRResultType giveField(bool &answer, InputFieldType id);
-    virtual IRResultType giveField(std :: string &answer, InputFieldType id);
-    virtual IRResultType giveField(FloatArray &answer, InputFieldType id);
-    virtual IRResultType giveField(IntArray &answer, InputFieldType id);
-    virtual IRResultType giveField(FloatMatrix &answer, InputFieldType id);
-    virtual IRResultType giveField(std :: vector< std :: string > &answer, InputFieldType id);
-    virtual IRResultType giveField(Dictionary &answer, InputFieldType id);
-    virtual IRResultType giveField(std :: list< Range > &answer, InputFieldType id);
-    virtual IRResultType giveField(ScalarFunction &function, InputFieldType id);
+    virtual IRResultType giveField(int &answer, InputFieldType id) override;
+    virtual IRResultType giveField(double &answer, InputFieldType id) override;
+    virtual IRResultType giveField(bool &answer, InputFieldType id) override;
+    virtual IRResultType giveField(std :: string &answer, InputFieldType id) override;
+    virtual IRResultType giveField(FloatArray &answer, InputFieldType id) override;
+    virtual IRResultType giveField(IntArray &answer, InputFieldType id) override;
+    virtual IRResultType giveField(FloatMatrix &answer, InputFieldType id) override;
+    virtual IRResultType giveField(std :: vector< std :: string > &answer, InputFieldType id) override;
+    virtual IRResultType giveField(Dictionary &answer, InputFieldType id) override;
+    virtual IRResultType giveField(std :: list< Range > &answer, InputFieldType id) override;
+    virtual IRResultType giveField(ScalarFunction &function, InputFieldType id) override;
 
-    virtual bool hasField(InputFieldType id);
-    virtual void printYourself();
+    virtual bool hasField(InputFieldType id) override;
+    virtual void printYourself() override;
     // Setters, unique for the dynamic input record
     void setRecordKeywordField(std :: string keyword, int number);
     void setRecordKeywordNumber(int number);

@@ -77,8 +77,64 @@ FEI2dTrQuad :: evaldNdx(FloatMatrix &answer, const FloatArray &lcoords, const FE
     return jacobianMatrix.giveDeterminant();
 }
 
+
+
 void
 FEI2dTrQuad :: evald2Ndx2(FloatMatrix &answer, const FloatArray &lcoords, const FEICellGeometry &cellgeo)
+{
+  FloatMatrix jacobianMatrix(2, 2), inv, dn;
+  FloatMatrix jacobianMatrix2(3, 3), inv2, d2n;
+  FloatMatrix d2X_dxi2(3,2);
+
+    this->giveDerivatives(dn, lcoords);
+    this->giveSecondDerivatives(d2n, lcoords);
+    for ( int i = 1; i <= dn.giveNumberOfRows(); i++ ) {
+        double x = cellgeo.giveVertexCoordinates(i)->at(xind);
+        double y = cellgeo.giveVertexCoordinates(i)->at(yind);
+
+        jacobianMatrix.at(1, 1) += dn.at(i, 1) * x;
+        jacobianMatrix.at(1, 2) += dn.at(i, 1) * y;
+        jacobianMatrix.at(2, 1) += dn.at(i, 2) * x;
+        jacobianMatrix.at(2, 2) += dn.at(i, 2) * y;
+
+	//d_xi
+        jacobianMatrix2.at(1, 1) += dn.at(i, 1) * dn.at(i, 2) * x * x;
+        jacobianMatrix2.at(1, 2) += dn.at(i, 2) * dn.at(i, 1) * y * y;
+	jacobianMatrix2.at(1, 3) += 2. * dn.at(i, 1) * x * dn.at(i, 1) * y;
+	//d_eta
+        jacobianMatrix2.at(2, 1) += dn.at(i, 2) * dn.at(i, 2) * x * x;
+        jacobianMatrix2.at(2, 2) += dn.at(i, 2) * dn.at(i, 2) * y * y;
+	jacobianMatrix2.at(2, 3) += 2. * dn.at(i, 2) * x * dn.at(i, 2) * y;
+	// d_xi * d_eta
+        jacobianMatrix2.at(3, 1) += dn.at(i, 1) * dn.at(i, 2) * x * x;
+        jacobianMatrix2.at(3, 2) += dn.at(i, 1) * dn.at(i, 2) * y * y;
+	jacobianMatrix2.at(3, 3) += ( dn.at(i, 1) * x + dn.at(i, 2) * y +  dn.at(i, 2) * x + dn.at(i, 1) * y);
+	// d2X_dxi2
+	d2X_dxi2.at(1, 1) += d2n.at(i, 1) * x;
+	d2X_dxi2.at(1, 2) += d2n.at(i, 1) * y;
+	d2X_dxi2.at(2, 1) += d2n.at(i, 2) * x;
+	d2X_dxi2.at(2, 2) += d2n.at(i, 2) * y;
+	d2X_dxi2.at(3, 1) += d2n.at(i, 3) * x;
+	d2X_dxi2.at(3, 2) += d2n.at(i, 3) * y;
+	
+    }
+    inv.beInverseOf(jacobianMatrix);
+    inv2.beInverseOf(jacobianMatrix2);
+    //dNdX
+    FloatMatrix dNdx, d2X_dNx;
+    dNdx.beProductTOf(dn, inv);
+    d2X_dNx.beProductTOf(dNdx,d2X_dxi2);
+    //
+    FloatMatrix dN(d2n);
+    dN.subtract(d2X_dNx);
+    answer.beProductTOf(dN,inv2);
+
+}
+
+  
+
+void
+FEI2dTrQuad :: evald2Ndx2(FloatMatrix &answer, const FloatArray &lcoords, const FEICellGeometry &cellgeo, int i)
 {
     double x1, x2, x3, y1, y2, y3, y23, x32, y31, x13, area;
 
@@ -380,6 +436,41 @@ FEI2dTrQuad :: giveDerivatives(FloatMatrix &dn, const FloatArray &lc)
     dn.at(4, 2) =  4.0 * l1;
     dn.at(5, 2) =  4.0 * l3 - 4.0 * l2;
     dn.at(6, 2) = -4.0 * l1;
+}
+
+
+void
+FEI2dTrQuad :: giveSecondDerivatives(FloatMatrix &dn, const FloatArray &lc)
+{
+    double l1, l2, l3;
+    l1 = lc.at(1);
+    l2 = lc.at(2);
+    l3 = 1.0 - l1 - l2;
+
+    dn.resize(6, 3);
+
+    dn.at(1, 1) =  4.0;
+    dn.at(2, 1) =  0.0;
+    dn.at(3, 1) =  4.0;
+    dn.at(4, 1) =  0.0;
+    dn.at(5, 1) =  0.0;
+    dn.at(6, 1) =  -8.0;
+
+    dn.at(1, 2) =  0.0;
+    dn.at(2, 2) =  4.0;
+    dn.at(3, 2) =  4.0;
+    dn.at(4, 2) =  0.0;
+    dn.at(5, 2) = -8.0;
+    dn.at(6, 2) =  0.0;
+
+    dn.at(1, 3) =  0.0;
+    dn.at(2, 3) =  0.0;
+    dn.at(3, 3) =  4.0;
+    dn.at(4, 3) =  4.0;
+    dn.at(5, 3) = -4.0;
+    dn.at(6, 3) = -4.0;
+
+    
 }
 
 double

@@ -154,27 +154,27 @@ public:
     SUPG(int i, EngngModel * _master = NULL);
     virtual ~SUPG();
 
-    virtual void solveYourselfAt(TimeStep *tStep);
-    virtual void updateYourself(TimeStep *tStep);
+    virtual void solveYourselfAt(TimeStep *tStep) override;
+    virtual void updateYourself(TimeStep *tStep) override;
 
-    virtual double giveUnknownComponent(ValueModeType mode, TimeStep *tStep, Domain *d, Dof *dof);
-    virtual void updateComponent(TimeStep *tStep, NumericalCmpn cmpn, Domain *d);
-    virtual double giveReynoldsNumber();
+    virtual double giveUnknownComponent(ValueModeType mode, TimeStep *tStep, Domain *d, Dof *dof) override;
+    virtual void updateComponent(TimeStep *tStep, NumericalCmpn cmpn, Domain *d) override;
+    virtual double giveReynoldsNumber() override;
 
-    virtual contextIOResultType saveContext(DataStream *stream, ContextMode mode, void *obj = NULL);
-    virtual contextIOResultType restoreContext(DataStream *stream, ContextMode mode, void *obj = NULL);
+    virtual contextIOResultType saveContext(DataStream *stream, ContextMode mode, void *obj = NULL) override;
+    virtual contextIOResultType restoreContext(DataStream *stream, ContextMode mode, void *obj = NULL) override;
 
-    virtual void updateDomainLinks();
+    virtual void updateDomainLinks() override;
 
-    virtual TimeStep *giveNextStep();
-    virtual TimeStep *giveSolutionStepWhenIcApply(bool force = false);
-    virtual NumericalMethod *giveNumericalMethod(MetaStep *mStep);
+    virtual TimeStep *giveNextStep() override;
+    virtual TimeStep *giveSolutionStepWhenIcApply(bool force = false) override;
+    virtual NumericalMethod *giveNumericalMethod(MetaStep *mStep) override;
 
-    virtual IRResultType initializeFrom(InputRecord *ir);
+    virtual IRResultType initializeFrom(InputRecord *ir) override;
 
-    virtual int checkConsistency();
+    virtual int checkConsistency() override;
     // identification
-    virtual const char *giveClassName() const { return "SUPG"; }
+    virtual const char *giveClassName() const override { return "SUPG"; }
     virtual const char *giveInputRecordName() const { return _IFT_SUPG_Name; }
 
     virtual fMode giveFormulation() { return TL; }

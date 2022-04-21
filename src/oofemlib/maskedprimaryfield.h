@@ -63,12 +63,12 @@ public:
     }
 
     virtual int evaluateAt(FloatArray &answer, const FloatArray &coords,
-                           ValueModeType mode, TimeStep *tStep);
+                           ValueModeType mode, TimeStep *tStep) override;
     virtual int evaluateAt(FloatArray &answer, DofManager *dman,
-                           ValueModeType mode, TimeStep *tStep);
+                           ValueModeType mode, TimeStep *tStep) override;
 
-    virtual contextIOResultType restoreContext(DataStream &stream, ContextMode mode) { return CIO_OK; }
-    virtual contextIOResultType saveContext(DataStream &stream, ContextMode mode) { return CIO_OK; }
+    virtual contextIOResultType restoreContext(DataStream &stream, ContextMode mode) override { return CIO_OK; }
+    virtual contextIOResultType saveContext(DataStream &stream, ContextMode mode) override { return CIO_OK; }
 
     virtual const char *giveClassName() const { return "MaskedPrimaryField"; }
 };

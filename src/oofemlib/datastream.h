@@ -144,25 +144,25 @@ public:
     /// Destructor (will not close stream!)
     virtual ~FileDataStream() { }
 
-    virtual int read(int *data, int count);
-    virtual int read(unsigned long *data, int count);
-    virtual int read(long *data, int count);
-    virtual int read(double *data, int count);
-    virtual int read(char *data, int count);
-    virtual int read(bool &data);
+    virtual int read(int *data, int count) override;
+    virtual int read(unsigned long *data, int count) override;
+    virtual int read(long *data, int count) override;
+    virtual int read(double *data, int count) override;
+    virtual int read(char *data, int count) override;
+    virtual int read(bool &data) override;
 
-    virtual int write(const int *data, int count);
-    virtual int write(const unsigned long *data, int count);
-    virtual int write(const long *data, int count);
-    virtual int write(const double *data, int count);
-    virtual int write(const char *data, int count);
-    virtual int write(bool data);
+    virtual int write(const int *data, int count) override;
+    virtual int write(const unsigned long *data, int count) override;
+    virtual int write(const long *data, int count) override;
+    virtual int write(const double *data, int count) override;
+    virtual int write(const char *data, int count) override;
+    virtual int write(bool data) override;
 
-    virtual int givePackSizeOfInt(int count);
-    virtual int givePackSizeOfDouble(int count);
-    virtual int givePackSizeOfChar(int count);
-    virtual int givePackSizeOfBool(int count);
-    virtual int givePackSizeOfLong(int count);
+    virtual int givePackSizeOfInt(int count) override;
+    virtual int givePackSizeOfDouble(int count) override;
+    virtual int givePackSizeOfChar(int count) override;
+    virtual int givePackSizeOfBool(int count) override;
+    virtual int givePackSizeOfLong(int count) override;
 };
 
 } // end namespace oofem

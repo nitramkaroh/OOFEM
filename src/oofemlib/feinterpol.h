@@ -136,7 +136,7 @@ FEIElementDeformedGeometryWrapper(const Element * elem) : FEICellGeometry() {
     }
 
     virtual ~FEIElementDeformedGeometryWrapper() { }
-    int giveNumberOfVertices() const;
+    int giveNumberOfVertices() const override;
     const FloatArray *giveVertexCoordinates(int i) const;
     void setTimeStep(TimeStep *ts){tStep = ts;}
     void setAlpha(double alpha){this->alpha = alpha;}

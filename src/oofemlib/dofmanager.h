@@ -440,12 +440,12 @@ public:
      */
     virtual bool giveMasterDofMans(IntArray &masters);
 
-    virtual IRResultType initializeFrom(InputRecord *ir);
-    virtual void giveInputRecord(DynamicInputRecord &input);
+    virtual IRResultType initializeFrom(InputRecord *ir) override;
+    virtual void giveInputRecord(DynamicInputRecord &input) override;
 
-    virtual void printYourself();
-    virtual contextIOResultType saveContext(DataStream &stream, ContextMode mode, void *obj = NULL);
-    virtual contextIOResultType restoreContext(DataStream &stream, ContextMode mode, void *obj = NULL);
+    virtual void printYourself() override;
+    virtual contextIOResultType saveContext(DataStream &stream, ContextMode mode, void *obj = NULL)override;
+    virtual contextIOResultType restoreContext(DataStream &stream, ContextMode mode, void *obj = NULL) override;
 
     /// Returns true if dof of given type is allowed to be associated to receiver
     virtual bool isDofTypeCompatible(dofType type) const { return false; }
@@ -460,7 +460,7 @@ public:
      * these relations to reflect updated numbering. The renumbering function is passed, which is supposed
      * to return an updated number of specified entity type based on old number.
      */
-    virtual void updateLocalNumbering(EntityRenumberingFunctor &f);
+    virtual void updateLocalNumbering(EntityRenumberingFunctor &f) override;
 
     /**@name Advanced functions */
     //@{

@@ -91,13 +91,22 @@ MisesMat :: initializeFrom(InputRecord *ir)
     expD = 0.;
     IR_GIVE_OPTIONAL_FIELD(ir, expD, _IFT_MisesMat_expD); // hardening modulus
 
-
-    
+    // MJ 3.2.2022 : added type of hardening
+    kap1 = 0.;
+    kap2 = 0.;
+       printf("%g %g %g\n",kap1,dsig1,p1);
+   IR_GIVE_OPTIONAL_FIELD(ir, kap1, _IFT_MisesMat_kappa1); // parameter kappa_1
+    if (this->kap1 > 0.){
+      IR_GIVE_FIELD(ir, dsig1, _IFT_MisesMat_dsig1); // parameter Delta sigma_1
+      IR_GIVE_FIELD(ir, p1, _IFT_MisesMat_p1); // exponent p_1
+      IR_GIVE_OPTIONAL_FIELD(ir, kap2, _IFT_MisesMat_kappa2); // parameter kappa_2
+      if (this->kap2 > 0.){
+	IR_GIVE_FIELD(ir, dsig2, _IFT_MisesMat_dsig2); // parameter Delta sigma_2
+	IR_GIVE_FIELD(ir, p2, _IFT_MisesMat_p2); // exponent p_2
+      }
+      printf("parameters: %g %g %g\n",kap1,dsig1,p1);
+    }
     /*********************************************************************************************************/
-
-
-
-
     
     omega_crit = 0;
     IR_GIVE_OPTIONAL_FIELD(ir, omega_crit, _IFT_MisesMat_omega_crit); // critical damage
@@ -311,6 +320,7 @@ MisesMat :: performPlasticityReturn(GaussPoint *gp, const FloatArray &totalStrai
     double kappa;
     FloatArray plStrain;
     FloatArray fullStress;
+    //printf("Plasticity return ...\n");
     // get the initial plastic strain and initial kappa from the status
     plStrain = status->givePlasticStrain();
     kappa = status->giveCumulativePlasticStrain();
@@ -324,11 +334,28 @@ MisesMat :: performPlasticityReturn(GaussPoint *gp, const FloatArray &totalStrai
         fullStress.at(1) = E * ( totalStrain.at(1) - plStrain.at(1) );
         double trialS = fabs(fullStress.at(1));
         /*yield function*/
-        double yieldValue = trialS - (sig0 + H * kappa);
+        //double yieldValue = trialS - (sig0 + H * kappa);???
+        double yieldValue = trialS - this->computeYieldStress(kappa);
         // === radial return algorithm ===
         if ( yieldValue > 0 ) {
-            double dKappa = yieldValue / ( H + E );
-            kappa += dKappa;
+			       int iter = 1;
+			       double dKappa;
+			       while (iter++<30 && fabs(yieldValue)>1.e-3){
+				 //if (kappa<=0.)				   
+				 //dKappa = yieldValue / E;
+				 //else
+				 double Htan = this->computeYieldStressPrime(kappa);
+				   dKappa = yieldValue / ( E + Htan );
+				   //printf("f=%g, H=%g, dkappa=%g\n", yieldValue,Htan,dKappa);
+				 kappa += dKappa;
+				 trialS -= E*dKappa;
+				 yieldValue = trialS - this->computeYieldStress(kappa);
+				 if (iter>20) printf("%d %g %g %g\n",iter,kappa,yieldValue,dKappa);
+			       }
+			       if (fabs(yieldValue)>1.e-3){ // no convergence
+				 exit(1);
+			       }
+			       dKappa = kappa - status->giveCumulativePlasticStrain();
             plStrain.at(1) += dKappa * signum( fullStress.at(1) );
             plStrain.at(2) -= 0.5 * dKappa * signum( fullStress.at(1) );
             plStrain.at(3) -= 0.5 * dKappa * signum( fullStress.at(1) );
@@ -675,8 +702,27 @@ MisesMat :: computeYieldStress(double kappa)
   return sY;
   */
   
-  
-  return this->sig0 + this-> H * kappa;// + ( this->sigInf - this->sig0 ) * (1. - exp(-expD*kappa));
+  // MJ 3.2.2022
+  //return this->sig0 + this-> H * kappa;// + ( this->sigInf - this->sig0 ) * (1. - exp(-expD*kappa));
+  double aux;
+  double sY = this->sig0;
+  kappa += 1.e-8;
+  if (this->kap1>0.){
+    if (kappa==0.)
+      aux=0.;
+    else
+      aux = exp(this->p1 * log(kappa / this->kap1)); // aux = (kappa/kap1)**p1
+    sY += this->dsig1*(1.-exp(-aux));
+    if (this->kap2>0.){
+     if (kappa==0.)
+      aux=0.;
+    else
+      aux = exp(this->p2 * log(kappa / this->kap2)); // aux = (kappa/kap2)**p2
+    sY += this->dsig2*(1.-exp(-aux));
+    }
+  }
+  //printf("kappa: %g, sigY= %g\n",kappa,sY);
+  return sY;
 }
 
 double 
@@ -698,7 +744,20 @@ MisesMat :: computeYieldStressPrime(double kappa)
   return sY;
   */
   
-  return this->H;// + ( this->sigInf - this->sig0 ) * expD * exp(-expD*kappa); 
+  // MJ 3.2.2022
+  //return this->H;// + ( this->sigInf - this->sig0 ) * expD * exp(-expD*kappa); 
+  double aux;
+  double sYp = 0.;
+  kappa += 1.e-8;
+  if (this->kap1>0.){
+    aux = exp(this->p1 * log(kappa / this->kap1)); // aux = (kappa/kap1)**p1
+    sYp += this->dsig1 * (this->p1/kappa) * aux * exp(-aux);
+    if (this->kap2>0.){
+      aux = exp(this->p2 * log(kappa / this->kap2)); // aux = (kappa/kap2)**p2
+      sYp += this->dsig2 * (this->p2/kappa) * aux * exp(-aux);
+    }
+  }
+  return sYp;
 }
 
 

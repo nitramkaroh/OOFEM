@@ -83,7 +83,7 @@ public:
     EModelDefaultEquationNumbering(void) : UnknownNumberingScheme() { }
 
     virtual bool isDefault() const { return true; }
-    virtual int giveDofEquationNumber(Dof *dof) const {
+    virtual int giveDofEquationNumber(Dof *dof) const override {
         return dof->__giveEquationNumber();
     }
 };
@@ -119,7 +119,7 @@ public:
     DofIDEquationNumbering(bool prescribed, IntArray dofids) : 
         UnknownNumberingScheme(), dofids(std :: move(dofids)), prescribed(prescribed) { }
 
-    virtual bool isDefault() const { return !prescribed; }
+    virtual bool isDefault() const override { return !prescribed; }
     virtual int giveDofEquationNumber(Dof *dof) const {
         DofIDItem id = dof->giveDofID();
         if ( dofids.contains(id) ) {
@@ -162,7 +162,7 @@ public:
     }
     
 
-    virtual int giveRequiredNumberOfDomainEquation() const { return numEqs; }
+    virtual int giveRequiredNumberOfDomainEquation() const override { return numEqs; }
 
     int giveNewEquationNumber() { return ++numEqs; }
     int giveNewPrescribedEquationNumber() { return ++numPresEqs; }

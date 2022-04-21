@@ -53,6 +53,14 @@
 #define _IFT_MisesMat_omega_crit "omega_crit"
 #define _IFT_MisesMat_a "a"
 
+// MJ 3.2.2022
+#define _IFT_MisesMat_kappa1 "kappa1"
+#define _IFT_MisesMat_dsig1 "dsig1"
+#define _IFT_MisesMat_p1 "p1"
+#define _IFT_MisesMat_kappa2 "kappa2"
+#define _IFT_MisesMat_dsig2 "dsig2"
+#define _IFT_MisesMat_p2 "p2"
+
 
 //@}
 
@@ -98,6 +106,14 @@ protected:
     double a;
 
     double yieldTol;
+
+  // MJ 3.2.2022 - added parameters
+  double kap1;
+  double dsig1;
+  double p1;
+  double kap2;
+  double dsig2;
+  double p2;
     
 public:
     MisesMat(int n, Domain * d);

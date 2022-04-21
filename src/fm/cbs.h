@@ -134,7 +134,7 @@ public:
 
         return 0;
     }
-    virtual int giveRequiredNumberOfDomainEquation() const { return numEqs; }
+    virtual int giveRequiredNumberOfDomainEquation() const override { return numEqs; }
 
     int askNewEquationNumber() { return ++numEqs; }
 };
@@ -151,8 +151,8 @@ protected:
 public:
     PressureEquationNumbering(bool prescribed) : UnknownNumberingScheme(), prescribed(prescribed), numEqs(0) { }
 
-    virtual bool isDefault() const { return !prescribed; }
-    virtual int giveDofEquationNumber(Dof *dof) const {
+    virtual bool isDefault() const override{ return !prescribed; }
+    virtual int giveDofEquationNumber(Dof *dof) const override {
         DofIDItem id = dof->giveDofID();
         if ( id == P_f ) {
             return prescribed ? dof->__givePrescribedEquationNumber() : dof->__giveEquationNumber();
@@ -160,7 +160,7 @@ public:
 
         return 0;
     }
-    virtual int giveRequiredNumberOfDomainEquation() const { return numEqs; }
+    virtual int giveRequiredNumberOfDomainEquation() const override { return numEqs; }
 
     int askNewEquationNumber() { return ++numEqs; }
 };
@@ -223,42 +223,42 @@ public:
     CBS(int i, EngngModel * _master = NULL);
     virtual ~CBS();
 
-    virtual void solveYourselfAt(TimeStep *tStep);
+    virtual void solveYourselfAt(TimeStep *tStep) override;
 
-    virtual void updateYourself(TimeStep *tStep);
+    virtual void updateYourself(TimeStep *tStep) override;
 
-    virtual double giveUnknownComponent(ValueModeType type, TimeStep *tStep, Domain *d, Dof *dof);
-    virtual double giveReynoldsNumber();
+    virtual double giveUnknownComponent(ValueModeType type, TimeStep *tStep, Domain *d, Dof *dof) override;
+    virtual double giveReynoldsNumber() override;
     double giveTheta1();
     double giveTheta2();
     double giveTractionPressure(Dof *dof);
 
-    virtual contextIOResultType saveContext(DataStream *stream, ContextMode mode, void *obj = NULL);
-    virtual contextIOResultType restoreContext(DataStream *stream, ContextMode mode, void *obj = NULL);
+    virtual contextIOResultType saveContext(DataStream *stream, ContextMode mode, void *obj = NULL) override;
+    virtual contextIOResultType restoreContext(DataStream *stream, ContextMode mode, void *obj = NULL) override;
 
-    virtual void updateDomainLinks();
+    virtual void updateDomainLinks() override;
 
-    virtual TimeStep *giveNextStep();
-    virtual TimeStep *giveSolutionStepWhenIcApply(bool force = false);
-    virtual NumericalMethod *giveNumericalMethod(MetaStep *mStep);
+    virtual TimeStep *giveNextStep() override;
+    virtual TimeStep *giveSolutionStepWhenIcApply(bool force = false) override;
+    virtual NumericalMethod *giveNumericalMethod(MetaStep *mStep) override;
 
-    virtual IRResultType initializeFrom(InputRecord *ir);
+    virtual IRResultType initializeFrom(InputRecord *ir) override;
 
-    virtual int checkConsistency();
+    virtual int checkConsistency() override;
     // identification
     virtual const char *giveClassName() const { return "CBS"; }
     virtual const char *giveInputRecordName() const { return _IFT_CBS_Name; }
-    virtual fMode giveFormulation() { return TL; }
+    virtual fMode giveFormulation() override { return TL; }
 
-    virtual void printDofOutputAt(FILE *stream, Dof *iDof, TimeStep *tStep);
+    virtual void printDofOutputAt(FILE *stream, Dof *iDof, TimeStep *tStep) override;
 
-    virtual int giveNumberOfDomainEquations(int, const UnknownNumberingScheme &num);
+    virtual int giveNumberOfDomainEquations(int, const UnknownNumberingScheme &num) override;
 
-    virtual int giveNewEquationNumber(int domain, DofIDItem);
-    virtual int giveNewPrescribedEquationNumber(int domain, DofIDItem);
+    virtual int giveNewEquationNumber(int domain, DofIDItem) override;
+    virtual int giveNewPrescribedEquationNumber(int domain, DofIDItem) override;
 
-    virtual bool giveEquationScalingFlag() { return equationScalingFlag; }
-    virtual double giveVariableScale(VarScaleType varId);
+    virtual bool giveEquationScalingFlag() override { return equationScalingFlag; }
+    virtual double giveVariableScale(VarScaleType varId) override;
 
 protected:
     /**

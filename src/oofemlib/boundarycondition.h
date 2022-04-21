@@ -119,14 +119,14 @@ public:
 
     // Overloaded methods:
     virtual bcType giveType() const { return DirichletBT; }
-    virtual IRResultType initializeFrom(InputRecord *ir);
-    virtual void giveInputRecord(DynamicInputRecord &input);
-    virtual void scale(double s);
-    virtual const char *giveClassName() const { return "BoundaryCondition"; }
-    virtual const char *giveInputRecordName() const { return _IFT_BoundaryCondition_Name; }
+    virtual IRResultType initializeFrom(InputRecord *ir) override;
+    virtual void giveInputRecord(DynamicInputRecord &input) override;
+    virtual void scale(double s) override;
+    virtual const char *giveClassName() const override { return "BoundaryCondition"; }
+    virtual const char *giveInputRecordName() const override { return _IFT_BoundaryCondition_Name; }
 
-    virtual contextIOResultType saveContext(DataStream &stream, ContextMode mode, void *obj = NULL);
-    virtual contextIOResultType restoreContext(DataStream &stream, ContextMode mode, void *obj = NULL);
+    virtual contextIOResultType saveContext(DataStream &stream, ContextMode mode, void *obj = NULL) override;
+    virtual contextIOResultType restoreContext(DataStream &stream, ContextMode mode, void *obj = NULL) override;
 
 };
 } // end namespace oofem

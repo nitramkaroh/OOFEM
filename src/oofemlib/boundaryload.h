@@ -147,14 +147,14 @@ public:
      */
     virtual int giveApproxOrder() = 0;
 
-    virtual CoordSystType giveCoordSystMode() { return coordSystemType; }
+    virtual CoordSystType giveCoordSystMode() override { return coordSystemType; }
     /**
      * Initializes receiver according to object description stored in input record.
      * Reads number of dofs into nDofs attribute (i.e. the number of dofs, which are on loaded entity),
      * its loadType into loadType attribute and coordinate system type into csType attribute.
      */
-    IRResultType initializeFrom(InputRecord *ir);
-    virtual void giveInputRecord(DynamicInputRecord &input);
+    IRResultType initializeFrom(InputRecord *ir) override;
+    virtual void giveInputRecord(DynamicInputRecord &input) override;
     /**
      * Returns receiver load type. It distinguish particular boundary conditions according to
      * their "physical" meaning (like StructuralTemperatureLoadLT, StructuralLoadLT).
@@ -163,7 +163,7 @@ public:
      * See cltypes.h file for details.
      */
     virtual bcType giveType() const { return lType; }
-    virtual double giveProperty(int aProperty, TimeStep *tStep);
+    virtual double giveProperty(int aProperty, TimeStep *tStep) override;
 
     /**
      * Temporal storage of state variables, particularly for boundary conditions 
@@ -197,7 +197,7 @@ protected:
      * @param tStep Time step.
      * @param mode Determines response mode.
      */
-    virtual void computeComponentArrayAt(FloatArray &answer, TimeStep *tStep, ValueModeType mode);
+    virtual void computeComponentArrayAt(FloatArray &answer, TimeStep *tStep, ValueModeType mode) override;
 };
 
 

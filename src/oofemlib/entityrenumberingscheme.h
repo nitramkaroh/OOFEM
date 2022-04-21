@@ -124,7 +124,7 @@ public:
         return 0;
     }
 
-    virtual int call(int n, EntityRenumberingScheme ers)
+    virtual int call(int n, EntityRenumberingScheme ers) override
     { return this->operator() (n, ers); };
 };
 } // end namespace oofem

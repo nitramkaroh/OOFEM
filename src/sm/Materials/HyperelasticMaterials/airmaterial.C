@@ -88,6 +88,7 @@ AirMaterial :: give3dMaterialStiffnessMatrix_dPdF(FloatMatrix &answer,
                                                            GaussPoint *gp, TimeStep *tStep)
 // returns the 9x9 tangent stiffness matrix - dP/dF
 {
+    answer.resize(9,9);
     StructuralMaterialStatus *status = static_cast< StructuralMaterialStatus * >( this->giveStatus(gp) );
     //deformation gradient from the status
     FloatArray vF;

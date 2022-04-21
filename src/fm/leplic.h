@@ -172,10 +172,10 @@ public:
 
     virtual void updatePosition(TimeStep *tStep);
     virtual void updateYourself(TimeStep *tStep) { }
-    virtual void giveMaterialMixtureAt(FloatArray &answer, FloatArray &position);
-    virtual void giveElementMaterialMixture(FloatArray &answer, int ielem);
-    virtual double giveNodalScalarRepresentation(int);
-    virtual double computeCriticalTimeStep(TimeStep *tStep);
+    virtual void giveMaterialMixtureAt(FloatArray &answer, FloatArray &position) override;
+    virtual void giveElementMaterialMixture(FloatArray &answer, int ielem) override;
+    virtual double giveNodalScalarRepresentation(int) override;
+    virtual double computeCriticalTimeStep(TimeStep *tStep) override;
 
     /**
      * Returns updated nodal positions.
@@ -189,11 +189,11 @@ public:
     double giveUpdatedXCoordinate(int num) { return updated_XCoords.at(num); }
     double giveUpdatedYCoordinate(int num) { return updated_YCoords.at(num); }
 
-    virtual IRResultType initializeFrom(InputRecord *ir);
+    virtual IRResultType initializeFrom(InputRecord *ir) override;
     virtual void giveInputRecord(DynamicInputRecord &input);
 
     // identification
-    virtual const char *giveClassName() const { return "LEPlic"; }
+    virtual const char *giveClassName() const override { return "LEPlic"; }
 
 protected:
     void doLagrangianPhase(TimeStep *tStep);

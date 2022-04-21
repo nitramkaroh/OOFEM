@@ -806,7 +806,7 @@ public:
      * this is invoked after all domain components are instanciated.
      * @return Zero value if check fail, otherwise nonzero.
      */
-    virtual int checkConsistency() { return 1; }
+    virtual int checkConsistency() override { return 1; }
 
     /**
      * @return True, if receiver is activated for given solution step, otherwise false.
@@ -1187,12 +1187,12 @@ public:
     IntArray *giveBoundaryLoadArray();
 
     // Overloaded methods:
-    virtual IRResultType initializeFrom(InputRecord *ir);
-    virtual void giveInputRecord(DynamicInputRecord &input);
-    virtual contextIOResultType saveContext(DataStream &stream, ContextMode mode, void *obj = NULL);
-    virtual contextIOResultType restoreContext(DataStream &stream, ContextMode mode, void *obj = NULL);
-    virtual void printOutputAt(FILE *file, TimeStep *tStep);
-    virtual const char *giveClassName() const { return "Element"; }
+    virtual IRResultType initializeFrom(InputRecord *ir) override;
+    virtual void giveInputRecord(DynamicInputRecord &input) override;
+    virtual contextIOResultType saveContext(DataStream &stream, ContextMode mode, void *obj = NULL) override;
+    virtual contextIOResultType restoreContext(DataStream &stream, ContextMode mode, void *obj = NULL) override;
+    virtual void printOutputAt(FILE *file, TimeStep *tStep) override;
+    virtual const char *giveClassName() const override { return "Element";  }
 
 protected:
     /**

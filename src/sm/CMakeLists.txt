@@ -141,6 +141,7 @@ set (sm_element
     #Elements/Micromorphic/GradientPolyconvex/planestraingradpolyconvex.C
     #Second-gradient continua
     Elements/Micromorphic/Straindivergence/planestrainstraindivergence.C
+    Elements/PlaneStrain/qtrplanestrain_gradloc.C
     #Electro-mechanical elements
     Elements/ElectroMechanics/baseelectromechanicalelement.C
     Elements/ElectroMechanics/baseelectromechanicalelement_3fields.C
@@ -330,6 +331,7 @@ set (sm_material
     Materials/Micromorphic/GradientPolyconvex/gradientpolyconvexmaterialTest.C
     Materials/Micromorphic/GradientPolyconvex/gradientpolyconvexmaterial_defgrad.C
     Materials/Micromorphic/GradientPolyconvex/stvenantkirchhoff_gradpolyconvex.C
+    Materials/Micromorphic/ContactGradientMaterial/airmaterialcontact.C
     Materials/Micromorphic/GradientPolyconvex/stvenantkirchhoff_gradpolyconvexdefgrad.C
     Materials/Micromorphic/GradientPolyconvex/stvenantkirchhoff_incompressible.C
     # Second-gradient materials

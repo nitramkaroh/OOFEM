@@ -129,24 +129,24 @@ public:
     virtual double giveUnknown(ValueModeType mode, TimeStep *tStep);
     virtual double giveUnknown(PrimaryField &field, ValueModeType, TimeStep *tStep);
 
-    virtual bool hasBc(TimeStep *tStep);
-    virtual bool hasIc();
-    virtual bool hasIcOn(ValueModeType);
+    virtual bool hasBc(TimeStep *tStep) override;
+    virtual bool hasIc() override;
+    virtual bool hasIcOn(ValueModeType) override;
 
-    virtual bool isPrimaryDof() { return true; }
+    virtual bool isPrimaryDof() override { return true; }
 
-    virtual int giveBcId();
-    virtual int giveIcId();
+    virtual int giveBcId() override;
+    virtual int giveIcId() override;
 
-    virtual void printYourself();
-    virtual void updateYourself(TimeStep *tStep);
+    virtual void printYourself() override;
+    virtual void updateYourself(TimeStep *tStep) override;
 
-    virtual void updateUnknownsDictionary(TimeStep *tStep, ValueModeType mode, double dofValue);
+    virtual void updateUnknownsDictionary(TimeStep *tStep, ValueModeType mode, double dofValue) override;
 
-    virtual double giveUnknownsDictionaryValue(TimeStep *tStep, ValueModeType mode);
+    virtual double giveUnknownsDictionaryValue(TimeStep *tStep, ValueModeType mode) override;
 
-    virtual contextIOResultType saveContext(DataStream &stream, ContextMode mode, void *obj = NULL);
-    virtual contextIOResultType restoreContext(DataStream &stream, ContextMode mode, void *obj = NULL);
+    virtual contextIOResultType saveContext(DataStream &stream, ContextMode mode, void *obj = NULL) override;
+    virtual contextIOResultType restoreContext(DataStream &stream, ContextMode mode, void *obj = NULL) override;
 
     virtual void setBcId(int bcId) { this->bc = bcId; }
     virtual void setIcId(int icId) { this->ic = icId; }
@@ -155,8 +155,8 @@ public:
     virtual int giveEqn() { return equationNumber; }
 
 protected:
-    BoundaryCondition *giveBc();
-    InitialCondition *giveIc();
+    BoundaryCondition *giveBc() override;
+    InitialCondition *giveIc() override;
 };
 } // end namespace oofem
 #endif // masterdof_h

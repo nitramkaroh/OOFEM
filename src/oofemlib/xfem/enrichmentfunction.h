@@ -180,10 +180,10 @@ public:
         this->numberOfDofs = 1;
     }
 
-    virtual void evaluateEnrFuncAt(double &oEnrFunc, const FloatArray &iPos, const double &iLevelSet) const;
-    virtual void evaluateEnrFuncDerivAt(FloatArray &oEnrFuncDeriv, const FloatArray &iPos, const double &iLevelSet, const FloatArray &iGradLevelSet) const;
+    virtual void evaluateEnrFuncAt(double &oEnrFunc, const FloatArray &iPos, const double &iLevelSet) const override;
+    virtual void evaluateEnrFuncDerivAt(FloatArray &oEnrFuncDeriv, const FloatArray &iPos, const double &iLevelSet, const FloatArray &iGradLevelSet) const override;
 
-    virtual void giveJump(std :: vector< double > &oJumps) const {
+    virtual void giveJump(std :: vector< double > &oJumps) const override {
         oJumps.clear();
         oJumps.push_back(0.0);
     }

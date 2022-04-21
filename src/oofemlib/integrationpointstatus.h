@@ -85,7 +85,7 @@ public:
 
     virtual const char *giveInputRecordName() const { return NULL; }
     virtual const char *giveClassName() const { return "IntegrationPointStatus"; }
-    virtual IRResultType initializeFrom(InputRecord *ir) { return IRRT_OK; }
+    virtual IRResultType initializeFrom(InputRecord *ir) override { return IRRT_OK; }
 };
 } // end namespace oofem
 #endif // integrationpointstatus_h

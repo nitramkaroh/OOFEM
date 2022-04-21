@@ -58,6 +58,7 @@ public:
     virtual void evalN(FloatArray &answer, const FloatArray &lcoords, const FEICellGeometry &cellgeo);
     virtual double evaldNdx(FloatMatrix &answer, const FloatArray &lcoords, const FEICellGeometry &cellgeo);
     virtual void evald2Ndx2(FloatMatrix &answer, const FloatArray &lcoords, const FEICellGeometry &cellgeo);
+    virtual void evald2Ndx2(FloatMatrix &answer, const FloatArray &lcoords, const FEICellGeometry &cellgeo, int i);
     virtual void local2global(FloatArray &answer, const FloatArray &lcoords, const FEICellGeometry &cellgeo);
     virtual int  global2local(FloatArray &answer, const FloatArray &gcoords, const FEICellGeometry &cellgeo);
     virtual double giveArea(const FEICellGeometry &cellgeo) const;
@@ -87,6 +88,7 @@ public:
 protected:
     double edgeComputeLength(IntArray &edgeNodes, const FEICellGeometry &cellgeo);
     void giveDerivatives(FloatMatrix &dn, const FloatArray &lc);
+    void giveSecondDerivatives(FloatMatrix &dn, const FloatArray &lc);
 };
 } // end namespace oofem
 #endif // fei2dtrquad_h

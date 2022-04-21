@@ -203,10 +203,10 @@ public:
     double computeInclinationAngle();
     void computeTransformationMatrix(FloatMatrix &answer);
     void transformIntoPolar(FloatArray *point, FloatArray &answer);
-    virtual IRResultType initializeFrom(InputRecord *ir);
+    virtual IRResultType initializeFrom(InputRecord *ir) override;
     bool isPointInside(FloatArray *point);
-    virtual bool intersects(Element *element);
-    virtual bool isOutside(BasicGeometry *bg);
+    virtual bool intersects(Element *element) override;
+    virtual bool isOutside(BasicGeometry *bg) override;
 
     double giveLength() const {return mVertices[0].distance( mVertices[1] );}
 };
@@ -318,10 +318,10 @@ public:
     void computeIntersectionPoints(const PolygonLine &iPolygonLine, std :: vector< FloatArray > &oIntersectionPoints) const;
     void computeIntersectionPoints(const FloatArray &iXStart, const FloatArray &iXEnd, std :: vector< FloatArray > &oIntersectionPoints) const;
 
-    virtual int computeNumberOfIntersectionPoints(Element *element);
-    virtual bool isOutside(BasicGeometry *bg);
-    virtual bool isInside(Element *element);
-    virtual bool isInside(FloatArray &point);
+    virtual int computeNumberOfIntersectionPoints(Element *element) override;
+    virtual bool isOutside(BasicGeometry *bg) override;
+    virtual bool isInside(Element *element) override;
+    virtual bool isInside(FloatArray &point) override;
 
 #ifdef __BOOST_MODULE
     virtual void calcBoundingBox(bPoint2 &oLC, bPoint2 &oUC);
