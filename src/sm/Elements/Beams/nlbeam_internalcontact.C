@@ -519,6 +519,7 @@ NlBeamInternalContact :: findLeftEndForcesLocal_Tip(FloatArray &ub_target, Float
     break;
   case CMT_CA: case CMT_CB:
     tipIsOnRightSegment = false;
+    transform_fab2fba(ub_target, fab, fba);
     break;
   default:
     printf("findLeftEndForcesLocal_Tip cannot be used for cmode = %d\n",cmode);
@@ -536,7 +537,6 @@ NlBeamInternalContact :: findLeftEndForcesLocal_Tip(FloatArray &ub_target, Float
     } else {
       Lac = trialRightActiveSegmentLength;
       // from equilibrium, we calculate the corresponding initial guess of the right-end forces
-      transform_fab2fba(ub_target, fab, fba);
       f_init = fba; // fba stored for possible restart with sliding
       transform_ub2ua(ub_target, ua_target);
       success = findLeftEndForcesLocal_Tip_SoS(ua_target, fba, Lac, leftSegmentLength, cmode, 0, Nca, Qca, deltaPhi);
@@ -637,7 +637,7 @@ NlBeamInternalContact :: findLeftEndForcesLocal_Smooth_Rolling(FloatArray &ub_ta
     // the current beam length may differ from the initial distance between joints
     // (displacement ub_target[0] is taken with respect to the initial length of the beam)
     res.at(1) += beamLength - L;
-    double error = L2norm(weight_disp*res.at(1), weight_disp*res.at(2), res.at(2));
+    double error = L2norm(weight_disp*res.at(1), weight_disp*res.at(2), res.at(3));
     if (error<TOL_BEAM){// converged
       if (!inflection_found)
 	return false;// converged but no inflexion detected
@@ -688,13 +688,7 @@ NlBeamInternalContact :: findLeftEndForcesLocal_Smooth_Sliding(FloatArray &ub_ta
     // the current beam length may differ from the initial distance between joints
     // (displacement ub_target[0] is taken with respect to the initial length of the beam)
     res.at(1) += L - beamLength;
-    //@todo: check this
-    FloatArray re(res);
-    re.at(1) *= weight_disp;
-    re.at(2) *= weight_disp;
-    re.at(3) *= weight_force;
-
-    double error = re.computeNorm();
+    double error = L2norm(weight_disp*sqrt(res.at(1)*res.at(1)+res.at(2)*res.at(2)), res.at(3), weight_force*res.at(4));
    
     if (error < TOL_BEAM) {
       // the actual return is a bit postponed, to make update of Jacobi possible if needed
@@ -755,17 +749,18 @@ NlBeamInternalContact :: findLeftEndForcesLocal_Smooth(FloatArray &ub_target, Fl
   bool success;
   fab_init = fab;
 
+   deltaPhi = 0.;
+   if (cmode==CMT_AB) {
+     deltaPhi = M_PI;
+   } else if (cmode==CMT_BA) {
+     deltaPhi = -M_PI;
+   }
+   
   if (Process!=PT_Slide){// if it is known that the process is sliding, proceed directly to that case
     // first assume that no additional sliding occurs during this step (i.e., fix Lac+Lbc and iterate on fab)
     trialProcess = PT_Roll;  
-    deltaPhi = 0.;
     Lac = trialLeftActiveSegmentLength;
     Lbc = trialRightActiveSegmentLength;
-    if (cmode==CMT_AB) {
-      deltaPhi = M_PI;
-    } else if (cmode==CMT_BA) {
-      deltaPhi = -M_PI;
-    }
     bool success = findLeftEndForcesLocal_Smooth_Rolling(ub_target, fab, deltaPhi, Lac, Lbc, Nc, Qc);
     // the result is 'false' if the left-end forces do not converge, or if they converge but the beam has no inflection point 
     if (!success) {
@@ -1102,9 +1097,10 @@ NlBeamInternalContact :: findLeftEndForces(const FloatArray &u, const FloatArray
     return false;
   }
   //@todo: comment the following 3 lines???
-  contactMode = trialContactMode;
+  /* contactMode = trialContactMode;
   leftActiveSegmentLength = trialLeftActiveSegmentLength;
   rightActiveSegmentLength = trialRightActiveSegmentLength;
+  */
   
   fab.beTProductOf(T,fab_loc);
   return true;
@@ -1186,7 +1182,7 @@ NlBeamInternalContact :: computeStiffnessMatrix(FloatMatrix &answer, MatResponse
   //  FloatArray f(6);
   // @todo: check this
   fab = this->internalForces;
-  //bool s = findLeftEndForces(u, u_prev, fab);
+  //  bool s = findLeftEndForces(u, u_prev, fab);
   // compute auxiliary matrices
   double phia = u.at(3);
   construct_T(T, phia); 
@@ -1295,6 +1291,14 @@ NlBeamInternalContact :: computeStiffnessMatrix(FloatMatrix &answer, MatResponse
 
 }
 
+void
+NlBeamInternalContact :: updateYourself(TimeStep *tStep)
+{
+    NlBeam_SM :: updateYourself(tStep);
+    contactMode = trialContactMode;
+    leftActiveSegmentLength = trialLeftActiveSegmentLength;
+    rightActiveSegmentLength = trialRightActiveSegmentLength;
+}
 
 
 Interface *NlBeamInternalContact :: giveInterface(InterfaceType it)

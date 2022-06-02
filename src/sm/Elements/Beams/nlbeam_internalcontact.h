@@ -550,7 +550,7 @@ Note that the transformation matrix T is affected by angle alpha that specifies 
 
   void computeSegmentDisplacements(FloatMatrix &uMatrix, const FloatArray &fab, double Lb, double segmentLength, const FloatArray &u0, const FloatMatrix &T);
   
-
+  void  updateYourself(TimeStep *tStep) override;
   
 };
 } // end namespace oofem

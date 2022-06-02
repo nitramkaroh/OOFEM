@@ -217,7 +217,7 @@ NlBeam_SM2 :: initializeFrom(InputRecord *ir)
     this->phi.resize(NIP+1);
     this->kappa.resize(NIP+1);
 
-    this->vN.resize(NIP+1);
+    this->vN.resize(2*NIP+1);
     this->vV.resize(NIP+1);
     this->vM.resize(NIP+1);
 
@@ -377,7 +377,7 @@ NlBeam_SM2 :: computeCenterlineStrainFromInternalForces(double M, double N, doub
    // initialization at the left end
    ub.resize(3);
    double Xab = fab.at(1), Zab = fab.at(2), Mab = fab.at(3);
-    this->vM.at(1) = -Mab;
+   this->vM.at(1) = -Mab;
    this->vN.at(1) = -Xab;
    FloatArray dM(3), dN(3), dkappa(3), dphi_mid(3), deps_mid(3),
    u_prev(3);
@@ -406,7 +406,7 @@ NlBeam_SM2 :: computeCenterlineStrainFromInternalForces(double M, double N, doub
      dphi_mid.add(ds/2., dkappa);  
      // normal force at midstep and its derivatives with respect to the left-end forces
      double N_mid = -Xab * cos(phi_mid) + Zab *  sin(phi_mid);
-     vN.at(i) = N_mid;
+     this->vN.at(2*(i-1)) = N_mid;
      dN = ( Xab * sin(phi_mid) + Zab * cos(phi_mid)) * dphi_mid;
      dN.at(1) -= cos(phi_mid);
      dN.at(2) += sin(phi_mid);
@@ -461,6 +461,8 @@ NlBeam_SM2 :: computeCenterlineStrainFromInternalForces(double M, double N, doub
      ub.at(3) = delta_phi_mid+delta_kappa*ds/2.;
      this->phi.at(i) = ub.at(3);
      this->kappa.at(i) = delta_kappa;
+     
+     this->vN.at(2*i-1) = -Xab * cos(phi0.at(i) + ub.at(3)) + Zab *  sin(phi0.at(i) + ub.at(3));
      // update Jacobi matrix
      FloatArray j_row3;
      j_row3 = dphi_mid;
@@ -498,7 +500,7 @@ NlBeam_SM2 :: computeCenterlineStrainFromInternalForces(double M, double N, doub
      dphi_mid.add(dx/2. ,dkappa);
      //@updated
      double N_mid = -(Xab - p * w.at(i-1)) * cos(phi_mid) + (Zab + p*(s.at(i-1)+u.at(i-1))) * sin(phi_mid);
-     vN.at(i) = N_mid;
+     vN.at(2*(i-1)) = N_mid;
      //@updated
      dN_mid = ( Xab * sin(phi_mid) + Zab * cos(phi_mid)) * dphi_mid + p * (( s.at(i-1) + u.at(i-1))* cos(phi_mid) - w.at(i-1) * sin(phi_mid)) * dphi_mid ;
      dN_mid.at(1) += - cos(phi_mid) + p * (dw.at(1) * cos(phi_mid) + du.at(1) * sin(phi_mid));
@@ -526,6 +528,7 @@ NlBeam_SM2 :: computeCenterlineStrainFromInternalForces(double M, double N, doub
      dkappa = dM;
      dkappa.times(1./dMdkappa);
      phi.at(i) = phi_mid + kappa * dx / 2.;
+     this->vN.at(2*i-1) = -Xab * cos(phi.at(i)) + Zab *  sin(phi.at(i));
      dphi = dphi_mid;
      dphi.add(dx/2 ,dkappa);
    }
