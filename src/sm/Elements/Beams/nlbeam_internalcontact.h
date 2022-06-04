@@ -537,6 +537,7 @@ one iteration. Otherwise, the full iterative process is used and it may not conv
   */
   void construct_Tprime(FloatMatrix &T, double phia);
   void construct_l(FloatArray &l, double phia);
+  void construct_l(FloatArray &l, double phia, double L);
   void construct_l_IC(FloatArray &l, double phia, double L);
   void construct_lprime(FloatArray &l, double phia);
   /*
@@ -548,7 +549,7 @@ Note that the transformation matrix T is affected by angle alpha that specifies 
   bool findLeftEndForces(const FloatArray &u, const FloatArray &u_prev, FloatArray &fab);
   void printOutputAt(FILE *file, TimeStep *tStep);
 
-  void computeSegmentDisplacements(FloatMatrix &uMatrix, const FloatArray &fab, double Lb, double segmentLength, const FloatArray &u0, const FloatMatrix &T);
+  void computeSegmentDisplacements(FloatMatrix &uMatrix, const FloatArray &fab, double Lb, double segmentLength, const FloatArray &u0, const FloatMatrix &T, const FloatArray &uab);
   
   void  updateYourself(TimeStep *tStep) override;
   

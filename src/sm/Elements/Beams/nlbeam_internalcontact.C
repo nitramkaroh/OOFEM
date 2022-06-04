@@ -1047,6 +1047,16 @@ NlBeamInternalContact :: construct_l(FloatArray &l, double phia)
 }
 
 void
+NlBeamInternalContact :: construct_l(FloatArray &l, double phia, double L)
+{
+  l.resize(3);
+  l.at(1) = L * (cos(phia) - 1.);
+  l.at(2) = L *  sin(phia);
+}
+
+
+
+void
 NlBeamInternalContact :: construct_l_IC(FloatArray &l, double phia, double L)
 {
   l.at(1) = beamLength * cos(phia) - L;
@@ -1332,30 +1342,62 @@ NlBeamInternalContact :: giveCompositeExportData(std::vector< VTKPiece > &vtkPie
   ua.beSubArrayOf(uab,{1,2,3});
   ub.beSubArrayOf(uab,{4,5,6});
   //
+  /*To be removed*/
+  double phia = uab.at(3);
+  FloatArray ub_loc, ub_ua(ub), loc, fab_loc, u0(2);
+  ub_ua.subtract(ua);  
+  // compute displacements of the right end with respect to the auxiliary coordinate system
+  construct_l(loc, phia);
+  construct_T(T, phia); 
+  ub_loc.beProductOf(T, ub_ua);
+  ub_loc.add(loc);
+  fab_loc.beProductOf(T, this->internalForces);
+  FloatMatrix Tn = {{1,0},{0,1}};  
+  this->computeSegmentDisplacements(uMatrixLeft,fab_loc, leftActiveSegmentLength, leftSegmentLength, u0, Tn, uab );
+  // 
+  ////
+  FloatMatrix Tb,Ttb;
+  FloatArray ur(2);
+  Node *nodeB = this->giveNode(2);
+  ur.at(1) = beamLength+ub_loc.at(1);
+  ur.at(2) = ub_loc.at(2);
+  double alphab = M_PI + ub_loc.at(3);
+  construct_T(Tb, alphab);
+  Ttb.beTranspositionOf(Tb);
+  // transformation of forces and moment
+  FloatArray f;
+  transform_fab2fba(ub_loc, fab_loc, f);
+  this->computeSegmentDisplacements(uMatrixRight,f, rightActiveSegmentLength, rightSegmentLength, ur, Ttb, uab );
+
+
+
+  
+  /*
   ///
   u.at(1) = ua.at(1);
   u.at(2) = ua.at(2);
   //
   Node *nodeA = this->giveNode(1);
   ul.resize(2);
-  construct_T(T, uab.at(3));
-  FloatMatrix Tt;
-  Tt.beTranspositionOf(T);    
-  this->computeSegmentDisplacements(uMatrixLeft,this->internalForces, leftActiveSegmentLength, leftSegmentLength, u, Tt );
-  /// 
+  FloatMatrix Tt = {{1,0},{0,1}};
+  this->computeSegmentDisplacements(uMatrixLeft,this->internalForces, leftActiveSegmentLength, leftSegmentLength, u, Tt );  
+  ///
+  FloatMatrix Tb,Ttb;
   Node *nodeB = this->giveNode(2);
   u.at(1) = nodeB->giveCoordinate(1)+ub.at(1);
   u.at(2) = nodeB->giveCoordinate(3)+ub.at(2);
   double alphab = M_PI + ub.at(3);
   //construct_T(T, alphab, M_PI);
-  construct_T(T, alphab);
-  Tt.beTranspositionOf(T);
+  construct_T(Tb, alphab);
+  Ttb.beTranspositionOf(Tb);
   // transformation of forces and moment
   FloatArray f;
   transform_fab2fba(ub, this->internalForces, f);
-  this->computeSegmentDisplacements(uMatrixRight,f, rightActiveSegmentLength, rightSegmentLength, u, Tt );
-
-
+  this->computeSegmentDisplacements(uMatrixRight,f, rightActiveSegmentLength, rightSegmentLength, u, Ttb );
+  */
+  //@tobedeleted
+  Node *nodeA = this->giveNode(1);
+  //
   const int numCellNodes  = 2; // linear line
   //
   int numCellsLeft = ceil(leftActiveSegmentLength/DX);
@@ -1496,7 +1538,7 @@ NlBeamInternalContact :: giveCompositeExportData(std::vector< VTKPiece > &vtkPie
 }
 
 void
-NlBeamInternalContact ::computeSegmentDisplacements(FloatMatrix &uMatrix, const FloatArray &fab, double Lb, double segmentLength, const FloatArray &u0, const FloatMatrix &T)
+NlBeamInternalContact ::computeSegmentDisplacements(FloatMatrix &uMatrix, const FloatArray &fab, double Lb, double segmentLength, const FloatArray &u0, const FloatMatrix &T, const FloatArray &uab)
 {
   FloatArray ub, uc, uplot;
   bool inflection_detected = false;
@@ -1514,8 +1556,24 @@ NlBeamInternalContact ::computeSegmentDisplacements(FloatMatrix &uMatrix, const 
   // basic loop over spatial steps
   int nstep = ceil(Lb/DX); // the spatial step size is fixed and the segment length does not need to be its integer multiple
   uMatrix.resize(nstep+1, 2);
-  uMatrix.at(1,1) = u0.at(1) + T.at(1,1)*(x+u.at(1)) + T.at(1,2)*u.at(2);
-  uMatrix.at(1,2) = u0.at(2) + T.at(2,1)*(x+u.at(1)) + T.at(2,2)*u.at(2);
+
+
+  FloatArray ul(3), l;
+  FloatMatrix Tg;
+
+  ul.at(1) = u0.at(1) + T.at(1,1)*(x+u.at(1)) + T.at(1,2)*u.at(2);
+  ul.at(2) = u0.at(2) + T.at(2,1)*(x+u.at(1)) + T.at(2,2)*u.at(2);
+
+  this->construct_l(l, uab.at(3), x);
+  this->construct_T(Tg, uab.at(3));
+  FloatArray ug;
+  ul.subtract(l);
+  ug.beTProductOf(Tg, ul);
+  uMatrix.at(1,1) = ug.at(1) + uab.at(1);
+  uMatrix.at(1,2) = ug.at(2) + uab.at(2);
+
+
+  
   for (int istep=1; istep<=nstep; istep++){
     x += DX;
     u_prev = u;
@@ -1546,19 +1604,35 @@ NlBeamInternalContact ::computeSegmentDisplacements(FloatMatrix &uMatrix, const 
       for (int i=1; i<=3; i++) {
 	ub.at(i) = u_prev.at(i) + aux*(u.at(i)-u_prev.at(i));
       }
-  
-      uMatrix.at(istep+1, 1) = u0.at(1) + T.at(1,1)*(Lb+ub.at(1)) + T.at(1,2)*ub.at(2);
+      /*      uMatrix.at(istep+1, 1) = u0.at(1) + T.at(1,1)*(Lb+ub.at(1)) + T.at(1,2)*ub.at(2);
       uMatrix.at(istep+1, 2) = u0.at(2) + T.at(2,1)*(Lb+ub.at(1)) + T.at(2,2)*ub.at(2);
+      */
+      ul.at(1) = u0.at(1) + T.at(1,1)*(Lb+ub.at(1)) + T.at(1,2)*ub.at(2);
+      ul.at(2) = u0.at(2) + T.at(2,1)*(Lb+ub.at(1)) + T.at(2,2)*ub.at(2);
       // plot also the straight segment behind the contact point, if it exists
       double Lstraight = segmentLength - Lb;
+
       if (Lstraight>0.){
-	uMatrix.at(istep+1, 1) = u0.at(1) + T.at(1,1)*(Lb+ub.at(1)+Lstraight*cos(ub.at(3))) + T.at(1,2)*(ub.at(2)-Lstraight*sin(ub.at(3))) ;
+	/*uMatrix.at(istep+1, 1) = u0.at(1) + T.at(1,1)*(Lb+ub.at(1)+Lstraight*cos(ub.at(3))) + T.at(1,2)*(ub.at(2)-Lstraight*sin(ub.at(3))) ;
 	uMatrix.at(istep+1, 2) = u0.at(2) + T.at(2,1)*(Lb+ub.at(1)+Lstraight*cos(ub.at(3))) + T.at(2,2)*(ub.at(2)-Lstraight*sin(ub.at(3)));
+	*/
+	ul.at(1) = u0.at(1) + T.at(1,1)*(Lb+ub.at(1)+Lstraight*cos(ub.at(3))) + T.at(1,2)*(ub.at(2)-Lstraight*sin(ub.at(3))) ;
+	ul.at(2) = u0.at(2) + T.at(2,1)*(Lb+ub.at(1)+Lstraight*cos(ub.at(3))) + T.at(2,2)*(ub.at(2)-Lstraight*sin(ub.at(3)));
       }
     } else {
-      uMatrix.at(istep+1, 1) = u0.at(1) + T.at(1,1)*(x+u.at(1)) + T.at(1,2)*u.at(2);
+      ul.at(1) = u0.at(1) + T.at(1,1)*(x+u.at(1)) + T.at(1,2)*u.at(2);
+      ul.at(2) = u0.at(2) + T.at(2,1)*(x+u.at(1)) + T.at(2,2)*u.at(2);
+      /*uMatrix.at(istep+1, 1) = u0.at(1) + T.at(1,1)*(x+u.at(1)) + T.at(1,2)*u.at(2);
       uMatrix.at(istep+1, 2) = u0.at(2) + T.at(2,1)*(x+u.at(1)) + T.at(2,2)*u.at(2);
+      */     
     }
+    this->construct_l(l, uab.at(3), x);
+    this->construct_T(Tg, uab.at(3));
+    ul.subtract(l);
+    ug.beTProductOf(Tg, ul);
+    uMatrix.at(istep+1,1) = ug.at(1) + uab.at(1);
+    uMatrix.at(istep+1,2) = ug.at(2) + uab.at(2);
+
   } // end of loop over spatial steps
   
 }
