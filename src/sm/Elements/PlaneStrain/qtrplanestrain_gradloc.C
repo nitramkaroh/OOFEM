@@ -119,7 +119,7 @@ QTrPlaneStrainGradLoc :: computeMicromorphicBMatrixAt(GaussPoint *gp, FloatMatri
     answer.resize(8, this->giveNumberOfMicromorphicDofs());
     answer.zero();
 
-    for ( int i = 1; i <= 2; i++ ) {
+    for ( int i = 1; i <= 6; i++ ) {
         answer.at(1, i * 2 - 1) = d2Ndx2.at(i, 1);
         answer.at(2, i * 2 - 1) = d2Ndx2.at(i, 3);
 
