@@ -60,14 +60,6 @@ class SecondGradientMaterialExtensionInterface : public Interface
 {
 protected:
     Domain *dom;
-
-    /**
-     * Secondgradient parameter
-     * Choosen as a penalty parameter in several cases
-     */
-    double Hk;
-
-
     /**
      * Secondgradient paramater related to the square of the internal length
      */
@@ -83,22 +75,12 @@ public:
     virtual ~SecondGradientMaterialExtensionInterface() { }
 
     /// Left upper block
-    virtual void giveSecondGradientMatrix_dSigdUgrad(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep) = 0;
-
-    virtual void giveSecondGradientMatrix_dEdPhi(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep) = 0;
-
-
-
-
-
-    virtual void giveSecondGradientMatrix_dMdPhiGrad(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep) = 0;
-
-    virtual void giveSecondGradientMatrix_delta(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep) = 0;
-
-
-
+    virtual void giveSecondGradientMatrix_dPdF(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep) = 0;
+    virtual void giveSecondGradientMatrix_dPdG(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep) = 0;
+    virtual void giveSecondGradientMatrix_dMdF(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep) = 0;
+    virtual void giveSecondGradientMatrix_dMdG(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep) = 0;
     /// micromorhpic stresses
-    virtual void giveGeneralizedStressVectors (FloatArray &sigma, FloatArray &s, FloatArray &M, FloatArray &relativeStrain, GaussPoint *gp, const FloatArray &displacementGradient, const FloatArray &lagrangianMulriplier, const FloatArray secondgradientVarGrad, TimeStep *tStep) = 0;
+  virtual void giveGeneralizedStressVectors (FloatArray &vP, FloatArray &vM, const FloatArray &vF, const FloatArray &vG, GaussPoint *gp, TimeStep *tStep) = 0;
 
     virtual bool isStressTensorSymmetric(){return false;}
 

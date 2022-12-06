@@ -103,7 +103,33 @@ AirMaterial :: give3dMaterialStiffnessMatrix_dPdF(FloatMatrix &answer,
     //
     answer.zero();
     answer.add(factor, Fx);
-    answer.add(eps, D); 
+    answer.add(eps, D);
+
+    double pert = 1.e-6;
+    FloatArray vFp, vP, vPp;
+    FloatMatrix A(5,5);
+    this->giveFirstPKStressVector_3d(vP, gp, vF, tStep);
+    for(int i = 1; i<= 5; i++ ) {
+      vFp = vF;
+      if(i == 4) {
+	vFp.at(6) += pert;
+      } else if(i == 5) {
+	vFp.at(9) += pert;
+      } else {
+	vFp.at(i) += pert;
+      }
+      
+      this->giveFirstPKStressVector_3d(vPp, gp, vFp, tStep);
+      A.at(1,i) = vPp.at(1) - vP.at(1);
+      A.at(2,i) = vPp.at(2) - vP.at(2);
+      A.at(3,i) = vPp.at(3) - vP.at(3);
+      A.at(4,i) = vPp.at(6) - vP.at(6);
+      A.at(5,i) = vPp.at(9) - vP.at(9);
+    }
+    this->giveFirstPKStressVector_3d(vP, gp, vF, tStep);    
+    A.times(1./pert);   
+
+    
 }
 
 

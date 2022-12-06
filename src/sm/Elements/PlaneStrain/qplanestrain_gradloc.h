@@ -36,7 +36,7 @@
 #define qplanestrain_gradloc_h
 
 #include "Elements/PlaneStrain/qplanestrain.h"
-#include "../sm/Elements/Micromorphic/basemicromorphicelement.h"
+#include "../sm/Elements/Micromorphic/basesecondgradientelement.h"
 
 #define _IFT_QPlaneStrainGradLoc_Name "qplanestraingradloc"
 
@@ -47,7 +47,7 @@ namespace oofem {
  * This class implements a quadrilateral 8-node  plane-
  * stress elasticity finite element. Each node has 2 degrees of freedom.
  */
-  class QPlaneStrainGradLoc : public QPlaneStrain, public BaseMicromorphicElement
+  class QPlaneStrainGradLoc : public QPlaneStrain, public BaseSecondGradientElement
 {
 public:
     QPlaneStrainGradLoc(int n, Domain * d);
@@ -58,28 +58,14 @@ public:
     virtual const char *giveInputRecordName() const { return _IFT_QPlaneStrainGradLoc_Name; }
     virtual const char *giveClassName() const { return "QPlaneStrainGradLoc"; }
 
-    virtual void computeMicromorphicNMatrixAt(GaussPoint *gp, FloatMatrix &N);
-    virtual void computeMicromorphicBMatrixAt(GaussPoint *gp, FloatMatrix &B);
+    virtual void computeGmatrixAt(GaussPoint *gp, FloatMatrix &B) override;
     virtual NLStructuralElement *giveElement() { return this; }
  public:
-    virtual void giveDofManDofIDMask(int inode, IntArray &answer) const;
-    virtual void giveDofManDofIDMask_u(IntArray &answer);
-    virtual void giveDofManDofIDMask_m(IntArray &answer);
-
-    virtual void computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode mode, TimeStep *tStep){BaseMicromorphicElement :: computeStiffnessMatrix(answer, mode, tStep);}
-    virtual void giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord){BaseMicromorphicElement :: giveInternalForcesVector(answer, tStep, useUpdatedGpRecord);}
-
-    
-    virtual int giveNumberOfMicromorphicDofs(){return 16;}
-    virtual int giveNumberOfDisplacementDofs(){return 16;}
-    virtual int giveNumberOfDofs(){return 32;}
-
-    virtual void postInitialize();
- protected:
-    virtual void computeMicromorphicVars(FloatArray &micromorphVar, FloatArray &micromorphVarGrad, IntArray IdMask_m, GaussPoint *gp, TimeStep *tStep);   
+    virtual void computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode mode, TimeStep *tStep){BaseSecondGradientElement :: computeStiffnessMatrix(answer, mode, tStep);}
+    virtual void giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord){BaseSecondGradientElement :: giveInternalForcesVector(answer, tStep, useUpdatedGpRecord);}
 
 
 
 };
 } // end namespace oofem
-#endif // qtrplanestrain_h
+#endif // qplanestrain_h

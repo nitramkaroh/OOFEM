@@ -44,9 +44,9 @@
 namespace oofem {
   REGISTER_Material(AirMaterialContact);
 
-AirMaterialContact :: AirMaterialContact(int n, Domain *d) : AirMaterial(n, d), MicromorphicMaterialExtensionInterface(d)
+AirMaterialContact :: AirMaterialContact(int n, Domain *d) : AirMaterial(n, d), SecondGradientMaterialExtensionInterface(d)
 {
-  Hk = Ak = 0.;
+  Ak = 0.;
 }
 
 AirMaterialContact :: ~AirMaterialContact()
@@ -66,76 +66,30 @@ AirMaterialContact :: giveStiffnessMatrix(FloatMatrix &answer, MatResponseMode r
 
 
 void
-AirMaterialContact :: giveMicromorphicMatrix_dSigdUgrad(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
+AirMaterialContact :: giveSecondGradientMatrix_dPdF(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
 {
     AirMaterialContactStatus *status = static_cast< AirMaterialContactStatus * >( this->giveStatus(gp) );
     FloatMatrix m3d;
     AirMaterial :: givePlaneStrainStiffMtrx_dPdF(answer, mode,gp, tStep);
-    /*    if(gp->giveMaterialMode() == _PlaneStrain) {
-      FloatMatrix m3d = answer;
-      answer.resize(5,5);
-      answer.zero();
-      answer.at(1, 1) = m3d.at(1, 1);
-      answer.at(1, 2) = m3d.at(1, 2);
-      answer.at(1, 4) = m3d.at(1, 6);
-      answer.at(1, 5) = m3d.at(1, 9);
-      
-      answer.at(2, 1) = m3d.at(2, 1);
-      answer.at(2, 2) = m3d.at(2, 2);
-      answer.at(2, 4) = m3d.at(2, 6);
-      answer.at(2, 5) = m3d.at(2, 9);
-      
-      answer.at(3, 1) = m3d.at(3, 1);
-      answer.at(3, 2) = m3d.at(3, 2);
-      answer.at(3, 4) = m3d.at(3, 6);
-      answer.at(3, 5) = m3d.at(3, 9);
-      
-      answer.at(4, 1) = m3d.at(6, 1);
-      answer.at(4, 2) = m3d.at(6, 2);
-      answer.at(4, 4) = m3d.at(6, 6);
-      answer.at(4, 5) = m3d.at(6, 9);
-      
-      answer.at(5, 1) = m3d.at(9, 1);
-      answer.at(5, 2) = m3d.at(9, 2);
-      answer.at(5, 4) = m3d.at(9, 6);
-      answer.at(5, 5) = m3d.at(9, 9);
-    }
-    */
-    
-  
 }
 
+
 void
-AirMaterialContact :: giveMicromorphicMatrix_dSigdPhi(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
+AirMaterialContact :: giveSecondGradientMatrix_dPdG(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
 {
-
-  answer.resize(5,8);
-    AirMaterialContactStatus *status = static_cast< AirMaterialContactStatus* >( this->giveStatus(gp) );
-    /*    FloatArray vF, vH, vCofF;
-    FloatMatrix F, cofF, invF;
-    vH = status->giveTempMicromorphicVarGrad();
-    F.beMatrixForm(vF = status->giveTempFVector());
-    invF.beInverseOf(F);
-    double J = F.giveDeterminant();
-    cofF.beTranspositionOf(invF);
-    cofF.times(J);
-    vCofF.beVectorForm(cofF);
-    answer.add(-a * J * Ak * exp(-a * J),vCofF);    
-  answer.zero()
-    */
-   
-  
+  answer.clear();
 }
 
 
+
 void
-AirMaterialContact :: giveMicromorphicMatrix_dSdUgrad(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
+AirMaterialContact :: giveSecondGradientMatrix_dMdF(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
 {
     AirMaterialContactStatus *status = static_cast< AirMaterialContactStatus* >( this->giveStatus(gp) );
     answer.resize(8,5);
-    FloatArray vF, vH, vCofF;
+    FloatArray vF, vG, vCofF;
     FloatMatrix F, cofF, invF;
-    vH = status->giveTempMicromorphicVarGrad();
+    vG = status->giveTempGVector();
     F.beMatrixForm(vF = status->giveTempFVector());
     invF.beInverseOf(F);
     double J = F.giveDeterminant();
@@ -144,44 +98,36 @@ AirMaterialContact :: giveMicromorphicMatrix_dSdUgrad(FloatMatrix &answer, MatRe
     vCofF.beVectorForm(cofF);
     FloatArray redCofF;
     StructuralMaterial :: giveReducedVectorForm(redCofF, vCofF, _PlaneStrain);
-    answer.beProductTOf(vH, redCofF);
-    answer.times(-a * J * Ak * exp(-a * J));        
+    //
+    answer.beProductTOf(vG, redCofF);
+    answer.times(-a * Ak * exp(-a * J));        
+
 }
 
-
-
 void
-AirMaterialContact :: giveMicromorphicMatrix_dSdPhi(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
+AirMaterialContact :: giveSecondGradientMatrix_dMdG(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
 {
-    answer.resize(8,8);
-    answer.zero();
-}
+  AirMaterialContactStatus *status = static_cast< AirMaterialContactStatus* >( this->giveStatus(gp) );
+  FloatMatrix F;
+  F.beMatrixForm(status->giveTempFVector());
+  double J = F.giveDeterminant(); 
+  answer.resize(8,8);
+  answer.beUnitMatrix();
+  answer.times( Ak * exp(-a * J));        
+}  
 
-
-void
-AirMaterialContact :: giveMicromorphicMatrix_dMdPhiGrad(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep)
-{
-  
-    AirMaterialContactStatus *status = static_cast< AirMaterialContactStatus* >( this->giveStatus(gp) );
-    FloatMatrix F;
-    F.beMatrixForm(status->giveTempFVector());
-    double J = F.giveDeterminant(); 
-    answer.resize(8,8);
-    answer.beUnitMatrix();
-    answer.times( Ak * exp(-a * J));        
-}
 
 
 
 void
-AirMaterialContact :: giveFiniteStrainGeneralizedStressVectors(FloatArray &vP, FloatArray &s, FloatArray &M, GaussPoint *gp, const FloatArray &vF, const FloatArray &micromorphicVar, const FloatArray micromorphicVarGrad, TimeStep *tStep)
+AirMaterialContact :: giveFiniteStrainGeneralizedStressVectors(FloatArray &vP, FloatArray &vM, const FloatArray &vF, const FloatArray &vG, GaussPoint *gp, TimeStep *tStep)
 {
     ///@todo Move this to StructuralCrossSection ?
     MaterialMode mode = gp->giveMaterialMode();
     if ( mode == _3dMat ) {
-      this->giveFiniteStrainGeneralizedStressVectors_3d(vP, s, M, gp, vF, micromorphicVar, micromorphicVarGrad, tStep);
+      this->giveFiniteStrainGeneralizedStressVectors_3d(vP, vM, vF, vG, gp, tStep);
     } else if ( mode == _PlaneStrain ) {
-      this->giveFiniteStrainGeneralizedStressVectors_PlaneStrain(vP, s, M, gp, vF, micromorphicVar, micromorphicVarGrad, tStep);
+      this->giveFiniteStrainGeneralizedStressVectors_PlaneStrain(vP, vM, vF, vG, gp, tStep);
     } else {
       OOFEM_ERROR("Unknown material mode for the gradient polyconvex formulation");
     }
@@ -189,8 +135,10 @@ AirMaterialContact :: giveFiniteStrainGeneralizedStressVectors(FloatArray &vP, F
   
 
 
+
+
 void
-AirMaterialContact :: giveFiniteStrainGeneralizedStressVectors_3d(FloatArray &vP, FloatArray &s, FloatArray &M, GaussPoint *gp, const FloatArray &vF, const FloatArray &micromorphicVar, const FloatArray micromorphicVarGrad, TimeStep *tStep)
+AirMaterialContact :: giveFiniteStrainGeneralizedStressVectors_3d(FloatArray &vP, FloatArray &vM, const FloatArray &vF, const FloatArray &vG, GaussPoint *gp, TimeStep *tStep)
 {
   
   OOFEM_ERROR("3d not implemented");
@@ -201,22 +149,14 @@ AirMaterialContact :: giveFiniteStrainGeneralizedStressVectors_3d(FloatArray &vP
 
 
 void
-AirMaterialContact :: giveFiniteStrainGeneralizedStressVectors_PlaneStrain(FloatArray &vP, FloatArray &s, FloatArray &M, GaussPoint *gp, const FloatArray &reducedvF, const FloatArray &reducedMicromorphicVar, const FloatArray micromorphicVarGrad, TimeStep *tStep)
+AirMaterialContact :: giveFiniteStrainGeneralizedStressVectors_PlaneStrain(FloatArray &vP, FloatArray &vM, const FloatArray &reducedvF, const FloatArray &reducedvG, GaussPoint *gp, TimeStep *tStep)
 { 
-  /*  FloatArray vF, vMV, fullvP, fullS;
-  StructuralMaterial :: giveFullVectorFormF(vF, reducedvF, _PlaneStrain);
-  StructuralMaterial :: giveFullVectorFormF(vMV, reducedMicromorphicVar, _PlaneStrain);
-  this->giveFiniteStrainGeneralizedStressVectors_3d(fullvP, fullS, M, gp, vF, vMV, micromorphicVarGrad, tStep) ;
-  StructuralMaterial :: giveReducedVectorForm(vP, fullvP, _PlaneStrain);
-  StructuralMaterial :: giveReducedVectorForm(s, fullS, _PlaneStrain);
-  */
 
   AirMaterialContactStatus *status = static_cast< AirMaterialContactStatus* >( this->giveStatus(gp) );
   //deformation gradient, its inverse, cofactor, and determinant
   FloatArray vCofF, vF;
   FloatMatrix F, invF, cofF;
   StructuralMaterial :: giveFullVectorForm( vF, reducedvF, gp->giveMaterialMode() );
-
   F.beMatrixForm(vF);
   invF.beInverseOf(F);
   double J = F.giveDeterminant();
@@ -225,25 +165,24 @@ AirMaterialContact :: giveFiniteStrainGeneralizedStressVectors_PlaneStrain(Float
   vCofF.beVectorForm(cofF);
   FloatArray redCofF;
   StructuralMaterial :: giveReducedVectorForm(redCofF, vCofF, _PlaneStrain);
-  double HH = micromorphicVarGrad.computeNorm();
-  HH *= HH;
   // higher order stress
-  M.add(Ak*exp(-a*J), micromorphicVarGrad);
-  s.resize(8);
+  vM.resize(8);
+  vM.zero();
+  vM.add(Ak*exp(-a*J), reducedvG);
   // first PK stress
   AirMaterial :: giveFirstPKStressVector_PlaneStrain(vP, gp, reducedvF, tStep);
-  vP.add(-0.5*a*J *Ak* HH * exp(-a * J), redCofF);
   FloatArray fullvP;
   StructuralMaterial :: giveFullVectorForm( fullvP, vP, gp->giveMaterialMode() );
     
     
-    status->letTempMicromorphicVarBe(reducedMicromorphicVar);
-    status->letTempMicromorphicVarGradBe(micromorphicVarGrad);
+  status->letTempPVectorBe(fullvP);
+  status->letTempFVectorBe(vF);
+  //
+  status->letTempMVectorBe(vM);
+  status->letTempGVectorBe(reducedvG);
 
-    status->letTempPVectorBe(fullvP);
-    status->letTempFVectorBe(vF);
-    status->letTempMicromorphicStressBe(s);
-    status->letTempMicromorphicStressGradBe(M); 
+
+  
       
 }
   
@@ -257,8 +196,7 @@ AirMaterialContact :: initializeFrom(InputRecord *ir)
     IRResultType result;                             // Required by IR_GIVE_FIELD macro
     AirMaterial :: initializeFrom(ir);
     
-    IR_GIVE_FIELD(ir, Hk, _IFT_MicromorphicMaterialExtensionInterface_Hk);
-    IR_GIVE_FIELD(ir, Ak, _IFT_MicromorphicMaterialExtensionInterface_Ak);
+    IR_GIVE_FIELD(ir, Ak, _IFT_SecondGradientMaterialExtensionInterface_Ak);
     IR_GIVE_FIELD(ir, a, _IFT_AirMaterialContact_a);
    
     
@@ -273,32 +211,25 @@ AirMaterialContact :: giveIPValue(FloatArray &answer, GaussPoint *gp, InternalSt
     
 
     if( type == IST_MicromorphicStress) {
-      StructuralMaterial :: giveFullVectorForm( answer, status->giveStressVector(), gp->giveMaterialMode() );
+      //StructuralMaterial :: giveFullVectorForm( answer, status->giveStressVector(), gp->giveMaterialMode() );
 
     } else if( type == IST_MicromorphicStrain ) {
-      StructuralMaterial :: giveFullVectorForm( answer, status->giveStrainVector(), gp->giveMaterialMode() );
-    } else if( type == IST_MicromorphicRelativeStress ) {
-      FloatArray s = status->giveMicromorphicStress();
-      // @todo this is correct only for 2d problems, something like giveFullVectorForm for MicromorphicMaterial class would be necessary
-      answer.resize(9);
-      answer.zero();
-      answer.at(6) = s.at(1);
-      answer.at(9) = -s.at(1);
-    } else if ( type == IST_MicromorphicRelativeStrain ) {
-      answer.resize(9);
-      answer.zero();
-    } else if ( type == IST_MicromorphicHigherOrderStress ) {
-      FloatArray M = status->giveMicromorphicStressGrad(); 
+      //      StructuralMaterial :: giveFullVectorForm( answer, status->giveStrainVector(), gp->giveMaterialMode() );
+    }  else if ( type == IST_MicromorphicHigherOrderStress ) {
+      /*FloatArray M = status->giveMicromorphicStressGrad(); 
       answer.resize(9);
       answer.zero();
       answer.at(6) = M.at(1);
       answer.at(9) = M.at(2);
+      */
     } else if ( type == IST_MicromorphicHigherOrderStrain ) {
+      /*
       FloatArray kappa = status->giveMicromorphicVarGrad();
       answer.resize(9);
       answer.zero();
       answer.at(6) = kappa.at(1);
       answer.at(9) = kappa.at(2);
+      */
     } else if( type == IST_DeformationGradientTensor) {
       answer = status->giveFVector();
     } else {
@@ -308,21 +239,23 @@ AirMaterialContact :: giveIPValue(FloatArray &answer, GaussPoint *gp, InternalSt
 }
     
 
-  AirMaterialContactStatus :: AirMaterialContactStatus(int n, Domain *d, GaussPoint *g, bool sym) : MicromorphicMaterialStatus(n, d, g, sym)
+  AirMaterialContactStatus :: AirMaterialContactStatus(int n, Domain *d, GaussPoint *g) : SecondGradientMaterialStatus(n, d, g)
 {
   // 2d plane strain
-    micromorphicVar.resize(5);
+  /*    micromorphicVar.resize(5);
     micromorphicVar.at(1) = micromorphicVar.at(2) = micromorphicVar.at(3) = 1.;
     micromorphicStress.resize(5);
+  */
     //2d plane strain
-    micromorphicVarGrad.resize(8);
+  /* micromorphicVarGrad.resize(8);
     micromorphicStressGrad.resize(8);
-
-
+  */
+  /*
     tempMicromorphicVar = micromorphicVar;
     tempMicromorphicVarGrad = micromorphicVarGrad;
     tempMicromorphicStress = micromorphicStress;
     tempMicromorphicStressGrad = micromorphicStressGrad;
+  */
 }
 
 

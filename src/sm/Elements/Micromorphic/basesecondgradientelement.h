@@ -50,9 +50,6 @@ namespace oofem {
 class BaseSecondGradientElement
 {
 protected:
-    IntArray displacementDofsOrdering, micromorphicDofsOrdering, lagrangianMultiplierDofsOrdering;
-    bool isStressTensorSymmetric;
-    IntArray locationArray_u, locationArray_m, locationArray_l;
     
 
 public:
@@ -65,72 +62,15 @@ protected:
   
     /// Pure virtual functions
     virtual NLStructuralElement *giveElement() = 0;
-    void computeB_uMatrixAt(GaussPoint *gp, FloatMatrix &B, NLStructuralElement *element, bool isStressTensorSymmetric);
-
-    virtual void computeMicromorphicNMatrixAt(GaussPoint *, FloatMatrix &) = 0;
-    virtual void computeMicromorphicBMatrixAt(GaussPoint *, FloatMatrix &) = 0;
-
-    virtual void computeLagrangianMultiplierNMatrixAt(GaussPoint *, FloatMatrix &) = 0;
-
-    virtual int giveNumberOfMicromorphicDofs() = 0;
-    virtual int giveNumberOfDisplacementDofs() = 0;
-    virtual int giveNumberOfLagrangianMultipliersDofs() = 0;
-    virtual int giveNumberOfDofs() = 0;
-
-    virtual void giveDofManDofIDMask_u(IntArray &answer) = 0;
-    virtual void giveDofManDofIDMask_m(IntArray &answer) = 0;
-    virtual void giveDofManDofIDMask_l(IntArray &answer) = 0;
-    /// End of pure virtual functions
-
-
-    bool symmetricFormulation = false;
+    void computeBmatrixAt(GaussPoint *gp, FloatMatrix &B);
+    virtual void computeGmatrixAt(GaussPoint *gp, FloatMatrix &G) = 0;
   
+    virtual void computeStiffnessMatrix(FloatMatrix &, MatResponseMode, TimeStep *);
 
-   virtual void computeStiffnessMatrix(FloatMatrix &, MatResponseMode, TimeStep *);
-
-    void computeStiffnessMatrix_uu(FloatMatrix &, MatResponseMode, TimeStep *);
-    void computeStiffnessMatrix_ul(FloatMatrix &, MatResponseMode, TimeStep *);
-
-    void computeStiffnessMatrix_mm(FloatMatrix &, MatResponseMode, TimeStep *);
-    void computeStiffnessMatrix_ml(FloatMatrix &, MatResponseMode, TimeStep *);
-
-    void computeStiffnessMatrix_lu(FloatMatrix &, MatResponseMode, TimeStep *);
-    void computeStiffnessMatrix_lm(FloatMatrix &, MatResponseMode, TimeStep *);
-
-
-
-
-    void computeMassMatrix(FloatMatrix &answer, TimeStep *tStep);
-
-    void computeMassMatrix_uu(FloatMatrix &answer, TimeStep *tStep);
-    void computeMassMatrix_mm(FloatMatrix &answer, TimeStep *tStep);
-    void computeMassMatrix_ll(FloatMatrix &answer, TimeStep *tStep);
-
-
-
-
-    void computeGeneralizedStressVectors(FloatArray &sigma, FloatArray &s, FloatArray &M, FloatArray &relativeStrain, GaussPoint *gp, TimeStep *tStep);
-    void computeDisplacementGradient(FloatArray &answer, GaussPoint *gp, TimeStep *tStep, bool isStressTensorSymmetric);
-    void computeMicromorphicVars(FloatArray &micromorphVar, FloatArray &micromorphVarGrad, IntArray IdMask_m, GaussPoint *gp, TimeStep *tStep);   
-    void computeLagrangianMultipliers(FloatArray &lagrangianMulriplier, IntArray IdMask_l, GaussPoint *gp, TimeStep *tStep);   
-
+    void computeGeneralizedStressVectors(FloatArray &vP, FloatArray &vM, GaussPoint *gp, TimeStep *tStep);
+    void computeDisplacementGradients(FloatArray &dudx, FloatArray &d2udx2, GaussPoint *gp, TimeStep *tStep);
 
     void giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord);
-    void giveStandardInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord);
-    void giveMicromorphicInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord);
-    void giveLagrangianMultipliersInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord);
-
-
-
-    void computeForceLoadVector(FloatArray &answer, TimeStep *tStep, ValueModeType mode);
-    void computeLocForceLoadVector(FloatArray &answer, TimeStep *tStep, ValueModeType mode);
-
-    virtual IntArray &giveDisplacementDofsOrdering() {return displacementDofsOrdering;}
-    virtual IntArray &giveMicromorphicDofsOrdering() {return micromorphicDofsOrdering;}
-    virtual IntArray &giveLagrangianMulripliersDofsOrdering() {return micromorphicDofsOrdering;}
-    // void giveLocationArrayOfDofIDs( IntArray &answer, const UnknownNumberingScheme &s, const IntArray &dofIdArray );
-    void giveLocationArrayOfDofIDs(IntArray &locationArray_u, IntArray &locationArray_m, IntArray &locationArray_l, const UnknownNumberingScheme &s, const IntArray &dofIdArray_u,const IntArray &dofIdArray_m, const IntArray &dofIdArray_l );
-    virtual void postInitialize();
     virtual void updateInternalState(TimeStep *tStep);
 
 

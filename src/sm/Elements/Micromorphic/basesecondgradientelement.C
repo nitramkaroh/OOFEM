@@ -62,51 +62,15 @@ BaseSecondGradientElement :: BaseSecondGradientElement()
     
 
 void
-BaseSecondGradientElement :: giveLocationArrayOfDofIDs(IntArray &locationArray_u, IntArray &locationArray_m, IntArray &locationArray_l, const UnknownNumberingScheme &s, const IntArray &dofIdArray_u,const IntArray &dofIdArray_m, const IntArray &dofIdArray_l )
+BaseSecondGradientElement :: computeBmatrixAt(GaussPoint *gp, FloatMatrix &B)
 {
-    // Routine to extract the location array of an element for given dofid array.
-    locationArray_u.clear();
-    locationArray_m.clear();
-    locationArray_l.clear();
-    NLStructuralElement *el = this->giveElement();
-    int k = 0;
-    IntArray nodalArray;
-    for(int i = 1; i <= el->giveNumberOfDofManagers(); i++) {
-      DofManager *dMan = el->giveDofManager( i );
-      int itt = 1;
-      for(int j = 1; j <= dofIdArray_u.giveSize( ); j++) {
-	if(dMan->hasDofID( (DofIDItem) dofIdArray_u.at( j ) )) {
-	  locationArray_u.followedBy( k + itt);
-	}
-	itt++;
-      }
-      for(int j = 1; j <= dofIdArray_m.giveSize( ); j++) {
-	if (dMan->hasDofID( (DofIDItem) dofIdArray_m.at( j ) )) {
-	  locationArray_m.followedBy( k + itt);
-	}
-	itt++;
-      }
-      for(int j = 1; j <= dofIdArray_l.giveSize( ); j++) {
-	if (dMan->hasDofID( (DofIDItem) dofIdArray_l.at( j ) )) {
-	  locationArray_l.followedBy( k + itt);
-	}
-	itt++;
-      }
-      k += dMan->giveNumberOfDofs( );
-    }
+  this->giveElement()->computeBHmatrixAt(gp, B);
 }
 
-void
-BaseSecondGradientElement :: computeB_uMatrixAt(GaussPoint *gp, FloatMatrix &B, NLStructuralElement *element, bool isStressTensorSymmetric)
-{
-    if(isStressTensorSymmetric)
-      element->computeBmatrixAt(gp, B);
-    else
-      element->computeBHmatrixAt(gp, B);
-}
+  
  
 void
-BaseSecondGradientElement :: computeGeneralizedStressVectors(FloatArray &sigma, FloatArray &s, FloatArray &M, FloatArray &relativeStrain, GaussPoint *gp, TimeStep *tStep)
+BaseSecondGradientElement :: computeGeneralizedStressVectors(FloatArray &vP, FloatArray &vM, GaussPoint *gp, TimeStep *tStep)
 {
     NLStructuralElement *elem = this->giveElement();
     StructuralCrossSection *cs = elem->giveStructuralCrossSection();
@@ -115,211 +79,54 @@ BaseSecondGradientElement :: computeGeneralizedStressVectors(FloatArray &sigma, 
         OOFEM_ERROR("Material doesn't implement the required Micromorphic interface!");
     }
 
-    IntArray IdMask_m, IdMask_l;
-    FloatArray displacementGradient, micromorphicVar, micromorphicVarGrad, lagrangianMultipliers;
-    
-    this->computeDisplacementGradient(displacementGradient, gp, tStep, secondGradientMat->isStressTensorSymmetric());
-
-    this->giveDofManDofIDMask_m( IdMask_m );
-    this->computeMicromorphicVars(micromorphicVar,micromorphicVarGrad,IdMask_m, gp, tStep);   
-
-    this->giveDofManDofIDMask_m( IdMask_m );
-    this->computeLagrangianMultipliers(lagrangianMultipliers,IdMask_l, gp, tStep);   
-
-    secondGradientMat->giveGeneralizedStressVectors(sigma, s, M, relativeStrain, gp, displacementGradient, micromorphicVar, micromorphicVarGrad, tStep);
+    FloatArray dudx, d2udx2;
+    this->computeDisplacementGradients(dudx,d2udx2, gp, tStep);
+    secondGradientMat->giveGeneralizedStressVectors(vP, vM, dudx, d2udx2, gp, tStep);
     
 }
 
 
 void
-BaseSecondGradientElement :: computeDisplacementGradient(FloatArray &answer, GaussPoint *gp, TimeStep *tStep, bool isStressTensorSymmetric)
+BaseSecondGradientElement :: computeDisplacementGradients(FloatArray &dudx, FloatArray &d2udx2, GaussPoint *gp, TimeStep *tStep)
 {
     FloatArray u;
-    FloatMatrix b;
+    FloatMatrix B, G;
     NLStructuralElement *elem = this->giveElement();
     elem->computeVectorOf({D_u, D_v,D_w}, VM_Total, tStep, u);
-    this->computeB_uMatrixAt(gp, b, elem, isStressTensorSymmetric);
-    answer.beProductOf(b, u);
+    elem->computeDeformationGradientVector(dudx, gp, tStep, VM_Total);
+    this->computeGmatrixAt(gp, G);
+    d2udx2.beProductOf(G, u);
 }
 
  
-
-void
-BaseSecondGradientElement :: computeMicromorphicVars(FloatArray &micromorphicVar,FloatArray &micromorphicVarGrad, IntArray IdMask_m, GaussPoint *gp, TimeStep *tStep)
-{
-    FloatMatrix N_m, B_m;
-    FloatArray d_m;
- 
-    this->computeMicromorphicNMatrixAt(gp, N_m);
-    this->computeMicromorphicBMatrixAt(gp, B_m);
-    /// @todo generalization for general micromorphic continua -- should be parameter of this function?
-    this->giveElement()->computeVectorOf(IdMask_m, VM_Total, tStep, d_m);
-    micromorphicVar.beProductOf(N_m, d_m);
-    micromorphicVarGrad.beProductOf(B_m, d_m);
-}
-
-
-void
-BaseSecondGradientElement :: computeLagrangianMultipliers(FloatArray &lagrangianMultipliers, IntArray IdMask_l, GaussPoint *gp, TimeStep *tStep)
-{
-    FloatMatrix N_l;
-    FloatArray d_l;
- 
-    this->computeLagrangianMultiplierNMatrixAt(gp, N_l);
-    this->giveElement()->computeVectorOf(IdMask_l, VM_Total, tStep, d_l);
-    lagrangianMultipliers.beProductOf(N_l, d_l);
-}
-
-
-void
-BaseSecondGradientElement :: giveMicromorphicInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord)
-{
-    NLStructuralElement *elem = this->giveElement();
-    FloatMatrix N_m, B_m;
-    answer.resize(this->giveNumberOfMicromorphicDofs());
-    FloatArray vStress, vMicromorphicStress, vMicromorphicStressGrad, dE;
-
-    for ( GaussPoint *gp: *elem->giveIntegrationRule(0) ) {
-      if ( useUpdatedGpRecord == 1 ) {
-        vMicromorphicStressGrad = static_cast< SecondGradientMaterialStatus* >( gp->giveMaterialStatus() )->giveTempMicromorphicStressGrad();
-                               
-      } else {
-	this->computeGeneralizedStressVectors(vStress, vMicromorphicStress, vMicromorphicStressGrad, dE, gp, tStep);      
-      }
-
-        // Compute nodal internal forces at nodes as f = \int (B^T*S-N^T*s) dV
-      this->computeMicromorphicNMatrixAt(gp, N_m);
-      this->computeMicromorphicBMatrixAt(gp, B_m);
-      FloatArray NmSm, BmSmg;
-      double dV  = elem->computeVolumeAround(gp);
-      NmSm.beTProductOf(N_m, vMicromorphicStress);
-      answer.add(dV, NmSm);
-      BmSmg.beTProductOf(B_m, vMicromorphicStressGrad);
-      answer.add(dV,BmSmg);
-    }
-}
-
-
-void
-BaseSecondGradientElement :: giveStandardInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord)
-{
-    NLStructuralElement *elem = this->giveElement();
-    StructuralCrossSection *cs = elem->giveStructuralCrossSection();
-    FloatArray BS, vStress, s, S, dE;
-    FloatMatrix B;
-    for ( GaussPoint *gp: *elem->giveIntegrationRule(0) ) {
-      if ( useUpdatedGpRecord == 1 ) {
-        vStress = static_cast< SecondGradientMaterialStatus * >( gp->giveMaterialStatus() )->giveTempStressVector();
-      } else {
-	computeGeneralizedStressVectors(vStress, s, S, dE, gp, tStep);      
-      }
-      SecondGradientMaterialExtensionInterface *secondGradientMat = dynamic_cast< SecondGradientMaterialExtensionInterface * >(cs->giveMaterialInterface(SecondGradientMaterialExtensionInterfaceType, gp) );
-        if ( !secondGradientMat ) {
-            OOFEM_ERROR("Material doesn't implement the required Micromorphic interface!");
-        }
-        // Compute nodal internal forces at nodes as f = B^T*Stress dV
-      double dV  = elem->computeVolumeAround(gp);
-      bool isStressTensorSymmetric = secondGradientMat->isStressTensorSymmetric();
-      this->computeB_uMatrixAt(gp, B, elem, isStressTensorSymmetric);
-      
-      BS.beTProductOf(B, vStress);
-      answer.add(dV, BS);
-    }
-}
-
-
-
-void
-BaseSecondGradientElement :: giveLagrangianMultipliersInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord)
-{
-    NLStructuralElement *elem = this->giveElement();
-    StructuralCrossSection *cs = elem->giveStructuralCrossSection();
-    FloatArray BS, vStress, s, S, dE;
-    FloatMatrix N_l, B_u, N_m;
-    for ( GaussPoint *gp: *elem->giveIntegrationRule(0) ) {
-      SecondGradientMaterialExtensionInterface *secondGradientMat = dynamic_cast< SecondGradientMaterialExtensionInterface * >(cs->giveMaterialInterface(SecondGradientMaterialExtensionInterfaceType, gp) );
-      if ( !secondGradientMat ) {
-	OOFEM_ERROR("Material doesn't implement the required Micromorphic interface!");
-      }
-
-      /* if ( useUpdatedGpRecord == 1 ) {
-        vStress = static_cast< MicromorphicMaterialStatus * >( gp->giveMaterialStatus() )->giveTempStressVector();
-	} else {*/
-	computeGeneralizedStressVectors(vStress, s, S, dE, gp, tStep);      
-	//      }
-      // Compute nodal internal forces at nodes as f = \int (Nl^T(dE) dV
-      this->computeLagrangianMultiplierNMatrixAt(gp, N_l);
-      double dV  = elem->computeVolumeAround(gp);
-      FloatArray NldE;
-      NldE.beTProductOf(N_l, dE);
-      answer.add(dV,NldE);
-    }
-}
-
 
 void
 BaseSecondGradientElement :: giveInternalForcesVector(FloatArray &answer, TimeStep *tStep, int useUpdatedGpRecord)
 {
-    answer.resize(this->giveNumberOfDofs());
-    answer.zero();
-    FloatArray answerU(this->giveNumberOfDisplacementDofs());
-    answer.zero();
-    FloatArray answerM(this->giveNumberOfMicromorphicDofs());
-    answerM.zero();
-    FloatArray answerL(this->giveNumberOfLagrangianMultipliersDofs());
-    answerL.zero();
-
-
-    this->giveLagrangianMultipliersInternalForcesVector(answerL, tStep, 0);   
-    this->giveMicromorphicInternalForcesVector(answerM, tStep, 0);
-    this->giveStandardInternalForcesVector(answerU, tStep, 1);
-
-    
-   
-    answer.assemble(answerU, locationArray_u);
-    answer.assemble(answerM, locationArray_m);
-    answer.assemble(answerL, locationArray_l);
-
-}
-
-void
-BaseSecondGradientElement :: computeForceLoadVector(FloatArray &answer, TimeStep *tStep, ValueModeType mode)
-{
- 
-    FloatArray localForces(this->giveNumberOfDisplacementDofs());
-    FloatArray nlForces(this->giveNumberOfMicromorphicDofs());
-    answer.resize(this->giveNumberOfDofs());
-
-    this->computeLocForceLoadVector(localForces, tStep, mode);
-
-    answer.assemble(localForces, locationArray_u);
-    answer.assemble(nlForces, locationArray_m);
-}
-
-
-/************************************************************************/
-void
-BaseSecondGradientElement :: computeLocForceLoadVector(FloatArray &answer, TimeStep *tStep, ValueModeType mode)
-// computes the part of load vector, which is imposed by force loads acting
-// on element volume (surface).
-// When reactions forces are computed, they are computed from element::GiveRealStressVector
-// in this vector a real forces are stored (temperature part is subtracted).
-// so we need further sobstract part corresponding to non-nodeal loading.
-{
-    FloatMatrix T;
+    answer.clear();
     NLStructuralElement *elem = this->giveElement();
-    //@todo check this
-    //elem->computeLocalForceLoadVector(answer, tStep, mode);
+    StructuralCrossSection *cs = elem->giveStructuralCrossSection();
+    FloatArray BS, GM, vP, vM, vP_full;
+    FloatMatrix B, G;
+    for ( GaussPoint *gp: *elem->giveIntegrationRule(0) ) {
+      if ( useUpdatedGpRecord == 1 ) {
+        vP_full = static_cast< SecondGradientMaterialStatus * >( gp->giveMaterialStatus())->giveTempPVector();
+	vM = static_cast< SecondGradientMaterialStatus * >( gp->giveMaterialStatus())->giveTempMVector();
+	StructuralMaterial :: giveReducedVectorForm( vP, vP_full, gp->giveMaterialMode()); 
+      } else {
+	this->computeGeneralizedStressVectors(vP, vM, gp, tStep);
+      }
 
-    // transform result from global cs to nodal cs. if necessary
-    if ( answer.isNotEmpty() ) {
-        if ( elem->computeGtoLRotationMatrix(T) ) {
-            // first back to global cs from element local
-            answer.rotatedWith(T, 't');
-        }
-    } else {
-        answer.resize(this->giveNumberOfDisplacementDofs());
-        answer.zero();
+    // Compute nodal internal forces at nodes as f = B^T*Stress dV
+    double dV  = elem->computeVolumeAround(gp);
+    this->computeBmatrixAt(gp, B);
+    this->computeGmatrixAt(gp, G);
+    //
+    BS.beTProductOf(B, vP);
+    GM.beTProductOf(G, vM);
+    //
+    answer.add(dV, BS);
+    answer.add(dV, GM);
     }
 }
 
@@ -327,214 +134,46 @@ BaseSecondGradientElement :: computeLocForceLoadVector(FloatArray &answer, TimeS
 void
 BaseSecondGradientElement :: computeStiffnessMatrix(FloatMatrix &answer, MatResponseMode rMode, TimeStep *tStep)
 {
-    answer.resize(this->giveNumberOfDofs(), this->giveNumberOfDofs());
+
+    NLStructuralElement *elem = this->giveElement();
+    int ndofs = elem->computeNumberOfDofs();
+    answer.resize(ndofs, ndofs);
     answer.zero();
-
-    FloatMatrix Kuu, Kul, Kmm, Kml,  Klu, Klm;
-
-    this->computeStiffnessMatrix_uu(Kuu, rMode, tStep);
-    this->computeStiffnessMatrix_ul(Kul, rMode, tStep);
-
-    this->computeStiffnessMatrix_mm(Kmm, rMode, tStep);
-    this->computeStiffnessMatrix_ml(Kml, rMode, tStep);
- 
-
-    this->computeStiffnessMatrix_lu(Klu, rMode, tStep);
-    this->computeStiffnessMatrix_lm(Klm, rMode, tStep);
-
-
-
-    answer.assemble(Kuu, locationArray_u);
-    answer.assemble(Kul, locationArray_u, locationArray_l);
-
-    answer.assemble(Kmm, locationArray_m);
-    answer.assemble(Kml, locationArray_m, locationArray_l);
-
-    answer.assemble(Klu, locationArray_l, locationArray_u);
-    answer.assemble(Klm, locationArray_l, locationArray_m);
-
-
-}
-
-
-void
-BaseSecondGradientElement :: computeStiffnessMatrix_uu(FloatMatrix &answer, MatResponseMode rMode, TimeStep *tStep)
-{
-    NLStructuralElement *elem = this->giveElement();
+    
     StructuralCrossSection *cs = elem->giveStructuralCrossSection();
-    FloatMatrix B, D, DB;
-    bool matStiffSymmFlag = elem->giveCrossSection()->isCharacteristicMtrxSymmetric(rMode);
+    FloatMatrix B,G;
+    FloatMatrix A_FF, A_GF, A_FG, A_GG, AFF_B, AGF_B, AFG_G, AGG_G;
     answer.clear();
     for ( GaussPoint *gp: *elem->giveIntegrationRule(0) ) {
+      this->computeBmatrixAt(gp,B);
+      this->computeGmatrixAt(gp,G);
+      SecondGradientMaterialExtensionInterface *secondGradientMat = static_cast< SecondGradientMaterialExtensionInterface * >(cs->giveMaterialInterface(SecondGradientMaterialExtensionInterfaceType, gp) );
+      if ( !secondGradientMat ) {
+        OOFEM_ERROR("Material doesn't implement the required Micromorphic interface!");
+      }
 
-        SecondGradientMaterialExtensionInterface *secondGradientMat = dynamic_cast< SecondGradientMaterialExtensionInterface * >(
-            cs->giveMaterialInterface(SecondGradientMaterialExtensionInterfaceType, gp) );
-        if ( !secondGradientMat ) {
-            OOFEM_ERROR("Material doesn't implement the required Micromorphic interface!");
-        }
-	bool isStressTensorSymmetric = secondGradientMat->isStressTensorSymmetric();
-	this->computeB_uMatrixAt(gp,B, elem, isStressTensorSymmetric);
+      secondGradientMat->giveSecondGradientMatrix_dPdF(A_FF, rMode, gp, tStep);
+      secondGradientMat->giveSecondGradientMatrix_dMdF(A_GF, rMode, gp, tStep);
+      secondGradientMat->giveSecondGradientMatrix_dPdG(A_FG, rMode, gp, tStep);
+      secondGradientMat->giveSecondGradientMatrix_dMdG(A_GG, rMode, gp, tStep);
+      double dV = elem->computeVolumeAround(gp);
+      AFF_B.beProductOf(A_FF, B);
+      if(A_GF.giveNumberOfRows()) {
+	AGF_B.beProductOf(A_GF, B);
+      }
+      if(A_FG.giveNumberOfRows()) {
+	AFG_G.beProductOf(A_FG, G);
+      }
+      AGG_G.beProductOf(A_GG, G);
 
-        secondGradientMat->giveSecondGradientMatrix_dSigdUgrad(D, rMode, gp, tStep);
-        double dV = elem->computeVolumeAround(gp);
-        DB.beProductOf(D, B);
-
-        if ( matStiffSymmFlag ) {
-            answer.plusProductSymmUpper(B, DB, dV);
-        } else {
-            answer.plusProductUnsym(B, DB, dV);
-        }
-
-
-    }
-
-    if ( matStiffSymmFlag ) {
-        answer.symmetrized();
-    }
-}
-
-
-
-
-void
-BaseSecondGradientElement :: computeStiffnessMatrix_ul(FloatMatrix &answer, MatResponseMode rMode, TimeStep *tStep)
-{
-    NLStructuralElement *elem = this->giveElement();
-    double dV;
-    StructuralCrossSection *cs = elem->giveStructuralCrossSection();
-    FloatMatrix B, N_l, D, DN_l;
-
-    answer.clear();
-
-    for ( GaussPoint *gp: *elem->giveIntegrationRule(0) ) {
-        SecondGradientMaterialExtensionInterface *secondGradientMat = dynamic_cast< SecondGradientMaterialExtensionInterface * >(cs->giveMaterialInterface(SecondGradientMaterialExtensionInterfaceType, gp) );
-        if ( !secondGradientMat ) {
-            OOFEM_ERROR("Material doesn't implement the required Micromorphic interface!");
-        }
-
-        secondGradientMat->giveSecondGradientMatrix_dEdPhi(D, rMode, gp, tStep);
-
-	bool isStressTensorSymmetric = secondGradientMat->isStressTensorSymmetric();
-	this->computeB_uMatrixAt(gp,B, elem, isStressTensorSymmetric);
-        this->computeLagrangianMultiplierNMatrixAt(gp, N_l);
-
-	dV = elem->computeVolumeAround(gp);
-        DN_l.beProductOf(D, N_l);
-        answer.plusProductUnsym(B, DN_l, dV);
-    }
-
-}
-
-
-
-
-void
-BaseSecondGradientElement :: computeStiffnessMatrix_mm(FloatMatrix &answer, MatResponseMode rMode, TimeStep *tStep)
-{
-    NLStructuralElement *elem = this->giveElement();
-    double dV;
-    FloatMatrix lStiff;
-    FloatMatrix B_m, dMdPhiGrad,dMdPhiGrad_B;
-    StructuralCrossSection *cs = elem->giveStructuralCrossSection();
-    answer.clear();
-
-    for ( GaussPoint *gp: *elem->giveIntegrationRule(0) ) {
-        SecondGradientMaterialExtensionInterface *secondGradientMat = dynamic_cast< SecondGradientMaterialExtensionInterface * >(cs->giveMaterialInterface(SecondGradientMaterialExtensionInterfaceType, gp) );
-        if ( !secondGradientMat ) {
-            OOFEM_ERROR("Material doesn't implement the required Micromorphic interface!");
-        }
-
-	secondGradientMat->giveSecondGradientMatrix_dMdPhiGrad(dMdPhiGrad, rMode, gp, tStep);
-        this->computeMicromorphicBMatrixAt(gp, B_m);
-        dV = elem->computeVolumeAround(gp);
-
-	dMdPhiGrad_B.beTProductOf(dMdPhiGrad, B_m);
-	answer.plusProductUnsym(B_m,dMdPhiGrad_B,dV);
-
-    }
-}
-
-
-
-void
-BaseSecondGradientElement :: computeStiffnessMatrix_ml(FloatMatrix &answer, MatResponseMode rMode, TimeStep *tStep)
-{
-    double dV;
-    NLStructuralElement *elem = this->giveElement();
-    FloatMatrix N_l, N_m;
-    StructuralCrossSection *cs = elem->giveStructuralCrossSection();
-
-    answer.clear();
-
-
-    for ( GaussPoint *gp: *elem->giveIntegrationRule(0) ) {
-        SecondGradientMaterialExtensionInterface *secondGradientMat = dynamic_cast< SecondGradientMaterialExtensionInterface * >(cs->giveMaterialInterface(SecondGradientMaterialExtensionInterfaceType, gp) );
-        if ( !secondGradientMat ) {
-	    OOFEM_ERROR("Material doesn't implement the required Micromorphic interface!");
-        }
-
-        this->computeMicromorphicNMatrixAt(gp, N_m);
-	this->computeLagrangianMultiplierNMatrixAt(gp, N_m);
-
-	dV = elem->computeVolumeAround(gp);
-        answer.plusProductUnsym(N_m,N_l, dV);
-    }
-
-}
-
-
-
-
-
-
-void
-BaseSecondGradientElement :: computeStiffnessMatrix_lu(FloatMatrix &answer, MatResponseMode rMode, TimeStep *tStep)
-{
-
-
-NLStructuralElement *elem = this->giveElement();
-    double dV;
-    StructuralCrossSection *cs = elem->giveStructuralCrossSection();
-    FloatMatrix B, N_l, D, DB;
-
-    answer.clear();
-
-    for ( GaussPoint *gp: *elem->giveIntegrationRule(0) ) {
-        SecondGradientMaterialExtensionInterface *secondGradientMat = dynamic_cast< SecondGradientMaterialExtensionInterface * >(cs->giveMaterialInterface(SecondGradientMaterialExtensionInterfaceType, gp) );
-        if ( !secondGradientMat ) {
-            OOFEM_ERROR("Material doesn't implement the required Micromorphic interface!");
-        }
-
-        secondGradientMat->giveSecondGradientMatrix_dEdPhi(D, rMode, gp, tStep);
-
-	bool isStressTensorSymmetric = secondGradientMat->isStressTensorSymmetric();
-	this->computeB_uMatrixAt(gp,B, elem, isStressTensorSymmetric);
-        this->computeLagrangianMultiplierNMatrixAt(gp, N_l);
-
-	dV = elem->computeVolumeAround(gp);
-        DB.beProductOf(D, B);
-        answer.plusProductUnsym(N_l, DB, dV);
-    }
-
-
-   
-
-}
-
-
-void
-BaseSecondGradientElement :: computeStiffnessMatrix_lm(FloatMatrix &answer, MatResponseMode rMode, TimeStep *tStep)
-{
-    NLStructuralElement *elem = this->giveElement();
-    double dV;
-    FloatMatrix N_m, N_l;
-    answer.clear();
-
-    for ( GaussPoint *gp: *elem->giveIntegrationRule(0) ) {
-        this->computeMicromorphicNMatrixAt(gp, N_m);
-        this->computeLagrangianMultiplierNMatrixAt(gp, N_l);
-        dV = elem->computeVolumeAround(gp);
-	answer.plusProductUnsym(N_l,N_m,-dV);
+      answer.plusProductUnsym(B, AFF_B, dV);
+      if(A_GF.giveNumberOfRows()) {
+	answer.plusProductUnsym(G, AGF_B, dV);
+      }
+      if(A_FG.giveNumberOfRows()) {
+	answer.plusProductUnsym(B, AFG_G, dV);
+      }
+      answer.plusProductUnsym(G, AGG_G, dV);
     }
 }
 
@@ -543,62 +182,6 @@ BaseSecondGradientElement :: computeStiffnessMatrix_lm(FloatMatrix &answer, MatR
 
 
 
-
-void
-BaseSecondGradientElement :: computeMassMatrix(FloatMatrix &answer, TimeStep *tStep)
-{
-    //set displacement and nonlocal location array
-  answer.resize(this->giveNumberOfDofs(), this->giveNumberOfDofs());
-  answer.zero();
-
-    FloatMatrix Muu, Mmm;
-    this->computeMassMatrix_uu(Muu, tStep);
-    this->computeMassMatrix_mm(Mmm, tStep);
- 
-    answer.assemble(Muu, locationArray_u);
-    answer.assemble(Mmm, locationArray_m);
-
-}
-
-
-void
-BaseSecondGradientElement :: computeMassMatrix_uu(FloatMatrix &answer, TimeStep *tStep)
-{
- 
-  double dV;
-  FloatMatrix n;
-  NLStructuralElement *elem = this->giveElement();
-  
-  answer.clear();
-
-  for ( GaussPoint *gp: *elem->giveIntegrationRule(0) ) {
-    elem->computeNmatrixAt(gp->giveSubPatchCoordinates(), n);
-    dV = elem->computeVolumeAround(gp);
-    answer.plusProductSymmUpper(n, n, dV);
-  }
-  
-  answer.symmetrized();
-}
-
-
-void
-BaseSecondGradientElement :: computeMassMatrix_mm(FloatMatrix &answer, TimeStep *tStep)
-{
-  
-  double dV;
-  FloatMatrix n;
-  NLStructuralElement *elem = this->giveElement();
- 
-  answer.clear();
-
-  for ( GaussPoint *gp: *elem->giveIntegrationRule(0) ) {
-    this->computeMicromorphicNMatrixAt(gp, n);
-    dV = elem->computeVolumeAround(gp);
-    answer.plusProductSymmUpper(n, n, dV);
-  }
-  
-  answer.symmetrized();
-}
 
  
 
@@ -627,15 +210,7 @@ BaseSecondGradientElement :: updateInternalState(TimeStep *tStep)
 }
 
 
-void
-BaseSecondGradientElement :: postInitialize()
-{
-  IntArray IdMask_u, IdMask_m, IdMask_l;
-  this->giveDofManDofIDMask_u( IdMask_u );
-  this->giveDofManDofIDMask_m( IdMask_m );
-  this->giveDofManDofIDMask_m( IdMask_l );
-  this->giveLocationArrayOfDofIDs(locationArray_u,locationArray_m, locationArray_l, EModelDefaultEquationNumbering(), IdMask_u, IdMask_m, IdMask_l);
-}
+
 
 
 

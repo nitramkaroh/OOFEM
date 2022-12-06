@@ -36,8 +36,8 @@
 #define airmaterialcontact_h
 
 
-#include "../sm/Materials/Micromorphic/micromorphicmaterialextensioninterface.h"
-#include "../sm/Materials/Micromorphic/micromorphicms.h"
+#include "../sm/Materials/Micromorphic/secondgradientmaterialextensioninterface.h"
+#include "../sm/Materials/Micromorphic/secondgradientms.h"
 #include "../sm/Materials/HyperelasticMaterials/airmaterial.h"
 #include "cltypes.h"
 
@@ -50,17 +50,17 @@
 
 namespace oofem {
 
-  class AirMaterialContactStatus : public MicromorphicMaterialStatus
+  class AirMaterialContactStatus : public SecondGradientMaterialStatus
  {
  public:
-   AirMaterialContactStatus(int n, Domain *d, GaussPoint *g, bool sym);  
+   AirMaterialContactStatus(int n, Domain *d, GaussPoint *g);  
    ~AirMaterialContactStatus(){;}
  };
 
 /**
  * MicromorphicLinearElasticMaterial
  */
-class AirMaterialContact : public AirMaterial, MicromorphicMaterialExtensionInterface
+class AirMaterialContact : public AirMaterial, SecondGradientMaterialExtensionInterface
 {
 protected:
   double a;
@@ -75,30 +75,32 @@ public:
     virtual IRResultType initializeFrom(InputRecord *ir);
 
     virtual Interface *giveInterface(InterfaceType t) {
-        if ( t == MicromorphicMaterialExtensionInterfaceType ) {
-            return static_cast< MicromorphicMaterialExtensionInterface * >(this);
+        if ( t == SecondGradientMaterialExtensionInterfaceType ) {
+            return static_cast< SecondGradientMaterialExtensionInterface * >(this);
         } else {
             return NULL;
         }
     }
 
     virtual void giveStiffnessMatrix(FloatMatrix &answer, MatResponseMode rMode, GaussPoint *gp, TimeStep *tStep);
-    virtual void giveMicromorphicMatrix_dSigdUgrad(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep);
-    virtual void giveMicromorphicMatrix_dSigdPhi(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep);
-    virtual void giveMicromorphicMatrix_dSdUgrad(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep);
-    virtual void giveMicromorphicMatrix_dSdPhi(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep);
-    virtual void giveMicromorphicMatrix_dMdPhiGrad(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep);
 
-virtual void giveGeneralizedStressVectors (FloatArray &sigma, FloatArray &s, FloatArray &S, GaussPoint *gp, const FloatArray &totalStrain, const FloatArray &micromorphicVar, const FloatArray micromorphicVarGrad, TimeStep *tStep){;}
-    virtual void giveFiniteStrainGeneralizedStressVectors (FloatArray &sigma, FloatArray &s, FloatArray &M, GaussPoint *gp, const FloatArray &displacementGradient, const FloatArray &micromorphicVar, const FloatArray micromorphicVarGrad, TimeStep *tStep);
-    virtual void giveFiniteStrainGeneralizedStressVectors_3d (FloatArray &sigma, FloatArray &s, FloatArray &M, GaussPoint *gp, const FloatArray &displacementGradient, const FloatArray &micromorphicVar, const FloatArray micromorphicVarGrad, TimeStep *tStep);
-    virtual void giveFiniteStrainGeneralizedStressVectors_PlaneStrain (FloatArray &sigma, FloatArray &s, FloatArray &M, GaussPoint *gp, const FloatArray &displacementGradient, const FloatArray &micromorphicVar, const FloatArray micromorphicVarGrad, TimeStep *tStep);
-    
+    virtual void giveSecondGradientMatrix_dPdF(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep);
+    virtual void giveSecondGradientMatrix_dPdG(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep);
+    virtual void giveSecondGradientMatrix_dMdF(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep);
+    virtual void giveSecondGradientMatrix_dMdG(FloatMatrix &answer, MatResponseMode mode, GaussPoint *gp, TimeStep *tStep);
+    /// micromorhpic stresses
+    virtual void giveGeneralizedStressVectors (FloatArray &vP, FloatArray &vM, const FloatArray &vF, const FloatArray &vG, GaussPoint *gp, TimeStep *tStep)
+  {
+    this->giveFiniteStrainGeneralizedStressVectors(vP, vM, vF, vG, gp, tStep);
+  }
+  virtual void giveFiniteStrainGeneralizedStressVectors(FloatArray &vP, FloatArray &vM, const FloatArray &vF, const FloatArray &vG, GaussPoint *gp, TimeStep *tStep);
+  virtual void giveFiniteStrainGeneralizedStressVectors_3d (FloatArray &vP, FloatArray &vM, const FloatArray &vF, const FloatArray &vG, GaussPoint *gp, TimeStep *tStep);
+  virtual void giveFiniteStrainGeneralizedStressVectors_PlaneStrain (FloatArray &vP, FloatArray &vM, const FloatArray &vF, const FloatArray &vG, GaussPoint *gp, TimeStep *tStep);
 
     virtual int giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType type, TimeStep *tStep);
 
 protected:
-    virtual MaterialStatus *CreateStatus(GaussPoint *gp) const { return new AirMaterialContactStatus(1, domain, gp, true); }
+    virtual MaterialStatus *CreateStatus(GaussPoint *gp) const { return new AirMaterialContactStatus(1, domain, gp); }
 
                                                                      
 };

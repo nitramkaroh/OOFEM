@@ -106,6 +106,7 @@ public:
     virtual IRResultType giveField(Dictionary &answer, InputFieldType id) override;
     virtual IRResultType giveField(std :: list< Range > &answer, InputFieldType id) override;
     virtual IRResultType giveField(ScalarFunction &function, InputFieldType id) override;
+    //    virtual IRResultType giveField(std::vector<ScalarFunction> &function, InputFieldType id) override {;}
 
     virtual bool hasField(InputFieldType id) override;
     virtual void printYourself() override;

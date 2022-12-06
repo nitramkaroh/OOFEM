@@ -140,8 +140,9 @@ set (sm_element
     Elements/Micromorphic/GradientPolyconvex/qlbrickgradpolyconvex.C
     #Elements/Micromorphic/GradientPolyconvex/planestraingradpolyconvex.C
     #Second-gradient continua
-    Elements/Micromorphic/Straindivergence/planestrainstraindivergence.C
+    #Elements/Micromorphic/Straindivergence/planestrainstraindivergence.C
     Elements/PlaneStrain/qtrplanestrain_gradloc.C
+    Elements/PlaneStrain/qplanestrain_gradloc.C
     #Electro-mechanical elements
     Elements/ElectroMechanics/baseelectromechanicalelement.C
     Elements/ElectroMechanics/baseelectromechanicalelement_3fields.C

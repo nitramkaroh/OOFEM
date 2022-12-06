@@ -39,39 +39,24 @@
 #include "gausspoint.h"
 
 namespace oofem {
-  SecondGradientMaterialStatus :: SecondGradientMaterialStatus(int n, Domain *d, GaussPoint *g) : StructuralMaterialStatus(n, d, g), micromorphicVar(), micromorphicVarGrad(), micromorphicStressGrad(), tempMicromorphicVar(), tempMicromorphicVarGrad(), tempMicromorphicStressGrad() 
+  SecondGradientMaterialStatus :: SecondGradientMaterialStatus(int n, Domain *d, GaussPoint *g) : StructuralMaterialStatus(n, d, g), vM(), tempvM(), vG(), tempvG()
 {
-    int rsize = StructuralMaterial :: giveSizeOfVoigtSymVector( gp->giveMaterialMode() );
-    strainVector.resize(rsize);
-    stressVector.resize(rsize);
-    // reset temp vars.
-    tempStressVector = stressVector;
-    tempStrainVector = strainVector;
-    /// initialization of micromorphic vars
 
-    micromorphicVar.resize(1);
-    micromorphicVarGrad.resize(2);
-
-    tempMicromorphicVar = micromorphicVar;
-    tempMicromorphicVarGrad = micromorphicVarGrad;
-
-
-    micromorphicStressGrad.resize(2);
-    tempMicromorphicStressGrad = micromorphicStressGrad;
-
+    vM.resize(8);
+    tempvM = vM;
+    vG.resize(8);
+    tempvG = vG;
      
 }
 
-
-SecondGradientMaterialStatus :: ~SecondGradientMaterialStatus() { }
 
 
 void SecondGradientMaterialStatus :: printOutputAt(FILE *File, TimeStep *tStep)
 // Prints the strains and stresses on the data file.
 {
     FloatArray helpVec;
-    MaterialStatus :: printOutputAt(File, tStep);
-
+    StructuralMaterialStatus :: printOutputAt(File, tStep);
+    /*
     fprintf(File, "  strains ");
     // here should be sym for microdil and without sym for cosserat!!
     //    StructuralMaterial :: giveFullSymVectorForm( helpVec, strainVector, gp->giveMaterialMode() );
@@ -89,7 +74,7 @@ void SecondGradientMaterialStatus :: printOutputAt(FILE *File, TimeStep *tStep)
       fprintf( File, " %.4e", var );
     }
     fprintf(File, "\n");
-
+    */
 }
 
 
@@ -100,9 +85,8 @@ void SecondGradientMaterialStatus :: updateYourself(TimeStep *tStep)
 {
     StructuralMaterialStatus :: updateYourself(tStep);
 
-    micromorphicVar = tempMicromorphicVar;
-    micromorphicVarGrad = tempMicromorphicVarGrad;
-    micromorphicStressGrad = tempMicromorphicStressGrad;    
+    vM = tempvM;    
+    vG = tempvG;    
 }
 
 
@@ -123,12 +107,11 @@ void SecondGradientMaterialStatus :: initTempStatus()
 	}*/
 
     // reset temp vars.
-    tempMicromorphicVar = micromorphicVar;
-    tempMicromorphicVarGrad = micromorphicVarGrad;
-    tempMicromorphicStressGrad =  micromorphicStressGrad;
+    tempvM =  vM;
+    tempvG =  vG;
 }
 
-
+  /*
 contextIOResultType
 SecondGradientMaterialStatus :: saveContext(DataStream &stream, ContextMode mode, void *obj)
 //
@@ -163,7 +146,7 @@ SecondGradientMaterialStatus :: restoreContext(DataStream &stream, ContextMode m
     return CIO_OK;
 }
 
-  /*
+ 
 void MicromorphicMaterialStatus :: copyStateVariables(const MaterialStatus &iStatus)
 {
     MaterialStatus &tmpStat = const_cast< MaterialStatus & >(iStatus);

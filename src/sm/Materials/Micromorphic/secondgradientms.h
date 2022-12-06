@@ -46,64 +46,49 @@ class SecondGradientMaterialStatus : public StructuralMaterialStatus
 {
 protected:
  
-    /// Equilibrated micromorphic variable in reduced form
-    FloatArray micromorphicVar;
-    /// Equilibrated gradient of micromorphic variable
-    FloatArray micromorphicVarGrad;
+    
     /// Equilibrated micromorphic stress coupled to gradient of micromorphic variable
-    FloatArray micromorphicStressGrad;
-
-
-    /// Equilibrated micromorphic variable in reduced form
-    FloatArray tempMicromorphicVar;
-    /// Equilibrated gradient of micromorphic variable
-    FloatArray tempMicromorphicVarGrad;
+    FloatArray vM;
     /// Equilibrated micromorphic stress coupled to gradient of micromorphic variable
-    FloatArray tempMicromorphicStressGrad;
+    FloatArray tempvM;
 
+  /// Equilibrated micromorphic stress coupled to gradient of micromorphic variable
+    FloatArray vG;
+    /// Equilibrated micromorphic stress coupled to gradient of micromorphic variable
+    FloatArray tempvG;
+
+  
  public:
     /// Constructor. Creates new MicromorphicMaterialStatus with number n, belonging to domain d and IntegrationPoint g.
     SecondGradientMaterialStatus(int n, Domain * d, GaussPoint * g);
     /// Destructor
-    virtual ~SecondGradientMaterialStatus();
+  //    virtual ~SecondGradientMaterialStatus();
 
     virtual void printOutputAt(FILE *file, TimeStep *tStep);
     virtual void initTempStatus();
     virtual void updateYourself(TimeStep *tStep);
     
-    virtual contextIOResultType saveContext(DataStream &stream, ContextMode mode, void *obj = NULL);
+  /*    virtual contextIOResultType saveContext(DataStream &stream, ContextMode mode, void *obj = NULL);
     virtual contextIOResultType restoreContext(DataStream &stream, ContextMode mode, void *obj = NULL);
+  */
     
-    /// Returns the const pointer to receiver's strain vector.
-    const FloatArray &giveMicromorphicVar() const { return micromorphicVar; }
-    /// Returns the const pointer to receiver's stress vector.
-    const FloatArray &giveMicromorphicVarGrad() const { return micromorphicVarGrad; }
+    const FloatArray &giveMVector() const { return vM; }
     /// Returns the const pointer to receiver's Cauchy stress vector.
-    const FloatArray &giveMicromorphicStressGrad() const { return micromorphicStressGrad; }
+    const FloatArray &giveTempMVector() const { return tempvM; }
 
 
+    void letMVectordBe(FloatArray msg) { vM = std :: move(msg); }
+    void letTempMVectorBe(FloatArray msg) { tempvM = std :: move(msg); }
 
-    /// Returns the const pointer to receiver's strain vector.
-    const FloatArray &giveTempMicromorphicVar() const { return tempMicromorphicVar; }
-    /// Returns the const pointer to receiver's stress vector.
-    const FloatArray &giveTempMicromorphicVarGrad() const { return tempMicromorphicVarGrad; }
+
+      const FloatArray &giveGVector() const { return vG; }
     /// Returns the const pointer to receiver's Cauchy stress vector.
-    const FloatArray &giveTempMicromorphicStressGrad() const { return tempMicromorphicStressGrad; }
+    const FloatArray &giveTempGVector() const { return tempvG; }
 
 
+    void letGVectordBe(FloatArray msg) { vG = std :: move(msg); }
+    void letTempGVectorBe(FloatArray msg) { tempvG = std :: move(msg); }
 
-
-
-    /// Assigns micromorphic variable vector to given vector mV.
-    void letMicromorphicVarBe(FloatArray mv) { micromorphicVar = std :: move(mv); }
-    void letMicromorphicVarGradBe(FloatArray mvg) { micromorphicVarGrad = std :: move(mvg); }
-
-    void letMicromorphicStressGradBe(FloatArray msg) { micromorphicStressGrad = std :: move(msg); }
-    /// Assigns micromorphic variable vector to given vector mV.
-    void letTempMicromorphicVarBe(FloatArray mv) { tempMicromorphicVar = std :: move(mv); }
-    void letTempMicromorphicVarGradBe(FloatArray mvg) { tempMicromorphicVarGrad = std :: move(mvg); }
-    void letTempMicromorphicStressGradBe(FloatArray msg) { tempMicromorphicStressGrad = std :: move(msg); }
-    
 };
 } // end namespace oofem
 #endif // secondgradientms_h
