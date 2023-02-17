@@ -45,81 +45,24 @@ REGISTER_Element(QTrPlaneStrainGradLoc);
 
 
 QTrPlaneStrainGradLoc :: QTrPlaneStrainGradLoc(int n, Domain *aDomain) :
-  QTrPlaneStrain(n, aDomain), BaseMicromorphicElement()
+  QTrPlaneStrain(n, aDomain), BaseSecondGradientElement()
 {
 
-}
-
-void
-QTrPlaneStrainGradLoc :: giveDofManDofIDMask(int inode, IntArray &answer) const
-{
-  answer = {D_u, D_v, D_u, D_v};
-}
-
-
-void
-QTrPlaneStrainGradLoc :: giveDofManDofIDMask_u(IntArray &answer)
-{
-  answer = {D_u, D_v};
-}
-
-
-void
-QTrPlaneStrainGradLoc :: giveDofManDofIDMask_m(IntArray &answer)
-{
-  answer = {D_u, D_v};
-}
-
-
-void
-QTrPlaneStrainGradLoc ::  postInitialize() 
-{
-  BaseMicromorphicElement :: postInitialize();
-  QTrPlaneStrain :: postInitialize();
-  locationArray_u = {1,2,5,6, 9,10,13,14,17,18,21,22};
-  locationArray_m = {3,4,7,8,11,12,15,16,19,20,23,24};
-  
 }
 
 
 
 void
-QTrPlaneStrainGradLoc :: computeMicromorphicVars(FloatArray &micromorphicVar,FloatArray &micromorphicVarGrad, IntArray IdMask_m, GaussPoint *gp, TimeStep *tStep)
-{
-  FloatMatrix N_m, B_m;
-  FloatArray u_m;
- 
-    this->computeMicromorphicNMatrixAt(gp, N_m);
-    this->computeMicromorphicBMatrixAt(gp, B_m);
-    /// @todo generalization for general micromorphic continua -- should be parameter of this function
-    this->giveElement()->computeVectorOf(IdMask_m, VM_Total, tStep, u_m);
-    micromorphicVar.beProductOf(N_m, u_m);
-    /*    micromorphicVar.at(1) += 1;
-    micromorphicVar.at(2) += 1;
-    micromorphicVar.at(3) += 1;
-    */
-    micromorphicVarGrad.beProductOf(B_m, u_m);
-}
-
-
-void 
-QTrPlaneStrainGradLoc :: computeMicromorphicNMatrixAt(GaussPoint *gp,FloatMatrix &answer)
-{
-  this->computeMicromorphicBMatrixAt(gp, answer);
-}
-
-
-void
-QTrPlaneStrainGradLoc :: computeMicromorphicBMatrixAt(GaussPoint *gp, FloatMatrix &answer)         
+QTrPlaneStrainGradLoc :: computeGmatrixAt(GaussPoint *gp, FloatMatrix &answer)                
 {
     FEInterpolation *interp = this->giveInterpolation();
     FloatMatrix d2Ndx2; 
     interp->evald2Ndx2( d2Ndx2, gp->giveNaturalCoordinates(), FEIElementGeometryWrapper(this) );
 
-    answer.resize(8, this->giveNumberOfMicromorphicDofs());
+    answer.resize(8, this->giveElement()->computeNumberOfDofs());
     answer.zero();
 
-    for ( int i = 1; i <= 6; i++ ) {
+    for ( int i = 1; i <= d2Ndx2.giveNumberOfRows(); i++ ) {
         answer.at(1, i * 2 - 1) = d2Ndx2.at(i, 1);
         answer.at(2, i * 2 - 1) = d2Ndx2.at(i, 3);
 

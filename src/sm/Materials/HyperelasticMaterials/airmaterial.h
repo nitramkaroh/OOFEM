@@ -100,6 +100,7 @@ public:
 
     virtual const char *giveInputRecordName() const { return _IFT_AirMaterial_Name; }
     virtual const char *giveClassName() const { return "AirMaterial"; }
+  int giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType type, TimeStep *tStep);
 };
 } // end namespace oofem
 #endif

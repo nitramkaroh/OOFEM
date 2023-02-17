@@ -233,7 +233,7 @@ AirMaterialContact :: giveIPValue(FloatArray &answer, GaussPoint *gp, InternalSt
     } else if( type == IST_DeformationGradientTensor) {
       answer = status->giveFVector();
     } else {
-      OOFEM_ERROR("Unknown InternalStateType");
+      AirMaterial::giveIPValue(answer, gp, type, tStep);
     }
     return 1;
 }

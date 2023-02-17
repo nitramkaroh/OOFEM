@@ -106,6 +106,7 @@ protected:
     double cosBeta, sinBeta, cosAlpha, sinAlpha;
     /// Initial stress field curved configuration
     ScalarFunction u_0, w_0, phi_0, kappa_0, sx;
+  //    std::vector<ScalarFunction> u_0, w_0, phi_0, kappa_0, sx;
     FloatArray u0, w0, phi0, phi0mid, kappa0;
     double beta = 0;
     FloatArray tangentVector;

@@ -39,6 +39,11 @@ NlBeamInternalContact :: initializeFrom(InputRecord *ir)
     IR_GIVE_FIELD(ir, DX, _IFT_NlBeamInternalContact_dx );
     IR_GIVE_FIELD(ir, friction, _IFT_NlBeamInternalContact_Friction );
 
+    // mat number for two segments - used only for postprocessing
+    matNum.resize(2);
+    matNum.at(1) = 1;
+    matNum.at(2) = 2;
+    IR_GIVE_OPTIONAL_FIELD(ir, matNum, _IFT_NlBeamInternalContact_matNum );
 
     auto nodeA  = this->giveNode(1);
     auto nodeB  = this->giveNode(2);
@@ -139,7 +144,7 @@ NlBeamInternalContact :: integrateAlongSegment(FloatArray &fab, double deltaPhi,
   double x = 0;
   for (int istep = 1; istep <= nstep; istep++){
     x += DX;
-    ///@todo: check the following line
+    //
     u_prev = u;
     // rotation at midstep and its derivatives with respect to the left-end forces
     double phi_mid = u_prev.at(3) + kappa * DX / 2.;
@@ -970,30 +975,6 @@ NlBeamInternalContact :: findLeftEndForcesLocal(FloatArray &ub, FloatArray &ub_p
 }
 
 
-/*
-This method sets up the 3x3 stiffness matrix that contains derivatives of the left-end
-forces and moment with respect to the right-end displacements and rotation taken relative 
-to the left-end displacements and rotation. Everything is done in the local coordinate system 
-attached to the left end.
-This matrix is later transformed into the full 6x6 element stiffness matrix in global coordinates. 
-
-Input variables:
-ub[3] ... relative displacements and rotation at the end of the current step
-ub_prev[3] ... relative displacements and rotation at the end of the previous step,
-fab[3] ...  a guess (or converged value) of the left-end forces and moment
-printflag ... flag indicating whether detailed results should be printed
-
-Output variables:
-fab[3] ...  left-end forces and moment (values of initial guess are rewritten)
-Kloc[3][3] ... a block of the stiffness matrix in local coordinates
-
-Return value:
-boolean, indicating whether everything has run smoothly
-*/
-
-//bool evaluateLocalStiffness(double ub[3], double ub_prev[3], double fab[3], double Kloc[3][3], bool printflag)
-//{
-
 void
 NlBeamInternalContact :: construct_T(FloatMatrix &T, double phia)
 {
@@ -1002,15 +983,20 @@ NlBeamInternalContact :: construct_T(FloatMatrix &T, double phia)
   T.at(1,2) =  sinAlpha *cos(phia) - cosAlpha * sin(phia);
   T.at(2,1) = - T.at(1,2);
   T.at(3,3) = 1.;
-  /*
+}
+
+
+void
+NlBeamInternalContact :: construct_T(FloatMatrix &T, double phia, double alpha)
+{
   T.resize(3,3);
   T.at(1,1) = T.at(2,2) = cos(alpha-phia);
   T.at(1,2) = sin(alpha-phia);
   T.at(2,1) = -T.at(1,2);
   T.at(3,3) = 1.;
-  */
 }
 
+/*
 void
 NlBeamInternalContact :: construct_T(FloatMatrix &T, double phia, double rot)
 {
@@ -1020,7 +1006,7 @@ NlBeamInternalContact :: construct_T(FloatMatrix &T, double phia, double rot)
   T.at(2,1) = - T.at(1,2);
   T.at(3,3) = 1.;
 }
-
+*/
 
 void
 NlBeamInternalContact :: construct_Tprime(FloatMatrix &T, double phia)
@@ -1042,16 +1028,33 @@ void
 NlBeamInternalContact :: construct_l(FloatArray &l, double phia)
 {
   l.resize(3);
+  /*l.at(1) = beamLength * (cos(phia)*cosAlpha - sin(phia) * sinAlpha - cosAlpha);
+  l.at(2) = beamLength * (sinAlpha * cos(phia) + cosAlpha * sin(phia) - sinAlpha);
+  */
+  l.at(1) = beamLength * (cos(phia)-1.);
+  l.at(2) = beamLength * sin(phia);
+  
+}
+
+void
+NlBeamInternalContact :: construct_l_loc(FloatArray &l, double phia)
+{
+  l.resize(3);
   l.at(1) = beamLength * (cos(phia)-1.);
   l.at(2) = beamLength * sin(phia);
 }
+
 
 void
 NlBeamInternalContact :: construct_l(FloatArray &l, double phia, double L)
 {
   l.resize(3);
+  /*  l.at(1) = L * (cos(phia)*cosAlpha - sin(phia) * sinAlpha - cosAlpha);
+  l.at(2) = L * (sinAlpha * cos(phia) + cosAlpha * sin(phia) - sinAlpha);
+  */
   l.at(1) = L * (cos(phia) - 1.);
   l.at(2) = L *  sin(phia);
+  
 }
 
 
@@ -1067,8 +1070,13 @@ void
 NlBeamInternalContact :: construct_lprime(FloatArray &l, double phia)
 {
   l.resize(3);
+  /*  l.at(1) = -beamLength * (sin(phia)*cosAlpha + cos(phia) * sinAlpha);
+  l.at(2) =  beamLength * (cosAlpha * cos(phia) -  sinAlpha * sin(phia));
+  */
+  
   l.at(1) = -beamLength * sin(phia);
   l.at(2) = beamLength * cos(phia);
+  
 }
 
 
@@ -1335,8 +1343,9 @@ NlBeamInternalContact :: giveCompositeExportData(std::vector< VTKPiece > &vtkPie
   //two segments
   vtkPieces.resize(2);
   
-  FloatArray ul, xLeft, xRight;
+  FloatArray ul, xLeft, xRight, Lleft, Lright;
   FloatMatrix uMatrixLeft, uMatrixRight, T;
+  
   FloatArray uab, ua(3),ub(3);
   this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, uab);
   ua.beSubArrayOf(uab,{1,2,3});
@@ -1344,68 +1353,44 @@ NlBeamInternalContact :: giveCompositeExportData(std::vector< VTKPiece > &vtkPie
   //
   /*To be removed*/
   double phia = uab.at(3);
-  FloatArray ub_loc, ub_ua(ub), loc, fab_loc, u0(2);
+  FloatArray ub_loc, ub_ua(ub), loc, fab_loc, u0(3);
   ub_ua.subtract(ua);  
   // compute displacements of the right end with respect to the auxiliary coordinate system
-  construct_l(loc, phia);
+  construct_l_loc(loc, phia);
+  //construct_T(T, phia,0.0); 
   construct_T(T, phia); 
   ub_loc.beProductOf(T, ub_ua);
   ub_loc.add(loc);
   fab_loc.beProductOf(T, this->internalForces);
   FloatMatrix Tn = {{1,0},{0,1}};  
-  this->computeSegmentDisplacements(uMatrixLeft,fab_loc, leftActiveSegmentLength, leftSegmentLength, u0, Tn, uab );
+  this->computeSegmentDisplacements(uMatrixLeft,Lleft, fab_loc, leftActiveSegmentLength, leftSegmentLength, u0, Tn, uab );
   // 
   ////
   FloatMatrix Tb,Ttb;
-  FloatArray ur(2);
-  Node *nodeB = this->giveNode(2);
-  ur.at(1) = beamLength+ub_loc.at(1);
+  FloatArray ur(3);
+  ur.at(1) = ub_loc.at(1) + beamLength;
   ur.at(2) = ub_loc.at(2);
+  ur.at(3) = ub_loc.at(3);
   double alphab = M_PI + ub_loc.at(3);
-  construct_T(Tb, alphab);
+  //construct_T(Tb, alphab, 0.0);
+  construct_T(Tb, alphab,0.0);
   Ttb.beTranspositionOf(Tb);
   // transformation of forces and moment
   FloatArray f;
   transform_fab2fba(ub_loc, fab_loc, f);
-  this->computeSegmentDisplacements(uMatrixRight,f, rightActiveSegmentLength, rightSegmentLength, ur, Ttb, uab );
+  this->computeSegmentDisplacements(uMatrixRight,Lright, f, rightActiveSegmentLength, rightSegmentLength, ur, Ttb, uab, true );
 
-
-
-  
-  /*
-  ///
-  u.at(1) = ua.at(1);
-  u.at(2) = ua.at(2);
-  //
-  Node *nodeA = this->giveNode(1);
-  ul.resize(2);
-  FloatMatrix Tt = {{1,0},{0,1}};
-  this->computeSegmentDisplacements(uMatrixLeft,this->internalForces, leftActiveSegmentLength, leftSegmentLength, u, Tt );  
-  ///
-  FloatMatrix Tb,Ttb;
-  Node *nodeB = this->giveNode(2);
-  u.at(1) = nodeB->giveCoordinate(1)+ub.at(1);
-  u.at(2) = nodeB->giveCoordinate(3)+ub.at(2);
-  double alphab = M_PI + ub.at(3);
-  //construct_T(T, alphab, M_PI);
-  construct_T(Tb, alphab);
-  Ttb.beTranspositionOf(Tb);
-  // transformation of forces and moment
-  FloatArray f;
-  transform_fab2fba(ub, this->internalForces, f);
-  this->computeSegmentDisplacements(uMatrixRight,f, rightActiveSegmentLength, rightSegmentLength, u, Ttb );
-  */
-  //@tobedeleted
+ 
   Node *nodeA = this->giveNode(1);
   //
   const int numCellNodes  = 2; // linear line
   //
-  int numCellsLeft = ceil(leftActiveSegmentLength/DX);
+  int numCellsLeft = Lleft.giveSize()-1;
   int nNodesLeft = numCellsLeft * numCellNodes;
   vtkPieces.at(0).setNumberOfCells(numCellsLeft);
   vtkPieces.at(0).setNumberOfNodes(nNodesLeft);
   //
-  int numCellsRight = ceil(rightActiveSegmentLength/DX);
+  int numCellsRight = Lright.giveSize()-1;
   int nNodesRight = numCellsRight * numCellNodes;
   vtkPieces.at(1).setNumberOfCells(numCellsRight);
   vtkPieces.at(1).setNumberOfNodes(nNodesRight);
@@ -1414,16 +1399,23 @@ NlBeamInternalContact :: giveCompositeExportData(std::vector< VTKPiece > &vtkPie
   int val    = 1;
   int offset = 0;
   IntArray nodes(numCellNodes);
-  this->computeVectorOf({D_u, D_w, R_v}, VM_Total, tStep, uab);
+  FloatArray ug(3);
   int nodeNum = 1;
   FloatArray nodeCoords(3);
   IntArray connectivity(2);
   for ( int iElement = 1; iElement <= numCellsLeft; iElement++ ) {
-    for (int iNode = 1; iNode <= numCellNodes; iNode++) {
-      //double L = (iElement-1) * DX + (iNode -1) * DX;
-      nodeCoords.at(1) = nodeA->giveCoordinate(1);// + L * cosAlpha;
+    for (int nN = 1; nN <= numCellNodes; nN++) {
+      int lN = nN % 2;
+      int iNode;
+      if(lN == 0) {
+	iNode = nN/2 + 1;
+      } else {
+	iNode = (nN + 1) / 2;
+      }
+
+      nodeCoords.at(1) = nodeA->giveCoordinate(1);// + Lleft.at(iElement+iNode-1) * cosAlpha;
       nodeCoords.at(2) = 0;
-      nodeCoords.at(3) = nodeA->giveCoordinate(3);// + L * sinAlpha;
+      nodeCoords.at(3) = nodeA->giveCoordinate(3);// + Lleft.at(iElement+iNode-1) * sinAlpha;
       //
       vtkPieces.at(0).setNodeCoords(nodeNum, nodeCoords);
       nodeNum++;
@@ -1439,11 +1431,18 @@ NlBeamInternalContact :: giveCompositeExportData(std::vector< VTKPiece > &vtkPie
   val    = 1;
   offset = 0;
   for ( int iElement = 1; iElement <= numCellsRight; iElement++ ) {
-    for (int iNode = 1; iNode <= numCellNodes; iNode++) {
-      //double L = (iElement-1) * DX + (iNode -1) * DX;
-      nodeCoords.at(1) = 0;//nodeB->giveCoordinate(1) + L * cos(pitch + M_PI);
+    for (int nN = 1; nN <= numCellNodes; nN++) {
+      int lN = nN % 2;
+      int iNode;
+      if(lN == 0) {
+	iNode = nN/2 + 1;
+      } else {
+	iNode = (nN + 1) / 2;
+      }
+
+      nodeCoords.at(1) = nodeA->giveCoordinate(1);// - Lright.at(iElement+iNode-1) * cosAlpha;
       nodeCoords.at(2) = 0;
-      nodeCoords.at(3) = 0;//nodeB->giveCoordinate(3) + L * sin(pitch + M_PI);
+      nodeCoords.at(3) = nodeA->giveCoordinate(3);// - Lright.at(iElement+iNode-1) * sinAlpha;
       //
       vtkPieces.at(1).setNodeCoords(nodeNum, nodeCoords);
       nodeNum++;
@@ -1472,11 +1471,21 @@ NlBeamInternalContact :: giveCompositeExportData(std::vector< VTKPiece > &vtkPie
 	    } else {
 	      iNode = (nN + 1) / 2;
 	    }
-
-	    FloatArray u(3);
-	    u.at(1) = uMatrixLeft.at(iNode, 1);
-	    u.at(3) = uMatrixLeft.at(iNode, 2);
-	    vtkPieces.at(0).setPrimaryVarInNode(i, nN, u);
+	    /*
+	    double L = Lleft.at(iNode);
+	    FloatArray l;
+	    this->construct_l(l, uab.at(3), L);
+	    this->construct_T(T, uab.at(3));
+	    FloatArray u_l, u_g;
+	    u_l = {uMatrixLeft.at(iNode, 1),uMatrixLeft.at(iNode, 2), 0};
+	    u_l.subtract(l);
+	    u_g.beTProductOf(T, u_l);
+	    ug.at(1) = u_g.at(1) + uab.at(1);
+	    ug.at(3) = u_g.at(2) + uab.at(2);
+	    ug.at(2) = 0;
+	    vtkPieces.at(0).setPrimaryVarInNode(i, nN, ug);
+	    */
+	    vtkPieces.at(0).setPrimaryVarInNode(i, nN, {uMatrixLeft.at(iNode, 1),0,uMatrixLeft.at(iNode, 2)});
 	  }
 	  for ( int nN = 1; nN <= nNodesRight; nN++ ) {
 	    int lN = nN % 2;
@@ -1487,60 +1496,47 @@ NlBeamInternalContact :: giveCompositeExportData(std::vector< VTKPiece > &vtkPie
 	      iNode = (nN + 1) / 2;
 	    }
 
-	    FloatArray u(3);
-	    u.at(1) = uMatrixRight.at(iNode, 1);
-	    u.at(3) = uMatrixRight.at(iNode, 2);
+	    /*	    double L = beamLength - Lright.at(iNode);
+	    FloatArray l;
+	    this->construct_l(l, uab.at(3), L);
+	    this->construct_T(T, uab.at(3));
+	    FloatArray u_l, u_g;
+	    u_l = {uMatrixRight.at(iNode, 1),uMatrixRight.at(iNode, 2), 0};
+	    u_l.subtract(l);
+	    u_g.beTProductOf(T, u_l);
+	    ug.at(1) = u_g.at(1) + uab.at(1);
+	    ug.at(3) = u_g.at(2) + uab.at(2);
+	    ug.at(2) = 0;
+	    vtkPieces.at(1).setPrimaryVarInNode(i, nN, ug);
+	    */
+	    vtkPieces.at(1).setPrimaryVarInNode(i, nN, {uMatrixRight.at(iNode, 1),0,uMatrixRight.at(iNode, 2)});
 
-	    vtkPieces.at(1).setPrimaryVarInNode(i, nN, u);
 	  }
         }
     }
-    /*
-    FILE *FIDL, *FIDR;
 
-    char fext[100];
-    sprintf( fext, "_m%d_%d", this->number, tStep->giveNumber() );
-    std :: string fileName, functionname, temp;
-    fileName = this->giveDomain()->giveEngngModel()->giveOutputBaseFileName();
-    size_t foundDot;
-    foundDot = fileName.rfind(".");
-    
-    while (foundDot != std :: string :: npos) {
-      fileName.replace(foundDot, 1, "_");
-      foundDot = fileName.rfind(".");   
+
+    int nC = cellVarsToExport.giveSize();
+    vtkPieces [ 0 ].setNumberOfCellVarsToExport(n, nNodesLeft);
+    vtkPieces [ 1 ].setNumberOfCellVarsToExport(n, nNodesRight);
+    for ( int i = 1; i <= nC; i++ ) {
+      InternalStateType type = ( InternalStateType ) cellVarsToExport.at(i);
+        if ( type == IST_MaterialNumber ) {
+	  for (int iC = 1; iC <= numCellsLeft; iC++) {
+	    vtkPieces [ 0 ].setCellVar(i, iC, {matNum.at(1)});
+	  }
+	  for (int iC = 1; iC <= numCellsRight; iC++) {
+	    vtkPieces [ 1 ].setCellVar(i, iC, {matNum.at(2)});
+	  }
+	}	
     }
     
-    fileName += fext;
-    temp = fileName;
-    size_t backslash = temp.rfind("/");
-    if (backslash != std :: string :: npos ) {
-      functionname = temp.substr(backslash+1, std :: string :: npos);
-    } else {
-      functionname = temp;
-    }
-
-    std :: string fileNameL(fileName), fileNameR(fileName);    
-    fileNameL += "Left.out";
-    fileNameR += "Right.out";
-    if ( ( FIDL = fopen(fileNameL.c_str(), "w") ) == NULL ) {
-      OOFEM_ERROR("failed to open file %s", fileName.c_str() );
-    }
-    if ( ( FIDR = fopen(fileNameR.c_str(), "w") ) == NULL ) {
-      OOFEM_ERROR("failed to open file %s", fileName.c_str() );
-    }
-    uMatrixLeft.printYourself(FIDL);
-    uMatrixRight.printYourself(FIDR);
-
-    fclose(FIDL);
-    fclose(FIDR);  
-    */
-
 }
 
 void
-NlBeamInternalContact ::computeSegmentDisplacements(FloatMatrix &uMatrix, const FloatArray &fab, double Lb, double segmentLength, const FloatArray &u0, const FloatMatrix &T, const FloatArray &uab)
+NlBeamInternalContact ::computeSegmentDisplacements(FloatMatrix &uMatrix, FloatArray &Larray, const FloatArray &fab, double Lb, double segmentLength, const FloatArray &u0, const FloatMatrix &T, const FloatArray &uab, bool rightSegment)
 {
-  FloatArray ub, uc, uplot;
+  FloatArray ub;
   bool inflection_detected = false;
   double aux;
   
@@ -1550,30 +1546,38 @@ NlBeamInternalContact ::computeSegmentDisplacements(FloatMatrix &uMatrix, const 
   double Mab = fab.at(3);
   double M = -Mab;
   double kappa = computeCurvatureFromMoment(M);
-
   double x = 0.;
   FloatArray u(3), u_prev(3);
+  //
+  FloatArray l, ul(3);
+  FloatMatrix Tg;
+  //
   // basic loop over spatial steps
   int nstep = ceil(Lb/DX); // the spatial step size is fixed and the segment length does not need to be its integer multiple
+  Larray.resize(nstep+1);
   uMatrix.resize(nstep+1, 2);
 
-
-  FloatArray ul(3), l;
-  FloatMatrix Tg;
-
-  ul.at(1) = u0.at(1) + T.at(1,1)*(x+u.at(1)) + T.at(1,2)*u.at(2);
-  ul.at(2) = u0.at(2) + T.at(2,1)*(x+u.at(1)) + T.at(2,2)*u.at(2);
-
-  this->construct_l(l, uab.at(3), x);
-  this->construct_T(Tg, uab.at(3));
+  if(rightSegment) {
+    this->construct_l(l, uab.at(3), beamLength);
+    this->construct_T(Tg, uab.at(3));
+  } else {
+    this->construct_l(l, uab.at(3), 0);
+    this->construct_T(Tg, uab.at(3));
+  }
+  // global displacement for the first point
   FloatArray ug;
+  ul.at(1) = u0.at(1);
+  ul.at(2) = u0.at(2);
+  //
   ul.subtract(l);
   ug.beTProductOf(Tg, ul);
-  uMatrix.at(1,1) = ug.at(1) + uab.at(1);
-  uMatrix.at(1,2) = ug.at(2) + uab.at(2);
-
-
-  
+  ug.at(1) += uab.at(1);
+  ug.at(2) += uab.at(2);
+  uMatrix.at(1,1) = ug.at(1);
+  uMatrix.at(1,2) = ug.at(2);
+  //
+  Larray.at(1) = x;
+  //  
   for (int istep=1; istep<=nstep; istep++){
     x += DX;
     u_prev = u;
@@ -1604,34 +1608,66 @@ NlBeamInternalContact ::computeSegmentDisplacements(FloatMatrix &uMatrix, const 
       for (int i=1; i<=3; i++) {
 	ub.at(i) = u_prev.at(i) + aux*(u.at(i)-u_prev.at(i));
       }
-      /*      uMatrix.at(istep+1, 1) = u0.at(1) + T.at(1,1)*(Lb+ub.at(1)) + T.at(1,2)*ub.at(2);
+      /*
+      uMatrix.at(istep+1, 1) = u0.at(1) + T.at(1,1)*(Lb+ub.at(1)) + T.at(1,2)*ub.at(2);
       uMatrix.at(istep+1, 2) = u0.at(2) + T.at(2,1)*(Lb+ub.at(1)) + T.at(2,2)*ub.at(2);
       */
       ul.at(1) = u0.at(1) + T.at(1,1)*(Lb+ub.at(1)) + T.at(1,2)*ub.at(2);
       ul.at(2) = u0.at(2) + T.at(2,1)*(Lb+ub.at(1)) + T.at(2,2)*ub.at(2);
+
+      Larray.at(istep+1) = Lb;
       // plot also the straight segment behind the contact point, if it exists
       double Lstraight = segmentLength - Lb;
 
       if (Lstraight>0.){
-	/*uMatrix.at(istep+1, 1) = u0.at(1) + T.at(1,1)*(Lb+ub.at(1)+Lstraight*cos(ub.at(3))) + T.at(1,2)*(ub.at(2)-Lstraight*sin(ub.at(3))) ;
+	/*	
+	uMatrix.at(istep+1, 1) = u0.at(1) + T.at(1,1)*(Lb+ub.at(1)+Lstraight*cos(ub.at(3))) + T.at(1,2)*(ub.at(2)-Lstraight*sin(ub.at(3))) ;
 	uMatrix.at(istep+1, 2) = u0.at(2) + T.at(2,1)*(Lb+ub.at(1)+Lstraight*cos(ub.at(3))) + T.at(2,2)*(ub.at(2)-Lstraight*sin(ub.at(3)));
 	*/
 	ul.at(1) = u0.at(1) + T.at(1,1)*(Lb+ub.at(1)+Lstraight*cos(ub.at(3))) + T.at(1,2)*(ub.at(2)-Lstraight*sin(ub.at(3))) ;
 	ul.at(2) = u0.at(2) + T.at(2,1)*(Lb+ub.at(1)+Lstraight*cos(ub.at(3))) + T.at(2,2)*(ub.at(2)-Lstraight*sin(ub.at(3)));
+	
+	//
+	Larray.at(istep-1) = Lb;
       }
     } else {
-      ul.at(1) = u0.at(1) + T.at(1,1)*(x+u.at(1)) + T.at(1,2)*u.at(2);
-      ul.at(2) = u0.at(2) + T.at(2,1)*(x+u.at(1)) + T.at(2,2)*u.at(2);
-      /*uMatrix.at(istep+1, 1) = u0.at(1) + T.at(1,1)*(x+u.at(1)) + T.at(1,2)*u.at(2);
-      uMatrix.at(istep+1, 2) = u0.at(2) + T.at(2,1)*(x+u.at(1)) + T.at(2,2)*u.at(2);
-      */     
+      /*
+      uMatrix.at(istep+1,1) = u0.at(1) + T.at(1,1)*(x+u.at(1)) + T.at(1,2)*u.at(2);
+      uMatrix.at(istep+1,2) = u0.at(2) + T.at(2,1)*(x+u.at(1)) + T.at(2,2)*u.at(2);
+      */
+      FloatArray ll;
+      this->construct_l(ll, u0.at(3), x);
+      //      ll.times(0.);
+      ul.at(1) = u0.at(1) + T.at(1,1)*(x+u.at(1) - ll.at(1)) + T.at(1,2)*(u.at(2) - ll.at(2));
+      ul.at(2) = u0.at(2) + T.at(2,1)*(x+u.at(1) - ll.at(1)) + T.at(2,2)*(u.at(2) - ll.at(2));
+
+      
+      Larray.at(istep+1) = x;
     }
-    this->construct_l(l, uab.at(3), x);
-    this->construct_T(Tg, uab.at(3));
+    if(rightSegment) {
+      this->construct_l(l, uab.at(3), beamLength-x);
+    } else {
+      this->construct_l(l, uab.at(3), x);
+    }
+    FloatArray ug;
     ul.subtract(l);
+    ug.beTProductOf(Tg, ul);
+    ug.at(1) += uab.at(1);
+    ug.at(2) += uab.at(2);
+    uMatrix.at(istep+1,1) = ug.at(1);
+    uMatrix.at(istep+1,2) = ug.at(2);
+    /*    if(rightSegment) {
+      uMatrix.at(istep+1,1) += beamLength * Tg(1,1);
+      uMatrix.at(istep+1,2) += beamLength * Tg(1,2);
+      }*/
+    //
+    
+    
+    /* ul.subtract(l);
     ug.beTProductOf(Tg, ul);
     uMatrix.at(istep+1,1) = ug.at(1) + uab.at(1);
     uMatrix.at(istep+1,2) = ug.at(2) + uab.at(2);
+    */
 
   } // end of loop over spatial steps
   

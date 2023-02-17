@@ -137,13 +137,16 @@ NlBeam_SM2 :: initializeFrom(InputRecord *ir)
       IR_GIVE_FIELD(ir, w_0, _IFT_NlBeam_SM2_w0);
       IR_GIVE_FIELD(ir, phi_0, _IFT_NlBeam_SM2_phi0);
       IR_GIVE_FIELD(ir, kappa_0, _IFT_NlBeam_SM2_kappa0);
-      	
-	this->s.resize(NIP+1);
-	this->u0.resize(NIP+1);
-	this->w0.resize(NIP+1);
-	this->phi0.resize(NIP+1);
-	this->kappa0.resize(NIP+1);
-	this->phi0mid.resize(NIP);
+
+
+      //      IR_GIVE_OPTIONAL_FIELD(ir, n_int, _IFT_NlBeam_SM2_nintervals);
+      
+      this->s.resize(NIP+1);
+      this->u0.resize(NIP+1);
+      this->w0.resize(NIP+1);
+      this->phi0.resize(NIP+1);
+      this->kappa0.resize(NIP+1);
+      this->phi0mid.resize(NIP);
 
       
       if(n_cf == 5) {
@@ -167,7 +170,7 @@ NlBeam_SM2 :: initializeFrom(InputRecord *ir)
 	    phi0mid.at(i-1) = this->eval_phi0(s.at(i)-ds/2.);
 	  }
 	}
-      } if(n_cf == 1) {
+      } else if(n_cf == 1) {
 	this->cf = CF_x;
 	IR_GIVE_FIELD(ir, sx, _IFT_NlBeam_SM2_s);
 
@@ -191,6 +194,49 @@ NlBeam_SM2 :: initializeFrom(InputRecord *ir)
 	  
 	}
       
+      } else if(n_cf == 2) {
+	double l = 1;
+	this->cf = CF_s;
+	int nIntervals = 10; //or 8??
+	//intervalNIP = NIP/nIntervals;
+	int inip = NIP/(nIntervals-1);
+	IntArray intervalNIP(nIntervals);
+	FloatArray Linterval(nIntervals);
+	NIP = 0;
+	for(int i = 1; i <= nIntervals; i++ ) {
+	  intervalNIP.at(i) = inip;
+	  Linterval.at(i) = l;
+	  if(i == 1 || i == nIntervals) {
+	    intervalNIP.at(i) /= 2;
+	    Linterval.at(i) /= 2;
+	  }
+	  NIP += intervalNIP.at(i);
+	}
+	
+	this->s.resize(NIP+1);
+	this->u0.resize(NIP+1);
+	this->w0.resize(NIP+1);
+	this->phi0.resize(NIP+1);
+	this->kappa0.resize(NIP+1);
+	this->phi0mid.resize(NIP);
+
+	double angel = -M_PI/4;
+	int index = 1;
+	for (int j = 1; j <= nIntervals; j++) {
+	  double dsI = Linterval.at(j) / intervalNIP.at(j);
+	  angel = -angel;
+	    
+	  for(int i = 1; i <= intervalNIP.at(j); i++) {
+	    index++;
+
+	    s.at(index) = double(index-1.) * dsI;
+	    kappa0.at(index) = 0;
+
+	    phi0mid.at(index-1) = angel;
+	    u0.at(index) = u0.at(index-1) + (cos(angel) - 1.)*dsI;
+	    w0.at(index) = w0.at(index-1) - sin(angel)*dsI;
+	  }
+	}
       }
 
       IR_GIVE_FIELD(ir, EI, _IFT_NlBeam_SM2_EI);
@@ -204,7 +250,7 @@ NlBeam_SM2 :: initializeFrom(InputRecord *ir)
     sinAlpha = (pointB.at(2) - pointA.at(2))/beamLength;
     IR_GIVE_OPTIONAL_FIELD(ir, cosAlpha, "cosalpha");
     IR_GIVE_OPTIONAL_FIELD(ir, sinAlpha, "sinalpha");
-    
+     
     // relative tolerance for iterations at the beam level
     IR_GIVE_OPTIONAL_FIELD(ir, beam_tol, _IFT_NlBeam_SM2_Beam_Tolerance);
     // maximum number of iterations at the beam level
@@ -561,6 +607,7 @@ NlBeam_SM2 :: computeCenterlineStrainFromInternalForces(double M, double N, doub
    this->integrateAlongBeamAndGetJacobi(fab_loc, ub_loc, jacobi, tStep);
 
    /////
+   /*
    FloatArray fnum, upert;
    FloatMatrix Gp(3,3), Gn(3,3);
    double pert = 1.2e-6;
@@ -574,7 +621,7 @@ NlBeam_SM2 :: computeCenterlineStrainFromInternalForces(double M, double N, doub
      }
    }
    Gn.times(1./pert);
-   
+   */
 
 
    ////
@@ -648,7 +695,6 @@ NlBeam_SM2 :: computeCenterlineStrainFromInternalForces(double M, double N, doub
    l.resize(3);
    l.at(1) = L * (cos(phia)*cosBeta - sin(phia) * sinBeta - cosBeta);
    l.at(2) = L * (sinBeta * cos(phia) + cosBeta * sin(phia) - sinBeta);
- 
  }
 
 
@@ -802,12 +848,12 @@ NlBeam_SM2 :: giveInternalForcesVectorPressure_from_u(FloatArray &answer, TimeSt
    double p = pressure * this->giveDomain()->giveFunction(pressure_ltf)->evaluate(tStep, VM_Total);
    double c1 =  beamLength*sinAlpha + u.at(5) - u.at(2);
    double c2 =  beamLength*cosAlpha + u.at(4) - u.at(1);
-   /*   
+   
    answer.at(4) = -answer.at(1) + p * c1;
    answer.at(5) = -answer.at(2) - p * c2;
-   */
+   
    //
-   answer.at(6) = c1 * answer.at(1) - c2 * answer.at(2) - answer.at(3);//- - 0.5 * p * (c1 * c1 + c2 * c2);
+   answer.at(6) = c1 * answer.at(1) - c2 * answer.at(2) - answer.at(3) - 0.5 * p * (c1 * c1 + c2 * c2);
 
   
  }
@@ -1050,7 +1096,7 @@ NlBeam_SM2 :: giveCompositeExportData_curved(std::vector< VTKPiece > &vtkPieces,
 	  
 	    double Ls = s.at(iNode);
 	    double L = sqrt((Ls + this->u0.at(iNode)) * (Ls + this->u0.at(iNode)) + this->w0.at(iNode) * this->w0.at(iNode));
-	    double cB, sB;
+	    double cB = 0, sB = 0;
 	    if(L != 0) {
 	      cB = (Ls + this->u0.at(iNode))/ L;
 	      sB = this->w0.at(iNode)/ L;
@@ -1139,14 +1185,32 @@ NlBeam_SM2 :: giveCompositeExportData_straight(std::vector< VTKPiece > &vtkPiece
 	    u_g.beTProductOf(T, u_l);
 	    ug.at(1) = u_g.at(1) + uab.at(1);
 	    ug.at(3) = u_g.at(2) + uab.at(2);
-	    ug.at(2) = 0;//this->phi.at(i) + uab.at(3);
+	    ug.at(2) = this->phi.at(iNode) + uab.at(3);
 	    vtkPieces.at(0).setPrimaryVarInNode(i, nN, ug);
 	  }
         }
     }
 
+    /////////////////
+    int nC = cellVarsToExport.giveSize();
+    vtkPieces [ 0 ].setNumberOfCellVarsToExport(nC, numCells);
+    for ( int i = 1; i <= nC; i++ ) {
+      InternalStateType istype = ( InternalStateType ) cellVarsToExport.at(i);
+      if ( istype == IST_BeamForceMomentumTensor ) {
+	for ( int iC = 1; iC <= numCells; iC++ ) {
+	  FloatArray bfmt(6);
+	  bfmt.at(1) = vN.at(iC);
+	  bfmt.at(2) = vM.at(iC);
+	  vtkPieces.at(0).setCellVar(i, iC, bfmt);
+	}
+      } else if ( istype == IST_MaterialNumber ) {
+	for (int iC = 1; iC <= numCells; iC++) {
+	  vtkPieces [ 0 ].setCellVar(i, iC, {1});
+	}
+      }   
+    }
+
 }
-     
 
 
 void
@@ -1155,6 +1219,7 @@ NlBeam_SM2 :: printOutputAt(FILE *file, TimeStep *tStep)
   if(tangentVector.giveSize()) {
     this-> printOutputAt_CurvedBeam(file, tStep);
    } else {
+    NLStructuralElement::printOutputAt(file, tStep);
     //this-> printOutputAt_StraightBeam(file, tStep);
    }
 }

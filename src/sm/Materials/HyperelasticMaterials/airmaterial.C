@@ -176,6 +176,27 @@ AirMaterial :: initializeFrom(InputRecord *ir)
     return IRRT_OK;
 }
 
+int
+AirMaterial :: giveIPValue(FloatArray &answer, GaussPoint *gp, InternalStateType type, TimeStep *tStep)
+{
 
+  StructuralMaterialStatus *status = static_cast< StructuralMaterialStatus* >( this->giveStatus(gp) );
+  
+  if ( type == IST_VolumetricDeformation) {
+      answer.resize(1);
+      FloatArray vF;
+      FloatMatrix F;
+      vF = status->giveFVector();
+      F.beMatrixForm(vF);
+      answer.at(1) = F.giveDeterminant();
+      return 1;
+  } else {
+    return  StructuralMaterial::giveIPValue(answer, gp, type, tStep);
+  }
+   
+}
+
+
+  
 
 } // end namespace oofem

@@ -178,6 +178,7 @@ namespace oofem {
     ENUM_ITEM_WITH_VALUE(IST_MicromorphicHigherOrderStress, 1117) \
     ENUM_ITEM_WITH_VALUE(IST_MicromorphicHigherOrderStrain, 1118)\
     ENUM_ITEM_WITH_VALUE(IST_MicromorphicCumulatedPlasticStrain, 1119)\
+    ENUM_ITEM_WITH_VALUE(IST_VolumetricDeformation, 1120)	\
   
 /**
  * Type  representing the physical meaning of element or constitutive model internal variable.

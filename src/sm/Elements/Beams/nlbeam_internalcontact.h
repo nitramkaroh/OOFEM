@@ -48,6 +48,7 @@
 #define _IFT_NlBeamInternalContact_ContactMode "cmode"
 #define _IFT_NlBeamInternalContact_Friction "friction"
 #define _IFT_NlBeamInternalContact_dx "dx"
+#define _IFT_NlBeamInternalContact_matNum "matnum"
 
 //@}
 
@@ -78,6 +79,8 @@ protected:
   double TOL_CONTACT_TIME =  1.e-8;
   // maximum number of iterations of the contact time
   int MAXIT_CONTACT_TIME =  10;
+  //
+  IntArray matNum;
 
   double leftSegmentLength = 40.;
   double rightSegmentLength = 0.001;//15.;
@@ -539,6 +542,7 @@ one iteration. Otherwise, the full iterative process is used and it may not conv
   void construct_l(FloatArray &l, double phia);
   void construct_l(FloatArray &l, double phia, double L);
   void construct_l_IC(FloatArray &l, double phia, double L);
+  void construct_l_loc(FloatArray &l, double phia);
   void construct_lprime(FloatArray &l, double phia);
   /*
 Find forces and moment at the left end that lead to given displacements and rotations
@@ -549,7 +553,7 @@ Note that the transformation matrix T is affected by angle alpha that specifies 
   bool findLeftEndForces(const FloatArray &u, const FloatArray &u_prev, FloatArray &fab);
   void printOutputAt(FILE *file, TimeStep *tStep);
 
-  void computeSegmentDisplacements(FloatMatrix &uMatrix, const FloatArray &fab, double Lb, double segmentLength, const FloatArray &u0, const FloatMatrix &T, const FloatArray &uab);
+  void computeSegmentDisplacements(FloatMatrix &uMatrix, FloatArray &Larray,const FloatArray &fab, double Lb, double segmentLength, const FloatArray &u0, const FloatMatrix &T, const FloatArray &uab, bool rightSegment = false);
   
   void  updateYourself(TimeStep *tStep) override;
   
