@@ -766,7 +766,7 @@ NlBeam_SM2 :: computeCenterlineStrainFromInternalForces(double M, double N, doub
     
      if (success == false){
        fab = fab_init;
-       domain->giveEngngModel()->setAnalysisCrash(true);
+       //domain->giveEngngModel()->setAnalysisCrash(true);
        return;
      }
 

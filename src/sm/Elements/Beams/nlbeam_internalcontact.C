@@ -1559,6 +1559,7 @@ NlBeamInternalContact ::computeSegmentDisplacements(FloatMatrix &uMatrix, FloatA
 
   if(rightSegment) {
     this->construct_l(l, uab.at(3), beamLength);
+    l.times(0);
     this->construct_T(Tg, uab.at(3));
   } else {
     this->construct_l(l, uab.at(3), 0);
@@ -1636,8 +1637,12 @@ NlBeamInternalContact ::computeSegmentDisplacements(FloatMatrix &uMatrix, FloatA
       uMatrix.at(istep+1,2) = u0.at(2) + T.at(2,1)*(x+u.at(1)) + T.at(2,2)*u.at(2);
       */
       FloatArray ll;
-      this->construct_l(ll, u0.at(3), x);
-      //      ll.times(0.);
+      if(rightSegment)
+	this->construct_l(ll, u0.at(3), x);
+      else {
+	this->construct_l(ll, u0.at(3), x);
+      }
+      ll.times(0.);
       ul.at(1) = u0.at(1) + T.at(1,1)*(x+u.at(1) - ll.at(1)) + T.at(1,2)*(u.at(2) - ll.at(2));
       ul.at(2) = u0.at(2) + T.at(2,1)*(x+u.at(1) - ll.at(1)) + T.at(2,2)*(u.at(2) - ll.at(2));
 
@@ -1650,7 +1655,7 @@ NlBeamInternalContact ::computeSegmentDisplacements(FloatMatrix &uMatrix, FloatA
       this->construct_l(l, uab.at(3), x);
     }
     FloatArray ug;
-    ul.subtract(l);
+    //ul.subtract(l);
     ug.beTProductOf(Tg, ul);
     ug.at(1) += uab.at(1);
     ug.at(2) += uab.at(2);
