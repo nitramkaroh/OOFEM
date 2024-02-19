@@ -268,6 +268,11 @@ NlBeam_Reissner :: initializeFrom(InputRecord *ir)
     this->vV.resize(NIP+1);
     this->vM.resize(NIP+1);
 
+    // hack for rigid parts
+    IR_GIVE_OPTIONAL_FIELD(ir, NIP_left, _IFT_NlBeam_Reissner_NIPleft);
+    IR_GIVE_OPTIONAL_FIELD(ir, NIP_right, _IFT_NlBeam_Reissner_NIPright);
+   
+
     
     return IRRT_OK;
 }
@@ -281,16 +286,55 @@ NlBeam_Reissner :: computeMomentFromCurvature(double kappa)
 }
 
 double
-NlBeam_Reissner :: computeDerMomentFromCurvature(double kappa)
+NlBeam_Reissner :: computeDerMomentFromCurvature(double kappa, int nip)
 {
-  return EI;
+  if(nip <= NIP_left || nip > NIP+1-NIP_right) {
+    //return std::numeric_limits<double>::max();
+    return 1.e30;
+  } else {
+    return EI;
+  }
 }
 
 double
-NlBeam_Reissner :: computeCurvatureFromMoment(double M)
+NlBeam_Reissner :: computeCurvatureFromMoment(double M, int nip)
 {
-  return M/EI;
+  if(nip <= NIP_left || nip > NIP+1-NIP_right) {
+    return 0.;
+  } else {
+    return M/EI;
+  }
 }
+
+
+double
+NlBeam_Reissner :: give_EA(int nip)
+{
+  if(nip <= NIP_left || nip > NIP+1-NIP_right) {
+    return 1.e30;
+    
+    return std::numeric_limits<double>::max();
+  } else {
+    return this->EA;
+  }
+
+}
+
+
+
+
+double
+NlBeam_Reissner :: give_GAs(int nip)
+{
+  if(nip <= NIP_left || nip > NIP-NIP_right) {
+    return 1.e30;
+    return std::numeric_limits<double>::max();
+  } else {
+    return this->GAs;
+  }
+
+}
+
 
 
 double
@@ -538,8 +582,8 @@ NlBeam_Reissner :: computeCenterlineStrainFromInternalForces(double M, double N,
      //dM = {w.at(i-1)+Xab*dw.at(1)-Zab*du.at(1), -s.at(i-1) - u.at(i-1)+Xab*dw.at(2)-Zab*du.at(2), -1.+Xab*dw.at(3) - Zab*du.at(3)};
      dM = {w.at(i-1) + Xab*dw.at(1) - Zab * du.at(1) - p * ( ( s.at(i-1) + u.at(i-1) ) * du.at(1) + w.at(i-1) * dw.at(1)), -s.at(i-1)-u.at(i-1) + Xab * dw.at(2) - Zab * du.at(2) - p * ( (s.at(i-1) + u.at(i-1)) * du.at(2) + w.at(i-1) * dw.at(2) ), -1. + Xab * dw.at(3) - Zab * du.at(3) - p * ( (s.at(i-1)+ u.at(i-1) ) * du.at(3) + w.at(i-1) * dw.at(3))};
      //
-     double kappa = computeCurvatureFromMoment(M);
-     double dMdkappa = computeDerMomentFromCurvature(kappa);
+     double kappa = computeCurvatureFromMoment(M, i);
+     double dMdkappa = computeDerMomentFromCurvature(kappa, i);
      dkappa = dM;
      dkappa.times(1./dMdkappa);
      double phi_mid = phi.at(i-1) + kappa * dx/2.;
@@ -563,6 +607,8 @@ NlBeam_Reissner :: computeCenterlineStrainFromInternalForces(double M, double N,
      dQ_mid.at(2) += - cos(phi_mid) + p * (dw.at(2) * cos(phi_mid) + du.at(2) * sin(phi_mid));
      dQ_mid.at(3) += p * (dw.at(3) * cos(phi_mid) + du.at(3) * sin(phi_mid));
      //
+     auto EA = this->give_EA(i);
+     auto GAs = this->give_EA(i);
      double lambda_mid = sqrt( ( 1. + N_mid / EA ) * ( 1. + N_mid / EA ) + ( Q_mid / GAs ) * ( Q_mid / GAs ) );
      //
      dlambda_mid.at(1) = 1. / lambda_mid * ( dN_mid.at(1) / EA * ( 1. + N_mid / EA ) + Q_mid * dQ_mid.at(1) / (GAs * GAs)  );
@@ -597,8 +643,8 @@ NlBeam_Reissner :: computeCenterlineStrainFromInternalForces(double M, double N,
      //updated
      dM = {w.at(i) + Xab*dw.at(1) - Zab * du.at(1) - p * ( ( s.at(i) + u.at(i) ) * du.at(1) + w.at(i) * dw.at(1)), -s.at(i)-u.at(i) + Xab * dw.at(2) - Zab * du.at(2) - p * ( (s.at(i) + u.at(i)) * du.at(2) + w.at(i) * dw.at(2) ), -1. + Xab * dw.at(3) - Zab * du.at(3) - p * ( (s.at(i) + u.at(i) ) * du.at(3) + w.at(i) * dw.at(3))};
      //
-     kappa = computeCurvatureFromMoment(M);
-     dMdkappa = computeDerMomentFromCurvature(kappa);
+     kappa = computeCurvatureFromMoment(M, i);
+     dMdkappa = computeDerMomentFromCurvature(kappa, i);
      dkappa = dM;
      dkappa.times(1./dMdkappa);
      phi.at(i) = phi_mid + kappa * dx / 2.;

@@ -17,6 +17,7 @@ REGISTER_Element(NlBeamInternalContact);
   NlBeamInternalContact :: NlBeamInternalContact (int n, Domain *aDomain) : NlBeam_SM(n, aDomain), Jacobi(3,3), Jacobi44(4,4), Kblock(3,3)
 {
   this->internalForces.resize(3);
+  this->tempInternalForces.resize(3);
 }
 
 
@@ -146,6 +147,8 @@ NlBeamInternalContact :: integrateAlongSegment(FloatArray &fab, double deltaPhi,
     x += DX;
     //
     u_prev = u;
+    //
+    jacobi_prev = jacobi;
     // rotation at midstep and its derivatives with respect to the left-end forces
     double phi_mid = u_prev.at(3) + kappa * DX / 2.;
     FloatArray dphi_mid(3);
@@ -162,6 +165,13 @@ NlBeamInternalContact :: integrateAlongSegment(FloatArray &fab, double deltaPhi,
     u.at(1) = u_prev.at(1) + DX * ((1.+N_mid/EA)*cos(phi_mid)-1.);
    // vertical displacement at the end of the step
     u.at(2) = u_prev.at(2) - DX * ( 1. + N_mid / EA ) * sin(phi_mid);
+    //update first two rows of jacobi marix
+    for (int j=1; j<=3; j++){
+      jacobi.at(1,j) += DX*(dN_mid.at(j)/EA)*cos(phi_mid) - DX*(1.+N_mid/EA)*sin(phi_mid)*dphi_mid.at(j);
+      jacobi.at(2,j) -= DX*(dN_mid.at(j)/EA)*sin(phi_mid) + DX*(1.+N_mid/EA)*cos(phi_mid)*dphi_mid.at(j);
+    }
+
+    
     // bending moment and curvature at the end of the step and their derivatives with respect to the left-end forces
     double M_prev = M; // (store the moment at the beginning of the step, needed for the inflection check)
     M = -Mab+Xab*u.at(2)-Zab*(x+u.at(1));
@@ -176,16 +186,9 @@ NlBeamInternalContact :: integrateAlongSegment(FloatArray &fab, double deltaPhi,
     dkappa = dM;
     dkappa.times(1./dMdkappa);
     // rotation at the end of the step
-    u.at(3) = phi_mid+kappa*DX/2.;
-    // test whether Jacobi at the beginning of the step needs to be stored
-    if (istep==nstep || (!inflection_detected && M*M_prev<=0. && M_prev!=M)){
-      jacobi_prev = jacobi;
-    }
-
-    // update Jacobi matrix
+    u.at(3) = phi_mid+kappa*DX/2.;  
+    // update last row of Jacobi matrix
     for (int j = 1; j <= 3; j++){
-      jacobi.at(1,j) += DX*(dN_mid.at(j)/EA)*cos(phi_mid) - DX*(1.+N_mid/EA)*sin(phi_mid)*dphi_mid.at(j);
-      jacobi.at(2,j) -= DX*(dN_mid.at(j)/EA)*sin(phi_mid) + DX*(1.+N_mid/EA)*cos(phi_mid)*dphi_mid.at(j);
       jacobi.at(3,j) = dphi_mid.at(j)+dkappa.at(j)*DX/2.;
     }
      
@@ -427,6 +430,7 @@ NlBeamInternalContact :: findLeftEndForcesLocal_Tip_SoS(const FloatArray &ub_tar
 
     if (converged && stiffEvalMode){ // prepare a block of the stiffness matrix
       //@todo: check this
+      /*
       Kblock.beInverseOf(jacobi);
       double c1 = (Lb+ubc.at(1))*s - ubc.at(2)*c; 
       double c2 = (Lb+ubc.at(1))*c + ubc.at(2)*s;
@@ -434,6 +438,23 @@ NlBeamInternalContact :: findLeftEndForcesLocal_Tip_SoS(const FloatArray &ub_tar
       for (int i = 1; i <= 3; i++)
 	Kblock.at(i,3) = c1*Kblock.at(i,1) + c2*Kblock.at(i,2);
       return true;
+      */
+      FloatMatrix iJ;
+      iJ.beInverseOf(jacobi);
+      auto Xphi = -s*fab.at(1)-c*fab.at(2);
+      auto Zphi =  c*fab.at(1)-s*fab.at(2);
+      FloatMatrix R(2,3);
+      R.at(1,1) = 1. + (c*jacobi_bc.at(1,3)+s*jacobi_bc.at(2,3))*fab.at(2);
+      R.at(1,2) =     -(c*jacobi_bc.at(1,3)+s*jacobi_bc.at(2,3))*fab.at(1);
+      R.at(1,3) = (Lb+ubc.at(1))*s - ubc.at(2)*c - (c*jacobi_bc.at(1,1)+s*jacobi_bc.at(2,1))*Xphi - (c*jacobi_bc.at(1,2)+s*jacobi_bc.at(2,2))*Zphi; 
+      R.at(2,1) =      (c*jacobi_bc.at(2,3)-s*jacobi_bc.at(1,3))*fab.at(2);
+      R.at(2,2) = 1. - (c*jacobi_bc.at(2,3)-s*jacobi_bc.at(1,3))*fab.at(1);
+      R.at(2,3) = (Lb+ubc.at(1))*c + ubc.at(2)*s - (c*jacobi_bc.at(2,1)-s*jacobi_bc.at(1,1))*Xphi - (c*jacobi_bc.at(2,2)-s*jacobi_bc.at(1,2))*Zphi;
+      for (int j=1; j<=3; j++)
+	for (int i=1; i<=3; i++)
+	  Kblock.at(i,j) = iJ.at(i,1)*R.at(1,j) + iJ.at(i,2)*R.at(2,j); 
+      return true;
+      
     }
     
     // solve the linearized problem
@@ -878,7 +899,7 @@ NlBeamInternalContact :: predictContactMode(FloatArray ub, FloatArray ub_prev)
   // assuming that both segments are straight,
   //        check at which time 'tb' and location 'xb' the right tip hits the left segment
   // (the 'time' is a dimensionless parameter running from 0 at the beginning to 1 at the end of the step)
-  double xa, xb;
+  double xa, xb = 0;
   FloatArray du(3);
   du = ub;
   du.subtract(ub_prev);
@@ -1119,8 +1140,8 @@ NlBeamInternalContact :: findLeftEndForces(const FloatArray &u, const FloatArray
   leftActiveSegmentLength = trialLeftActiveSegmentLength;
   rightActiveSegmentLength = trialRightActiveSegmentLength;
   */
-  
   fab.beTProductOf(T,fab_loc);
+  //  printf("%g %g %g\n",fab.at(1),fab.at(2),fab.at(3));
   return true;
 }
 
@@ -1145,12 +1166,13 @@ NlBeamInternalContact :: giveInternalForcesVector(FloatArray &answer, TimeStep *
     this->computeVectorOf({D_u, D_w, R_v}, VM_Incremental, tStep, ui);
     u_prev = u - ui;
     Process = trialProcess = PT_Unknown;
-    this->findLeftEndForces(u, u_prev, this->internalForces); // only the first three entries of f are computed
+    this->tempInternalForces = this->internalForces;
+    this->findLeftEndForces(u, u_prev, this->tempInternalForces); // only the first three entries of f are computed
     //
   }
-    answer.at(1) = this->internalForces.at(1);
-    answer.at(2) = this->internalForces.at(2);
-    answer.at(3) = this->internalForces.at(3);  
+    answer.at(1) = this->tempInternalForces.at(1);
+    answer.at(2) = this->tempInternalForces.at(2);
+    answer.at(3) = this->tempInternalForces.at(3);  
     answer.at(4) = -answer.at(1);
     answer.at(5) = -answer.at(2);
     double c1 = beamLength*sin(pitch) + u.at(5) - u.at(2);
@@ -1199,7 +1221,8 @@ NlBeamInternalContact :: computeStiffnessMatrix(FloatMatrix &answer, MatResponse
   FloatMatrix T(3,3), Tprime(3,3), Ginv(3,3), Ginv44(4,4), TtGinv(3,3);
   //  FloatArray f(6);
   // @todo: check this
-  fab = this->internalForces;
+  //fab = this->internalForces;
+  fab = this->tempInternalForces;
   //  bool s = findLeftEndForces(u, u_prev, fab);
   // compute auxiliary matrices
   double phia = u.at(3);
@@ -1277,35 +1300,41 @@ NlBeamInternalContact :: computeStiffnessMatrix(FloatMatrix &answer, MatResponse
   }
 
   //compute the stiffness matrix numerically
-  /*
-  double du = 1.e-6; // small perturbation for numerical evaluation of stiffness
-  FloatArray f;
-  f = this->internalForces;
-  FloatMatrix f_pert(6,6), Knum(6,6);
-
-  for (int i=1; i<=6; i++){
-    u.at(i) += du;
-    this->giveInternalForcesVector_fromU(f, tStep, u, u_prev);
-    u.at(i) -= du;
-    for (int j=1; j<=6; j++){
-      f_pert.at(j,i) = f.at(j);
-    }
-  }
-  this->giveInternalForcesVector_fromU(f, tStep, u, u_prev);
-
-  double stifferr = 0;
-  double stiffdiagsum = 0;
-  for (int i=1; i<=6; i++){
-    for (int j=1; j<=6; j++){
-      Knum.at(i,j) = (f_pert.at(i,j)-f.at(i))/du;
-      stifferr += fabs(Knum.at(i,j)-answer.at(i,j));
-      if (i==j) {
-	stiffdiagsum += answer.at(i,j);
+  /*  if(tStep->giveNumber() > 132){
+    double du = 1.e-6; // small perturbation for numerical evaluation of stiffness
+    FloatArray f;
+    f = this->internalForces;
+    FloatMatrix f_pert(6,6), Knum(6,6);
+    
+    for (int i=1; i<=6; i++){
+      u.at(i) += du;
+      this->giveInternalForcesVector_fromU(f, tStep, u, u_prev);
+      u.at(i) -= du;
+      for (int j=1; j<=6; j++){
+	f_pert.at(j,i) = f.at(j);
       }
     }
-  }
-  double ei = stifferr/stiffdiagsum;
-  */
+
+    f = this->internalForces;
+    this->giveInternalForcesVector_fromU(f, tStep, u, u_prev);
+    
+    
+    double stifferr = 0;
+    double stiffdiagsum = 0;
+    for (int i=1; i<=6; i++){
+      for (int j=1; j<=6; j++){
+	Knum.at(i,j) = (f_pert.at(i,j)-f.at(i))/du;
+	stifferr += fabs(Knum.at(i,j)-answer.at(i,j));
+	if (i==j) {
+	  stiffdiagsum += answer.at(i,j);
+	}
+      }
+    }
+    double ei = stifferr/stiffdiagsum;
+    if(tStep->giveNumber() > 230){
+      answer = Knum;
+    }
+    }*/
 
 }
 
@@ -1316,6 +1345,7 @@ NlBeamInternalContact :: updateYourself(TimeStep *tStep)
     contactMode = trialContactMode;
     leftActiveSegmentLength = trialLeftActiveSegmentLength;
     rightActiveSegmentLength = trialRightActiveSegmentLength;
+    this->internalForces = this->tempInternalForces;
 }
 
 

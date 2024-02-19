@@ -72,13 +72,13 @@ protected:
   // relative tolerance for beam length differences to detect sliding
   double TOL_LENGTH =  1.e-8;
   // maximum number of iterations at the beam level
-  int MAXIT_BEAM  = 20;       
+  int MAXIT_BEAM  = 200;       
   // maximum number of iterations of the assumed contact mode
-  int MAXIT_CONTACT_MODE = 5;
+  int MAXIT_CONTACT_MODE = 60;
   // tolerance for iterations of the contact time
   double TOL_CONTACT_TIME =  1.e-8;
   // maximum number of iterations of the contact time
-  int MAXIT_CONTACT_TIME =  10;
+  int MAXIT_CONTACT_TIME =  50;
   //
   IntArray matNum;
 
@@ -87,7 +87,7 @@ protected:
   double leftActiveSegmentLength = 49.999;//35.;
   double rightActiveSegmentLength = 0.001;//15.;
   double trialLeftActiveSegmentLength, trialRightActiveSegmentLength;
-  FloatArray internalForces;
+  FloatArray internalForces, tempInternalForces;
  
   FloatMatrix Jacobi;
   FloatMatrix Jacobi44;

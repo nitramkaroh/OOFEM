@@ -76,6 +76,12 @@
 
 #define _IFT_NlBeam_Reissner_coupling "coupling"
 
+
+#define _IFT_NlBeam_Reissner_NIPleft "nipleft"
+#define _IFT_NlBeam_Reissner_NIPright "nipright"
+
+
+
 //@}
 
 namespace oofem {
@@ -90,6 +96,9 @@ namespace oofem {
 {
 protected:
     int NIP = 100;
+    int NIP_left = 0;
+    int NIP_right = 0;
+
     double pitch = 10, beamLength = 0;
     FloatArray internalForces, fab_init;
     FloatArray s, ds, u, w, phi, kappa;
@@ -154,9 +163,12 @@ protected:
     double givePitch();
     virtual MaterialMode giveMaterialMode() { return _2dBeam; }
 
-    double computeMomentFromCurvature(double kappa);
-    double computeDerMomentFromCurvature(double kappa);
-    double computeCurvatureFromMoment(double M);
+  double computeMomentFromCurvature(double kappa);
+    double computeDerMomentFromCurvature(double kappa, int nip);
+  double computeCurvatureFromMoment(double M, int nip);
+  double give_EA(int nip);
+  double give_GAs(int nip);
+  
     void integrateAlongBeamAndGetJacobi(const FloatArray &fab, FloatArray &ub, FloatMatrix &jacobi, TimeStep *tStep);
     void integrateAlongStraightBeamAndGetJacobi(const FloatArray &fab, FloatArray &ub, FloatMatrix &jacobi, TimeStep *tStep);
     void integrateAlongCurvedBeamAndGetJacobi(const FloatArray &fab, FloatArray &ub, FloatMatrix &jacobi);

@@ -32,6 +32,8 @@ set (sm_element
     Elements/Beams/beam3d.C
     Elements/Beams/nlbeam_sm.C
     Elements/Beams/nlbeam_sm2.C
+    Elements/Beams/nlbeam_reissner.C
+    Elements/Beams/nlbeam_mod.C
     Elements/Beams/nlbeam_internalcontact.C
     Elements/Plates/cct.C
     Elements/Plates/dkt.C 
@@ -333,6 +335,7 @@ set (sm_material
     Materials/Micromorphic/GradientPolyconvex/gradientpolyconvexmaterial_defgrad.C
     Materials/Micromorphic/GradientPolyconvex/stvenantkirchhoff_gradpolyconvex.C
     Materials/Micromorphic/ContactGradientMaterial/airmaterialcontact.C
+    Materials/Micromorphic/ContactGradientMaterial/airmaterialcontactrot.C
     Materials/Micromorphic/GradientPolyconvex/stvenantkirchhoff_gradpolyconvexdefgrad.C
     Materials/Micromorphic/GradientPolyconvex/stvenantkirchhoff_incompressible.C
     # Second-gradient materials
